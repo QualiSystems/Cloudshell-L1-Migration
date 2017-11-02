@@ -1,13 +1,20 @@
-This is a prototype of the MRV Converter script. The script was written in front of Cloudshell-8.1GA using Python 2.7.10.
-The script should get a list of the relevant MRV resource names as input, and it will automatically create new MRV resources for them, move the physical connections from the old resources to the new ones, and then recreate the logical routes that their physical routes go via relevant MRV resources.
+Cloudshell-L1-Migration tool
 
-Operation notes:
-1.	The directory contains a file named “relevant_resources.txt” – write there the relevant MRV resource names, splitted by new line.
-2.	Run the script.
+Written in Python 2.7.10
 
-Script structure:
-1.	For each reservation, the script finds all the logical routes that go through relevant MRV resources and keeps them in dedicated json file
-2.	For each relevant old resource, the script creates an equivalent new resource, disconnects the connections from the old resource and connects them to the new one
-3.	For each relevant logical route, the script removes the logical route and creates it again, so the physical connection goes via the new resource
+This tool is intended to simplify the process of migration between old L1 shells to alternate ones.
+In order to use the tool, you may either double click "run.bat" file, or use the command line: >>python mrv_converter.py.
+A simple Tkinter GUI will pop up. 
 
-The current status is that the script works in simple cases, but I haven’t tested it yet in more complicated ones. In addition, some of the script may be yet refactored and simplified.
+IMPORTANT: The new shell should be manually installed prior to using the script.
+
+The GUI is consisted of four buttons:
+1. Credentials: You may enter you credentials for Cloudshell. They are then saved inside forms/credentials.json for the script to use.
+2. Resources: You may enter here the names of the old MRV resources that need to be replaced with the new shell (case sensitive). The names are then saved under forms/resource_names.json for the script to use.
+3. New Resource: Here you should specify the new resource family, model and driver, and then click "Save" The names are then saved under forms/resource_names.json for the script to use. The data is then saved under forms/new_resource.json for the script to use.
+
+After configuring your data, press "Convert" button. Then, these steps will execute:
+1. The script will iterate through all the active reservations, and for each reservation will keep the "relevant" logical routes. "Relevant" logical routes are logical routes that their physical layer go through one of the resources mentioned in the Resources configuration.
+2. For each resource mentioned in the New Resource configuration, the script will create a new resource according to the resource template specified in the "New Resource" configuration.
+3. For each resource, the script will migrate the physical connections from the old resource to the new one.
+4. For each "Relevant Route", the script will remove the route and recreate it, so its physical layer goes through the new resource.
