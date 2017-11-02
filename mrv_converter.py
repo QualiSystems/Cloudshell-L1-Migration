@@ -7,13 +7,9 @@ from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 from cloudshell.api.cloudshell_api import CloudShellAPISession
 from widgets import *
 
-# ----------- Config -----------
 
 credentials = json.loads(open("forms/credentials.json", 'r').read())
-relevant_resource_names = open("relevant_resources.txt", 'r').read().split("\n")
-
-
-# ----------- Classes -----------
+api = CloudShellAPISession(credentials['host']['value'], credentials['username']['value'], credentials['password']['value'], credentials['domain']['value'])
 
 
 class Memory:
@@ -131,6 +127,8 @@ class OldResource(Resource):
 
 class NewResource(Resource):
     def __init__(self, name, folder='', **kwargs):
+        self.api = CloudShellAPISession(credentials['host']['value'], credentials['username']['value'], credentials['password']['value'],
+                               credentials['domain']['value'])
         self.old_resource = kwargs['old_resource'] if 'old_resource' in kwargs else None
         Resource.__init__(self, name, folder)
         self.is_created = False
@@ -140,20 +138,22 @@ class NewResource(Resource):
 
     def create(self):
         print "Creating resource {}...".format(self.name)
-        api.CreateResource('L1 Switch', 'Generic MRV Chassis', self.name, self.ip_address)
+        # self.api.CreateResource('L1 Switch', 'Generic MRV Chassis', self.name, self.ip_address)
+        new_resource_data = json.loads(open("forms/new_resource.json", 'r').read())
+        self.api.CreateResource(new_resource_data['family'], new_resource_data['model'], self.name, self.ip_address)
         self.is_created = True
-        api.UpdateResourceDriver(self.name, 'MRV MCC GENERIC')
+        self.api.UpdateResourceDriver(self.name, new_resource_data['driver'])
         self.resource = api.GetResourceDetails(self.name)
 
     def autoload(self):
-        api.ExcludeResource(self.name)
+        self.api.ExcludeResource(self.name)
         credentials = self.old_resource.get_credentials()
         for attr in credentials:
             api.SetAttributeValue(self.name, attr, credentials[attr])
         print "Autoloading resource {}...".format(self.name)
-        api.AutoLoad(self.name)
+        self.api.AutoLoad(self.name)
         self.is_loaded = True
-        api.IncludeResource(self.name)
+        self.api.IncludeResource(self.name)
         print "Autoload for resource {} done.".format(self.name)
         self.resource = api.GetResourceDetails(self.name)
 
@@ -176,6 +176,7 @@ class OldToNewMRVConverter:
 
     @staticmethod
     def reservations():
+
         return api.GetCurrentReservations().Reservations
 
     def get_topology_by_name(self, name):
@@ -231,7 +232,7 @@ class ReservationHandler:
     def reconnect_route(self, source, target):
         api.RemoveRoutesFromReservation(self.reservation_id, [source, target], 'bi')
         print "Disconnected route between {} and {} in reservation id {}".format(source, target, self.reservation_id)
-        api.CreateRouteInReservation(reservation_id, source, target, False, 'bi', 2, 'Alias', False)
+        api.CreateRouteInReservation(self.reservation_id, source, target, False, 'bi', 2, 'Alias', False)
         print "Connected route between {} and {} in reservation id {}".format(source, target, self.reservation_id)
 
     def find_relevant_resources(self):
@@ -249,29 +250,21 @@ class ReservationHandler:
         return reservation_description.ActiveRoutesInfo
 
 
-class GUI(Screen):
+class CredentialsScreen(Screen):
+
     def __init__(self, window):
         Screen.__init__(self, window)
-        self.window.resizable(width=False, height=False)
-        self.window.geometry('{}x{}'.format(700, 200))
-        creds_label = Label(root, text="Credentials")
+        creds_label = Label(self.window, text="Credentials")
         creds_label.grid(row=0, column=1)
         creds_form = Form(self.window, 1, 0, 'forms/credentials.json', id='creds_form')
         creds_form.place_on_grid()
 
-        resource_label = Label(root, text="Resource")
-        resource_label.grid(row=0, column=5)
-
-        resources_form = ResourcesForm(self.window, 1, 5, id='resources_form')
-        resources_form.place_on_grid()
-
-
-# ----------- Functions -----------
-
 
 def convert():
-    api = CloudShellAPISession(credentials['host'], credentials['username']['value'], credentials['password']['value'],
-                               credentials['domain']['value'])
+    credentials = json.loads(open("forms/credentials.json", 'r').read())
+    api = CloudShellAPISession(credentials['host']['value'], credentials['username']['value'], credentials['password']['value'], credentials['domain']['value'])
+
+    relevant_resource_names = json.loads(open("forms/resource_names.json", 'r').read())
 
     converter = OldToNewMRVConverter("new_", relevant_resource_names)
     resources_memory = Memory('resources')
@@ -280,7 +273,6 @@ def convert():
     # Keep all logical routes in memory
     for reservation in converter.reservations():
         handler = ReservationHandler(converter, reservation_id=reservation.Id)
-        relevant_routes = [x for x in handler.logical_routes()]
         logical_routes = [{'route': x, 'status': 'connected'} for x in handler.logical_routes()]
         logical_routes_memory.set(reservation.Id, {'logical_routes': logical_routes})
 
@@ -290,24 +282,18 @@ def convert():
         new_resource_name = old_resource.new_resource.name
 
         # Validating resource is in memory
-        if new_resource_name in resources_memory.data:
-            pass
-        else:
+        if new_resource_name not in resources_memory.data:
             resources_memory.set(new_resource_name, {'is_loaded': False, 'is_created': False, 'is_converted': False})
 
         # Creating new resource if neeeded
-        if resources_memory.get(new_resource_name)['is_created'] is True:
-            pass
-        else:
+        if resources_memory.get(new_resource_name)['is_created'] is False:
             old_resource.new_resource.create()
             mem_curr_data = resources_memory.get(new_resource_name)
             mem_curr_data['is_created'] = True
             resources_memory.set(new_resource_name, mem_curr_data)
 
         # Autoloading new resource if neeeded
-        if resources_memory.get(new_resource_name)['is_loaded'] is True:
-            pass
-        else:
+        if resources_memory.get(new_resource_name)['is_loaded'] is False:
             old_resource.new_resource.autoload()
             mem_curr_data = resources_memory.get(new_resource_name)
             mem_curr_data['is_loaded'] = True
@@ -340,7 +326,58 @@ def convert():
     logical_routes_memory.clear()
 
 
-# ----------- Main -----------
+class ResourceNamesScreen(Screen):
+
+    def __init__(self, window):
+        Screen.__init__(self, window)
+        relevant_resources_label = Label(self.window, text='Relevant Resources')
+        relevant_resources_label.grid(row=0, column=0)
+        resource_name_list = ResourceNamesList(self.window, 1, 0, id='resource_name_list')
+        resource_name_list.place_on_grid()
+        resource_name_list.get_dimensions()
+
+
+class NewResourceScreen(Screen):
+
+    def __init__(self, window):
+        Screen.__init__(self, window)
+        self.json_path = 'forms/new_resource.json'
+        self.resource_label = Label(self.window, text="Resource")
+        self.resource_label.grid(row=0, column=0)
+        self.resources_form = ResourcesForm(self.window, 1, 0, id='resources_form')
+        self.resources_form.place_on_grid()
+        self.save_button = Button(self.window, text='Save', command=self.save)
+        self.save_button.grid(row=4, column=0)
+
+    def save(self):
+        data = {
+            'family': self.resources_form.families_dropdown.get_value(),
+            'model': self.resources_form.models_dropdown.get_value(),
+            'driver': self.resources_form.drivers_dropdown.get_value(),
+        }
+        json_file = open(self.json_path, 'w')
+        json_file.write(json.dumps(data))
+        print "File {} was saved.".format(self.json_path)
+
+
+class GUI(Screen):
+    def __init__(self, window):
+        Screen.__init__(self, window)
+        self.window.title("MRV Converter")
+        # self.window.resizable(width=False, height=False)
+        # self.window.geometry('{}x{}'.format(1000, 200))
+
+        credentials_screen_button = OpenWindowButton(self.window, 0, 0, "Credentials", CredentialsScreen)
+        credentials_screen_button.place_on_grid()
+
+        resource_names_screen_button = OpenWindowButton(self.window, 0, 1, "Resources", ResourceNamesScreen)
+        resource_names_screen_button.place_on_grid()
+
+        new_resource_screen_button = OpenWindowButton(self.window, 0, 2, "New Resource", NewResourceScreen)
+        new_resource_screen_button.place_on_grid()
+
+        convert_button = Button(self.window, text='Convert', command=convert)
+        convert_button.grid(row=1, column=1)
 
 
 if __name__ == '__main__':
