@@ -1,0 +1,17 @@
+{
+  "resource_family":
+  {
+    "rank": 0,
+    "value": ""
+  },
+  "resource_model":
+  {
+    "rank": 1,
+    "value": ""
+  },
+  "resource_driver":
+  {
+    "rank": 2,
+    "value": ""
+  }
+}

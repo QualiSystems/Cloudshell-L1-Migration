@@ -1,0 +1,3 @@
+bs4
+cloudshell-automation-api
+lxml
