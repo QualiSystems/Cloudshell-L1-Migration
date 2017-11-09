@@ -43,9 +43,9 @@ class Memory:
         f.close()
 
 
-CREDENTIALS_PATH = 'config/forms/credentials.json'  # Here user credentials will be kept; Interacting with them using DictForm object
-RESOURCE_NAMES_PATH = 'config/forms/resource_names.json'  # Here to be converted resource names will be kept; Interacting with them using ListForm object
-NEW_RESOURCE_PATH = 'config/forms/new_resource.json'  # Here new resource template will be kept; Interacting with them using DictForm object
+CREDENTIALS_PATH = 'data/config/forms/credentials.json'  # Here user credentials will be kept; Interacting with them using DictForm object
+RESOURCE_NAMES_PATH = 'data/config/forms/resource_names.json'  # Here to be converted resource names will be kept; Interacting with them using ListForm object
+NEW_RESOURCE_PATH = 'data/config/forms/new_resource.json'  # Here new resource template will be kept; Interacting with them using DictForm object
 
 
 # --------------------------------------------
@@ -108,9 +108,22 @@ class ListForm(Form):
 
     def add(self, value):
         content = self.read()
-        content.append(value)
+        if value not in content:
+            content.append(value)
+        else:
+            print "Value {} was already found.".format(value)
         with open(self.path, 'w') as f:
             f.write(json.dumps(content))
+
+    def remove(self, value):
+        try:
+            l = self.read()
+            l.remove(value)
+            self.clear()
+            for v in l:
+                self.add(v)
+        except ValueError:
+            print "Value {} was not found.".format(value)
 
     def clear(self):
         f = open(self.path, 'w')
@@ -253,7 +266,73 @@ class NewResource(Resource):
 # --------------------------------------------
 
 
+class ReservationHandler:
+    """
+    This ibjects
+    """
+    def __init__(self, _converter, _api, **kwargs):
+        self.api = _api
+        self.converter = _converter
+        self.topology_name = kwargs['topology_name'] if 'topology_name' in kwargs else None
+        self.reservation_id = kwargs['reservation_id'] if 'reservation_id' in kwargs else None
+        if self.reservation_id is not None:
+            self.reservation_name = self.api.GetReservationDetails(self.reservation_id).ReservationDescription.Name
+            self.reservation = self.api.GetReservationDetails(self.reservation_id).ReservationDescription
+        else:
+            self.reservation_name = self.topology_name if self.topology_name is not None else kwargs['reservation'].Name
+            self.reservation = self.converter.get_reservation_by_topology_name(self.reservation_name)
+
+    def logical_routes(self):
+        return [{'source': x.Source, 'target': x.Target} for x in self.reservation.ActiveRoutesInfo]
+
+    def relevant_logical_routes(self):
+        return [{'source': x.Source, 'target': x.Target} for x in self.reservation.ActiveRoutesInfo if
+                self.is_route_consisting_of_relevant_resource(x)]
+
+    @staticmethod
+    def get_top_hierarchy_resource_name_from_name(name):
+        return "/".join(name.split("/")[:-2])
+
+    def is_route_consisting_of_relevant_resource(self, route):
+        for segment in route.Segments:
+            source_resource = self.converter.api.GetResourceDetails(
+                self.get_top_hierarchy_resource_name_from_name(segment.Source))
+            target_resource = self.converter.api.GetResourceDetails(
+                self.get_top_hierarchy_resource_name_from_name(segment.Target))
+            if self.is_relevant(source_resource) or self.is_relevant(target_resource):
+                return True
+        return False
+
+    def is_relevant(self, resource_object):
+        return resource_object.Name in self.converter.relevant_resource_names
+
+    def reconnect_route(self, source, target):
+        self.api.RemoveRoutesFromReservation(self.reservation_id, [source, target], 'bi')
+        print "Disconnected route between {} and {} in reservation id {}".format(source, target, self.reservation_id)
+        self.api.CreateRouteInReservation(self.reservation_id, source, target, False, 'bi', 2, 'Alias', False)
+        print "Connected route between {} and {} in reservation id {}".format(source, target, self.reservation_id)
+
+    def find_relevant_resources(self):
+        resources = []
+        for resource in self.converter.reservation.ReservationDescription.Resources:
+            if resource.Name in self.converter.relevant_resource_names:
+                resources.append(resource)
+        return resources
+
+    def get_all_routes(self):
+        return self.converter.topology.Routes
+
+    @staticmethod
+    def get_active_routes(reservation_description):
+        return reservation_description.ActiveRoutesInfo
+
+
 class OldToNewMRVConverter:
+    """
+    This is the core object of the script, intended to orchestrate the process of migrating each old shell to the new one,
+    migrating the physical connections and updating the routes in the active reservations.
+    """
+
     def __init__(self, new_resource_names_prefix, relevant_resource_names_list, api):
         self.api = api
         self.new_resource_names_prefix = new_resource_names_prefix
@@ -347,64 +426,6 @@ class OldToNewMRVConverter:
         self.logical_routes_memory.clear()
 
 
-class ReservationHandler:
-    def __init__(self, _converter, _api, **kwargs):
-        self.api = _api
-        self.converter = _converter
-        self.topology_name = kwargs['topology_name'] if 'topology_name' in kwargs else None
-        self.reservation_id = kwargs['reservation_id'] if 'reservation_id' in kwargs else None
-        if self.reservation_id is not None:
-            self.reservation_name = self.api.GetReservationDetails(self.reservation_id).ReservationDescription.Name
-            self.reservation = self.api.GetReservationDetails(self.reservation_id).ReservationDescription
-        else:
-            self.reservation_name = self.topology_name if self.topology_name is not None else kwargs['reservation'].Name
-            self.reservation = self.converter.get_reservation_by_topology_name(self.reservation_name)
-
-    def logical_routes(self):
-        return [{'source': x.Source, 'target': x.Target} for x in self.reservation.ActiveRoutesInfo]
-
-    def relevant_logical_routes(self):
-        return [{'source': x.Source, 'target': x.Target} for x in self.reservation.ActiveRoutesInfo if
-                self.is_route_consisting_of_relevant_resource(x)]
-
-    @staticmethod
-    def get_top_hierarchy_resource_name_from_name(name):
-        return "/".join(name.split("/")[:-2])
-
-    def is_route_consisting_of_relevant_resource(self, route):
-        for segment in route.Segments:
-            source_resource = self.converter.api.GetResourceDetails(
-                self.get_top_hierarchy_resource_name_from_name(segment.Source))
-            target_resource = self.converter.api.GetResourceDetails(
-                self.get_top_hierarchy_resource_name_from_name(segment.Target))
-            if self.is_relevant(source_resource) or self.is_relevant(target_resource):
-                return True
-        return False
-
-    def is_relevant(self, resource_object):
-        return resource_object.Name in self.converter.relevant_resource_names
-
-    def reconnect_route(self, source, target):
-        self.api.RemoveRoutesFromReservation(self.reservation_id, [source, target], 'bi')
-        print "Disconnected route between {} and {} in reservation id {}".format(source, target, self.reservation_id)
-        self.api.CreateRouteInReservation(self.reservation_id, source, target, False, 'bi', 2, 'Alias', False)
-        print "Connected route between {} and {} in reservation id {}".format(source, target, self.reservation_id)
-
-    def find_relevant_resources(self):
-        resources = []
-        for resource in self.converter.reservation.ReservationDescription.Resources:
-            if resource.Name in self.converter.relevant_resource_names:
-                resources.append(resource)
-        return resources
-
-    def get_all_routes(self):
-        return self.converter.topology.Routes
-
-    @staticmethod
-    def get_active_routes(reservation_description):
-        return reservation_description.ActiveRoutesInfo
-
-
 # --------------------------------------------
 
 
@@ -413,22 +434,35 @@ if __name__ == '__main__':
     new_resource_template = DictForm(NEW_RESOURCE_PATH)
     resource_names = ListForm(RESOURCE_NAMES_PATH)
 
-    if "--config" in sys.argv:
-        if sys.argv[sys.argv.index("--config") + 1] == "/f":
-            filepath = sys.argv[sys.argv.index("--config") + 2]
+    # This node configures the credentials
+    # SYNTAX: --credentials host <CSHost> / --credentials username <CSUserName> / --credentials password <CSPassword> / --credentials domain <CSDomain>
+    # Otherwise, you may reference a json file => --credentials /f <FilePath.json>
+    if "--credentials" in sys.argv:
+        if sys.argv[sys.argv.index("--credentials") + 1] == "/f":
+            filepath = sys.argv[sys.argv.index("--credentials") + 2]
         else:
-            field = sys.argv[sys.argv.index("--config") + 1]
-            value = sys.argv[sys.argv.index("--config") + 2]
+            field = sys.argv[sys.argv.index("--credentials") + 1]
+            value = sys.argv[sys.argv.index("--credentials") + 2]
             credentials.set(field, value)
 
-    if "--resources" in sys.argv:
-        if sys.argv[sys.argv.index("--resources") + 1] == "/a":
+    # This node sets the list of the resources to be converted
+    # SYNTAX: --resources add|delete <ResourceName> / --resources clear|show
+    elif "--resources" in sys.argv:
+        if sys.argv[sys.argv.index("--resources") + 1] == "add":
             resource_name = sys.argv[sys.argv.index("--resources") + 2]
             resource_names.add(resource_name)
-        elif sys.argv[sys.argv.index("--resources") + 1] == "--clear":
+        elif sys.argv[sys.argv.index("--resources") + 1] == "clear":
             resource_names.clear()
+        elif sys.argv[sys.argv.index("--resources") + 1] == "delete":
+            resource_name = sys.argv[sys.argv.index("--resources") + 2]
+            resource_names.remove(resource_name)
+        elif sys.argv[sys.argv.index("--resources") + 1] == "show":
+            print ", ".join(resource_names.read())
 
-    if "--new-resource" in sys.argv:
+    # This node configures which shell is the new shell to be used
+    # SYNTAX: --new-resource family|model|driver = <value>
+    # Otherwise, you may reference a json file => --new-resource /f <FilePath.json>
+    elif "--new-resource" in sys.argv:
         if sys.argv[sys.argv.index("--new-resource") + 1] == "/f":
             resources_filepath = sys.argv[sys.argv.index("--resources") + 2]
             resources_list = open(resources_filepath, 'r').read().split('\n')
@@ -439,7 +473,9 @@ if __name__ == '__main__':
             value = sys.argv[sys.argv.index("--new-resource") + 2]
             new_resource_template.set(field, value)
 
-    if len(sys.argv) == 2 and 'convert' in sys.argv:
+    # After configuring the credentials, relevant resource names and new resource template, convert
+    # Syntax: convert
+    elif len(sys.argv) == 2 and 'convert' in sys.argv:
         api = CloudShellAPISession(credentials.get('host'), credentials.get('username'), credentials.get('password'), credentials.get('domain'))
         converter = OldToNewMRVConverter("new_", resource_names.read(), api)
         converter.convert()
