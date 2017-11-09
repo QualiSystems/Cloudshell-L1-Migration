@@ -1,3 +1,8 @@
+"""
+The library is intended to migrate old MRV shells to the new generic MRV shell via CLI platform.
+"""
+
+
 import os.path
 import json
 import sys
@@ -7,7 +12,7 @@ from cloudshell.api.cloudshell_api import CloudShellAPISession
 
 class Memory:
     """
-    This class is intended to keep relevant data in json files, and interact with the file.
+    This class is intended to keep relevant dictionaries in json files, and interact with the file.
     """
     def __init__(self, name):
         self.path = "data/{}.json".format(name)
@@ -38,9 +43,12 @@ class Memory:
         f.close()
 
 
-CREDENTIALS_PATH = 'config/forms/credentials.json'
-RESOURCE_NAMES_PATH = 'config/forms/resource_names.json'
-NEW_RESOURCE_PATH = 'config/forms/new_resource.json'
+CREDENTIALS_PATH = 'config/forms/credentials.json'  # Here user credentials will be kept; Interacting with them using DictForm object
+RESOURCE_NAMES_PATH = 'config/forms/resource_names.json'  # Here to be converted resource names will be kept; Interacting with them using ListForm object
+NEW_RESOURCE_PATH = 'config/forms/new_resource.json'  # Here new resource template will be kept; Interacting with them using DictForm object
+
+
+# --------------------------------------------
 
 
 class Form:
@@ -70,7 +78,7 @@ class Form:
 
 class DictForm(Form):
     """
-    Class 
+    This class is intended to interact with forms and save the data to json files.
     """
     def __init__(self, path):
         Form.__init__(self, path)
@@ -86,7 +94,9 @@ class DictForm(Form):
 
 
 class ListForm(Form):
-
+    """
+    This class is intended to keep relevant lists in json files.
+    """
     def __init__(self, path):
         Form.__init__(self, path)
 
@@ -107,7 +117,14 @@ class ListForm(Form):
         f.close()
 
 
+# --------------------------------------------
+
+
 class PathParser:
+    """
+    Due to differences in the naming conventions of sub-resources between the old MRV shells to the new one (Port01 vs /Port 1,
+    I created this class in order to handle the migration between the two conventions easily.
+    """
     def __init__(self, path):
         self.path = path
         self.type = ''
@@ -138,6 +155,9 @@ class PathParser:
 
 
 class BladePortParser:
+    """
+    This class is uses PathParsers in order to migrate two physical connections (Blade01/Port01 to Blade 1/Port 1 etc.)
+    """
     def __init__(self, path):
         self.path = path
         self.bladeport = self.path.split("/")[::-1][:2][::-1]
@@ -154,7 +174,14 @@ class BladePortParser:
         return "/".join(self.bladeport)
 
 
+# --------------------------------------------
+
+
 class Resource:
+    """
+    The script interacts with the resource via OldResource classes and NewResource classes. For each old resource an OldResource class will be created,
+    and for each OldResource, and then a NewResource class will be created and populated.
+    """
     def __init__(self, name, api, folder=''):
         self.api = api
         self.name = name
@@ -200,6 +227,7 @@ class NewResource(Resource):
         self.is_loaded = False
         self.is_converted = False
         self.ip_address = self.old_resource.resource.FullAddress
+        self.credentials = self.old_resource.get_credentials()
 
     def create(self):
         print "Creating resource {}...".format(self.name)
@@ -212,15 +240,17 @@ class NewResource(Resource):
 
     def autoload(self):
         self.api.ExcludeResource(self.name)
-        credentials = self.old_resource.get_credentials()
-        for attr in credentials:
-            self.api.SetAttributeValue(self.name, attr, credentials[attr])
+        for attr in self.credentials:
+            self.api.SetAttributeValue(self.name, attr, self.credentials[attr])
         print "Autoloading resource {}...".format(self.name)
         self.api.AutoLoad(self.name)
         self.is_loaded = True
         self.api.IncludeResource(self.name)
         print "Autoload for resource {} done.".format(self.name)
         self.resource = self.api.GetResourceDetails(self.name)
+
+
+# --------------------------------------------
 
 
 class OldToNewMRVConverter:
@@ -318,9 +348,9 @@ class OldToNewMRVConverter:
 
 
 class ReservationHandler:
-    def __init__(self, converter, api, **kwargs):
-        self.api = api
-        self.converter = converter
+    def __init__(self, _converter, _api, **kwargs):
+        self.api = _api
+        self.converter = _converter
         self.topology_name = kwargs['topology_name'] if 'topology_name' in kwargs else None
         self.reservation_id = kwargs['reservation_id'] if 'reservation_id' in kwargs else None
         if self.reservation_id is not None:
@@ -375,6 +405,9 @@ class ReservationHandler:
         return reservation_description.ActiveRoutesInfo
 
 
+# --------------------------------------------
+
+
 if __name__ == '__main__':
     credentials = DictForm(CREDENTIALS_PATH)
     new_resource_template = DictForm(NEW_RESOURCE_PATH)
@@ -409,3 +442,4 @@ if __name__ == '__main__':
     if len(sys.argv) == 2 and 'convert' in sys.argv:
         api = CloudShellAPISession(credentials.get('host'), credentials.get('username'), credentials.get('password'), credentials.get('domain'))
         converter = OldToNewMRVConverter("new_", resource_names.read(), api)
+        converter.convert()
