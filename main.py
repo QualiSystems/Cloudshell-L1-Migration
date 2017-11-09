@@ -435,11 +435,17 @@ if __name__ == '__main__':
     resource_names = ListForm(RESOURCE_NAMES_PATH)
 
     # This node configures the credentials
-    # SYNTAX: --credentials host <CSHost> / --credentials username <CSUserName> / --credentials password <CSPassword> / --credentials domain <CSDomain>
+    # SYNTAX: --credentials host <CSHost> / --credentials username <CSUserName> / --credentials password <CSPassword> / --credentials domain <CSDomain> / --credentials show
     # Otherwise, you may reference a json file => --credentials /f <FilePath.json>
     if "--credentials" in sys.argv:
         if sys.argv[sys.argv.index("--credentials") + 1] == "/f":
             filepath = sys.argv[sys.argv.index("--credentials") + 2]
+        elif sys.argv[sys.argv.index("--credentials") + 1] == "show":
+            creds_dict = credentials.read()
+            for field in sorted(creds_dict, key=lambda x: creds_dict[x]['rank']):
+                credentials_value = creds_dict[field]['value'] if field != "password" else "*" * len(creds_dict[field]['value'])
+                print "{}: {}".format(field, credentials_value)
+
         else:
             field = sys.argv[sys.argv.index("--credentials") + 1]
             value = sys.argv[sys.argv.index("--credentials") + 2]
