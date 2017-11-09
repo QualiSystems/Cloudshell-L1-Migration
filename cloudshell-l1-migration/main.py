@@ -6,6 +6,7 @@ The library is intended to migrate old MRV shells to the new generic MRV shell v
 import os.path
 import json
 import sys
+import re
 from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 from cloudshell.api.cloudshell_api import CloudShellAPISession
 
@@ -217,7 +218,7 @@ class Resource:
     def get_credentials(self):
         return {
             'User': self.api.GetAttributeValue(self.full_path, 'User').Value,
-            'Password': self.api.DecryptPassword(api.GetAttributeValue(self.full_path, 'Password').Value).Value,
+            'Password': self.api.DecryptPassword(self.api.GetAttributeValue(self.full_path, 'Password').Value).Value,
         }
 
     def create_and_autoload(self):
@@ -225,17 +226,17 @@ class Resource:
 
 
 class OldResource(Resource):
-    def __init__(self, name, folder=''):
-        Resource.__init__(self, name, folder)
+    def __init__(self, name, api, folder=''):
+        Resource.__init__(self, name, api, folder)
         self.is_converted = False
-        self.new_resource = NewResource("new_{}".format(self.name), self.folder, old_resource=self)
+        self.new_resource = NewResource("new_{}".format(self.name), self.api, self.folder, old_resource=self)
 
 
 class NewResource(Resource):
     def __init__(self, name,  api, folder='', **kwargs):
         self.api = api
         self.old_resource = kwargs['old_resource'] if 'old_resource' in kwargs else None
-        Resource.__init__(self, name, folder)
+        Resource.__init__(self, name, api, folder)
         self.is_created = False
         self.is_loaded = False
         self.is_converted = False
@@ -244,11 +245,10 @@ class NewResource(Resource):
 
     def create(self):
         print "Creating resource {}...".format(self.name)
-        # self.api.CreateResource('L1 Switch', 'Generic MRV Chassis', self.name, self.ip_address)
-        new_resource_data = json.loads(open("forms/new_resource.json", 'r').read())
-        self.api.CreateResource(new_resource_data['family'], new_resource_data['model'], self.name, self.ip_address)
+        new_resource_form = DictForm(NEW_RESOURCE_PATH)
+        self.api.CreateResource(new_resource_form.get('family'), new_resource_form.get('model'), self.name, self.ip_address)
         self.is_created = True
-        self.api.UpdateResourceDriver(self.name, new_resource_data['driver'])
+        self.api.UpdateResourceDriver(self.name, new_resource_form.get('driver'))
         self.resource = self.api.GetResourceDetails(self.name)
 
     def autoload(self):
@@ -333,8 +333,8 @@ class OldToNewMRVConverter:
     migrating the physical connections and updating the routes in the active reservations.
     """
 
-    def __init__(self, new_resource_names_prefix, relevant_resource_names_list, api):
-        self.api = api
+    def __init__(self, new_resource_names_prefix, relevant_resource_names_list, _api):
+        self.api = _api
         self.new_resource_names_prefix = new_resource_names_prefix
         self.relevant_resource_names = relevant_resource_names_list
         self.logical_routes_memory = Memory('logical_routes')
@@ -367,13 +367,13 @@ class OldToNewMRVConverter:
 
     def memory_keep_logical_routes(self):
         for reservation in self.reservations():
-            handler = ReservationHandler(converter, api, reservation_id=reservation.Id)
+            handler = ReservationHandler(converter, self.api, reservation_id=reservation.Id)
             logical_routes = [{'route': x, 'status': 'connected'} for x in handler.logical_routes()]
             self.logical_routes_memory.set(reservation.Id, {'logical_routes': logical_routes})
 
     def memory_keep_physical_connections(self):
         for resource_name in self.relevant_resource_names:
-            old_resource = OldResource(resource_name)
+            old_resource = OldResource(resource_name, self.api)
             new_resource_name = old_resource.new_resource.name
 
             # Validating resource is in memory
@@ -385,12 +385,12 @@ class OldToNewMRVConverter:
                 old_resource.new_resource.create()
                 mem_curr_data = self.resources_memory.get(new_resource_name)
                 mem_curr_data['is_created'] = True
-                resources_memory.set(new_resource_name, mem_curr_data)
+                self.resources_memory.set(new_resource_name, mem_curr_data)
 
             # Autoloading new resource if neeeded
             if self.resources_memory.get(new_resource_name)['is_loaded'] is False:
                 old_resource.new_resource.autoload()
-                mem_curr_data = resources_memory.get(new_resource_name)
+                mem_curr_data = self.resources_memory.get(new_resource_name)
                 mem_curr_data['is_loaded'] = True
                 self.resources_memory.set(new_resource_name, mem_curr_data)
 
@@ -409,9 +409,9 @@ class OldToNewMRVConverter:
                 except CloudShellAPIError as e:
                     try:
                         resource_name = re.findall("'\w+'", e.message)[0].replace("'", "")
-                        api.ExcludeResource(resource_name)
-                        api.SyncResourceFromDevice(resource_name)
-                        api.IncludeResource(resource_name)
+                        self.api.ExcludeResource(resource_name)
+                        self.api.SyncResourceFromDevice(resource_name)
+                        self.api.IncludeResource(resource_name)
                         handler.reconnect_route(logical_route['route']['source'], logical_route['route']['target'])
                     except IndexError:
                         print e.message
@@ -474,6 +474,10 @@ if __name__ == '__main__':
             resources_list = open(resources_filepath, 'r').read().split('\n')
             resource_names.clear()
             [resource_names.add(name) for name in resources_list]
+        elif sys.argv[sys.argv.index("--new-resource") + 1] == "show":
+            new_resource_template_dict = new_resource_template.read()
+            for field in sorted(new_resource_template.read(), key=lambda x: new_resource_template_dict[x]['rank']):
+                print "{}: {}".format(field, new_resource_template_dict[field]['value'])
         else:
             field = sys.argv[sys.argv.index("--new-resource") + 1]
             value = sys.argv[sys.argv.index("--new-resource") + 2]
@@ -482,6 +486,6 @@ if __name__ == '__main__':
     # After configuring the credentials, relevant resource names and new resource template, convert
     # Syntax: convert
     elif len(sys.argv) == 2 and 'convert' in sys.argv:
-        api = CloudShellAPISession(credentials.get('host'), credentials.get('username'), credentials.get('password'), credentials.get('domain'))
-        converter = OldToNewMRVConverter("new_", resource_names.read(), api)
+        api_session = CloudShellAPISession(credentials.get('host'), credentials.get('username'), credentials.get('password'), credentials.get('domain'))
+        converter = OldToNewMRVConverter("new_", resource_names.read(), api_session)
         converter.convert()
