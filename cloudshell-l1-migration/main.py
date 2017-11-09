@@ -10,6 +10,14 @@ from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 from cloudshell.api.cloudshell_api import CloudShellAPISession
 
 
+CREDENTIALS_PATH = 'data/config/forms/credentials.json'  # Here user credentials will be kept; Interacting with them using DictForm object
+RESOURCE_NAMES_PATH = 'data/config/forms/resource_names.json'  # Here to be converted resource names will be kept; Interacting with them using ListForm object
+NEW_RESOURCE_PATH = 'data/config/forms/new_resource.json'  # Here new resource template will be kept; Interacting with them using DictForm object
+
+
+# --------------------------------------------
+
+
 class Memory:
     """
     This class is intended to keep relevant dictionaries in json files, and interact with the file.
@@ -41,14 +49,6 @@ class Memory:
     def clear(self):
         f = open(self.path, 'w')
         f.close()
-
-
-CREDENTIALS_PATH = 'data/config/forms/credentials.json'  # Here user credentials will be kept; Interacting with them using DictForm object
-RESOURCE_NAMES_PATH = 'data/config/forms/resource_names.json'  # Here to be converted resource names will be kept; Interacting with them using ListForm object
-NEW_RESOURCE_PATH = 'data/config/forms/new_resource.json'  # Here new resource template will be kept; Interacting with them using DictForm object
-
-
-# --------------------------------------------
 
 
 class Form:
@@ -268,7 +268,7 @@ class NewResource(Resource):
 
 class ReservationHandler:
     """
-    This ibjects
+    This objects handles the connections inside a reservation.
     """
     def __init__(self, _converter, _api, **kwargs):
         self.api = _api
