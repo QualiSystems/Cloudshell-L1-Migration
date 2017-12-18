@@ -8,13 +8,37 @@ A simple Tkinter GUI will pop up.
 
 IMPORTANT: The new shell should be manually installed prior to using the script.
 
-The GUI is consisted of four buttons:
-1. Credentials: You may enter you credentials for Cloudshell. They are then saved inside forms/credentials.json for the script to use.
-2. Resources: You may enter here the names of the old MRV resources that need to be replaced with the new shell (case sensitive). The names are then saved under forms/resource_names.json for the script to use.
-3. New Resource: Here you should specify the new resource family, model and driver, and then click "Save" The names are then saved under forms/resource_names.json for the script to use. The data is then saved under forms/new_resource.json for the script to use.
+======================
+Installation
+======================
+Use >>pip install <PackagePath>.
+'cloudshell-l1-migration' folder will be created under your Python interpreter Lib/site-packages directory.
+Navigate using cmd to the created directory.
+  
+======================
+Usage:
+======================
+1. Configure Cloudshell credentials: In order to use the tool, the user must configure his credentials:
+>> python main.py --credentials host <CSHost>
+>> python main.py --credentials username <CSUserName>
+>> python main.py --credentials password <CSPassword>
+>> python main.py --credentials domain <CSDomain>
+You may see the current credentials by running >> python main.py --credentials show
 
-After configuring your data, press "Convert" button. Then, these steps will execute:
-1. The script will iterate through all the active reservations, and for each reservation will keep the "relevant" logical routes. "Relevant" logical routes are logical routes that their physical layer go through one of the resources mentioned in the Resources configuration.
-2. For each resource mentioned in the New Resource configuration, the script will create a new resource according to the resource template specified in the "New Resource" configuration.
-3. For each resource, the script will migrate the physical connections from the old resource to the new one.
-4. For each "Relevant Route", the script will remove the route and recreate it, so its physical layer goes through the new resource.
+2. Assert old MRV resources to be converted - two options:
+a. Manual insertion - add resources one by one:
+>> python main.py --resources add <ResourceName>
+You may delete a resource name:
+--resources delete <ResourceName>
+b. Supplying a file:
+You may enter a path to a text file with the resource names splitted by comma (example: resource_a,resource_b,resource_c):
+Be aware that the previous resource names will be deleted.
+>> python main.py --resources /f <FullFilePath>
+
+3. Configuring the new shell: The user may configure which shell is the new shell (family, model, driver):
+>> python main.py --new-resource family <ResourceFamily>
+>> python main.py --new-resource model <ResourceModel>
+>> python main.py --new-resource model <ResourceDriver>
+You may see the current configuration by running >> python main.py --new-resource show
+
+4. Convert: >> python main.py convert
