@@ -8,14 +8,12 @@ A simple Tkinter GUI will pop up.
 
 IMPORTANT: The new shell should be manually installed prior to using the script.
 
-======================
 Installation
 ======================
 Use >>pip install <PackagePath>.
 'cloudshell-l1-migration' folder will be created under your Python interpreter Lib/site-packages directory.
 Navigate using cmd to the created directory.
   
-======================
 Usage:
 ======================
 1. Configure Cloudshell credentials: In order to use the tool, the user must configure his credentials:
