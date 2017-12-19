@@ -2,21 +2,30 @@ Cloudshell-L1-Migration tool
 
 Written in Python 2.7.10
 
-This tool is intended to simplify the process of migration between old L1 shells to alternate ones.
-In order to use the tool, you may either double click "run.bat" file, or use the command line: >>python mrv_converter.py.
-A simple Tkinter GUI will pop up. 
 
-IMPORTANT: The new shell should be manually installed prior to using the script.
+Introduction
+======================
+This tool is intended to simplify the process of migration between old L1 shells to alternate ones.
+!!! IMPORTANT: The new L1 shell should be manually installed prior to using the tool.
+
+Requirements
+======================
+1. Windows CloudShell 7 or higher
+1. New L1 driver already installed (no need for creating any resources using it)
 
 Installation
 ======================
-Use:
+Install the package py using pip and pointing to the tool's zip path. You may use one of the following:
 
->>pip install <PackagePath>.
-  
-'cloudshell-l1-migration' folder will be created under your Python interpreter Lib/site-packages directory.
-Navigate using cmd to the created directory.
-  
+>>pip install <ToolPath>.
+>>python -m pip install <ToolPath>.
+
+You may either use the Execution Server's Python interpreter or one of your own.
+
+'cloudshell-l1-migration' folder will be created under your Python interpreter's Lib/site-packages directory,
+navigate using cmd to the created directory.
+
+
 Usage:
 ======================
 1. Configure Cloudshell credentials: In order to use the tool, the user must configure his credentials:
