@@ -11,7 +11,7 @@ This tool is intended to simplify the process of migration between old L1 shells
 Requirements
 ======================
 1. Windows CloudShell 7 or higher
-1. New L1 driver already installed (no need for creating any resources using it)
+1. New L1 driver must be already installed (no need for creating any resources using it)
 
 Installation
 ======================
