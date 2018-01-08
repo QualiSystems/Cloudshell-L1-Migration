@@ -6,6 +6,7 @@ The library is intended to migrate old MRV shells to the new generic MRV shell v
 import os.path
 import json
 import sys
+import pip
 import re
 from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 from cloudshell.api.cloudshell_api import CloudShellAPISession
@@ -430,6 +431,9 @@ class OldToNewMRVConverter:
 
 
 if __name__ == '__main__':
+
+    pip.main(['install', 'cloudshell-automation-api'])
+
     credentials = DictForm(CREDENTIALS_PATH)
     new_resource_template = DictForm(NEW_RESOURCE_PATH)
     resource_names = ListForm(RESOURCE_NAMES_PATH)
