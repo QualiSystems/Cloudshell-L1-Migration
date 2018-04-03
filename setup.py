@@ -20,7 +20,7 @@ setup(
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
     package_data={'migration': ['data/*.yml', 'data/*.json']},
     entry_points={
-        "console_scripts": ['migration = cloudshell.layer_one.migration.bootstrap:cli']
+        "console_scripts": ['migration_tool = cloudshell.layer_one.migration_tool.bootstrap:cli']
     },
     include_package_data=True,
     install_requires=get_file_content('requirements.txt'),
