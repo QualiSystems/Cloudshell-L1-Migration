@@ -1,6 +1,7 @@
 import os
 
 import click
+from cloudshell.api.cloudshell_api import CloudShellAPISession
 
 from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
 from cloudshell.layer_one.migration_tool.operations.config_operations import ConfigOperations
@@ -33,10 +34,21 @@ def config(key, value, config_path):
 
 
 @cli.command()
-# @click.option(u'--gen2', 'default_view', flag_value='QQ', help="Show 2nd generation shell templates")
-# @click.option(u'--gen1', 'default_view', flag_value='BB', help="Show 1st generation shell templates")
-def list():
-    pass
+@click.option(u'--config', 'config_path', default=CONFIG_PATH, help="Configuration file")
+def list_resources(config_path):
+    config_helper = ConfigHelper(config_path)
+    api = _initialize_api(config_helper.configuration)
+    print api.GetCurrentReservations().Reservations
+
+
+def _initialize_api(configuration):
+    """
+    :type configuration: dict
+    """
+    return CloudShellAPISession(configuration.get(ConfigHelper.HOST_KEY),
+                                configuration.get(ConfigHelper.USERNAME_KEY),
+                                configuration.get(ConfigHelper.PASSWORD_KEY),
+                                configuration.get(ConfigHelper.DOMAIN_KEY))
 
 # @cli.command()
 # @click.argument(u'kv', type=(str, str), default=(None, None), required=False)

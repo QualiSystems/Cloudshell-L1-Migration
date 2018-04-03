@@ -8,12 +8,18 @@ import yaml
 
 
 class ConfigHelper(object):
+    USERNAME_KEY = 'username'
+    PASSWORD_KEY = 'password'
+    DOMAIN_KEY = 'domain'
+    HOST_KEY = 'host'
+    PORT_KEY = 'port'
+
     DEFAULT_CONFIGURATION = {
-        'username': 'admin',
-        'domain': 'Global',
-        'password': 'admin',
-        'host': 'localhost',
-        'port': 9000
+        USERNAME_KEY: 'admin',
+        DOMAIN_KEY: 'Global',
+        PASSWORD_KEY: 'admin',
+        HOST_KEY: 'localhost',
+        PORT_KEY: 9000
     }
 
     def __init__(self, config_path):
@@ -73,7 +79,6 @@ class ConfigHelper(object):
 
 
 class PasswordModification(object):
-    HANDLING_KEY = 'password'
 
     @staticmethod
     def encrypt_password(data):
@@ -81,21 +86,21 @@ class PasswordModification(object):
         Encrypt password
         :type data: dict
         """
-        value = data.get(PasswordModification.HANDLING_KEY)
+        value = data.get(ConfigHelper.PASSWORD_KEY)
         encryption_key = PasswordModification._get_encryption_key()
         encoded = PasswordModification._decode_encode(value, encryption_key)
-        data[PasswordModification.HANDLING_KEY] = base64.b64encode(encoded)
+        data[ConfigHelper.PASSWORD_KEY] = base64.b64encode(encoded)
         return data
 
     @staticmethod
     def decrypt_password(data):
-        value = data.get(PasswordModification.HANDLING_KEY)
+        value = data.get(ConfigHelper.PASSWORD_KEY)
         try:
             encryption_key = PasswordModification._get_encryption_key()
             decoded = PasswordModification._decode_encode(base64.decodestring(value), encryption_key)
-            data[PasswordModification.HANDLING_KEY] = decoded
+            data[ConfigHelper.PASSWORD_KEY] = decoded
         except binascii.Error:
-            data[PasswordModification.HANDLING_KEY] = value
+            data[ConfigHelper.PASSWORD_KEY] = value
         return data
 
     @staticmethod

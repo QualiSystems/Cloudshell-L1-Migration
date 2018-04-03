@@ -1,4 +1,4 @@
-from cloudshell.layer_one.migration_tool.helpers.config_helper import PasswordModification
+from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
 
 
 class ConfigOperations(object):
@@ -27,6 +27,6 @@ class ConfigOperations(object):
 
     @staticmethod
     def _format_output(key, value):
-        if key == PasswordModification.HANDLING_KEY:
+        if key == ConfigHelper.PASSWORD_KEY:
             value = '*' * len(value)
         return '{0}: {1}'.format(key, value)
