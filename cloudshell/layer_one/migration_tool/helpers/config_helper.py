@@ -19,7 +19,7 @@ class ConfigHelper(object):
         DOMAIN_KEY: 'Global',
         PASSWORD_KEY: 'admin',
         HOST_KEY: 'localhost',
-        PORT_KEY: 9000
+        PORT_KEY: 8029
     }
 
     def __init__(self, config_path):
