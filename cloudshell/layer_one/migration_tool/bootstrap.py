@@ -1,4 +1,5 @@
 import os
+import sys
 
 import click
 from cloudshell.api.cloudshell_api import CloudShellAPISession
@@ -51,6 +52,7 @@ def show_resources(config_path, family):
 @click.argument(u'old_resources', type=str, default=None, required=False)
 @click.argument(u'new_resources', type=str, default=None, required=False)
 def migrate(config_path, old_resources, new_resources):
+    print(sys.argv)
     config_helper = ConfigHelper(config_path)
     api = _initialize_api(config_helper.configuration)
     resources_operations = ResourcesOperations(api)
