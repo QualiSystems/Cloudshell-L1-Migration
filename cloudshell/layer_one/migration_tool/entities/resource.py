@@ -1,7 +1,5 @@
 class Resource(object):
-    DESCRIPTION_HEADER = 'Name/Address/Family/Model/Driver'
-
-    def __init__(self, name, address=None, family=None, model=None, driver=None):
+    def __init__(self, name, address, family, model, driver=None):
         self.name = name
         self.address = address
         self.family = family

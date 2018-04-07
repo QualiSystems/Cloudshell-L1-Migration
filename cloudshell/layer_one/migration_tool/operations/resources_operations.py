@@ -1,8 +1,10 @@
 import click
 
-from cloudshell.layer_one.migration_tool.entities.migration_unit import MigrationUnit
+from cloudshell.layer_one.migration_tool.entities.config_unit import ConfigUnit
+from cloudshell.layer_one.migration_tool.entities.migration_config import MigrationConfig
 from cloudshell.layer_one.migration_tool.entities.resource import Resource
-from cloudshell.layer_one.migration_tool.validators.migration_units_validator import MigrationUnitsValidator
+from cloudshell.layer_one.migration_tool.handlers.migration_config_handler import MigrationConfigHandler
+from cloudshell.layer_one.migration_tool.validators.migration_operation_validator import MigrationUnitValidator
 
 
 class ResourcesOperations(object):
@@ -35,30 +37,28 @@ class ResourcesOperations(object):
         :type old_resources: str
         :type new_resources: str
         """
-        migration_units = self._build_migration_units_from_arguments(old_resources, new_resources)
-        validator = MigrationUnitsValidator(self._api)
-        migration_units = validator.validate(migration_units)
-        print(migration_units)
+        migration_configs = self._parse_migration_configuration(old_resources, new_resources)
+        migration_config_handler = MigrationConfigHandler(self._api)
+        migration_operations_list = []
+        for migration_config in migration_configs:
+            migration_operations_list.extend(migration_config_handler.define_operations(migration_config))
+        print(migration_operations_list)
 
-    def _build_migration_units_from_arguments(self, old_resources, new_resources):
+    def _parse_migration_configuration(self, old_resources_str, new_resources_str):
         """
-        :type old_resources: str
-        :type new_resources: str
+        :type old_resources_str: str
+        :type new_resources_str: str
         """
-        old_resources_list = []
-        for data in old_resources.split(self.SEPARATOR):
-            old_resources_list.append(Resource.from_string(data))
-        new_resources_list = []
-        for data in new_resources.split(self.SEPARATOR):
-            new_resources_list.append(Resource.from_string(data))
-        migration_units = []
+        migration_config_list = []
+        old_resources_conf_list = old_resources_str.split(self.SEPARATOR)
+        new_resources_conf_list = new_resources_str.split(self.SEPARATOR)
 
-        if len(new_resources_list) == 1:
-            for old_resource in old_resources_list:
-                migration_units.append(MigrationUnit(old_resource, new_resources_list[0]))
-        elif 1 < len(new_resources_list) == len(old_resources_list):
-            for old_resource, new_resource in zip(old_resources_list, new_resources_list):
-                migration_units.append(MigrationUnit(old_resource, new_resource))
-        else:
-            raise click.UsageError('Old and New resources do not match')
-        return migration_units
+        for index in xrange(len(old_resources_conf_list)):
+            if len(new_resources_conf_list) == 1:
+                migration_config_list.append(
+                    MigrationConfig(ConfigUnit(old_resources_conf_list[index]), ConfigUnit(new_resources_conf_list[0])))
+            else:
+                migration_config_list.append(
+                    MigrationConfig(ConfigUnit(old_resources_conf_list[index]),
+                                    ConfigUnit(new_resources_conf_list[index])))
+        return migration_config_list

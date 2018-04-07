@@ -1,7 +1,8 @@
-class MigrationUnit(object):
-    def __init__(self, old_resource, new_resource):
+class MigrationOperation(object):
+    def __init__(self, old_resource, new_resource, migration_config):
         self.old_resource = old_resource
         self.new_resource = new_resource
+        self.migration_config = migration_config
 
     def __str__(self):
         return '{0}->{1}'.format(str(self.old_resource), str(self.new_resource))
