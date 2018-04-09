@@ -366,7 +366,7 @@ class OldToNewMRVConverter:
                 return self.api.GetReservationDetails(reservation.Id)
         return None
 
-    def memory_keep_logical_routes(self):
+    def memory_keep_logical_routes(self, converter):
         for reservation in self.reservations():
             handler = ReservationHandler(converter, self.api, reservation_id=reservation.Id)
             logical_routes = [{'route': x, 'status': 'connected'} for x in handler.logical_routes()]
@@ -418,7 +418,7 @@ class OldToNewMRVConverter:
                         print e.message
 
     def convert(self):
-        self.memory_keep_logical_routes()
+        self.memory_keep_logical_routes(self)
         self.memory_keep_physical_connections()
         self.reconnect_relevant_routes()
 

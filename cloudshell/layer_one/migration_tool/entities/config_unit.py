@@ -16,19 +16,19 @@ class ConfigUnit(object):
         self._config_list = None
 
     @property
-    def name(self):
+    def resource_name(self):
         return self._get_config_field(self.NAME_INDEX)
 
     @property
-    def family(self):
+    def resource_family(self):
         return self._get_config_field(self.FAMILY_INDEX)
 
     @property
-    def model(self):
+    def resource_model(self):
         return self._get_config_field(self.MODEL_INDEX)
 
     @property
-    def driver(self):
+    def resource_driver(self):
         return self._get_config_field(self.DRIVER_INDEX)
 
     @property
@@ -43,5 +43,3 @@ class ConfigUnit(object):
     def _get_config_field(self, index):
         if len(self.config_list) > index and self.config_list[index] not in self.EMPTY_CHARS:
             return self.config_list[index]
-        else:
-            return None

@@ -4,9 +4,11 @@ import sys
 import click
 from cloudshell.api.cloudshell_api import CloudShellAPISession
 
+from cloudshell.layer_one.migration_tool.commands.config_commands import ConfigCommands
+from cloudshell.layer_one.migration_tool.commands.migration_commands import MigrationCommands
+from cloudshell.layer_one.migration_tool.commands.resources_commands import ResourcesCommands
 from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
-from cloudshell.layer_one.migration_tool.operations.config_operations import ConfigOperations
-from cloudshell.layer_one.migration_tool.operations.resources_operations import ResourcesOperations
+
 
 PACKAGE_NAME = 'migration_tool'
 
@@ -28,7 +30,7 @@ def config(key, value, config_path):
     """
     Configuration
     """
-    config_operations = ConfigOperations(ConfigHelper(config_path))
+    config_operations = ConfigCommands(ConfigHelper(config_path))
     if key and value:
         config_operations.set_key_value(key, value)
     elif key:
@@ -43,20 +45,28 @@ def config(key, value, config_path):
 def show_resources(config_path, family):
     config_helper = ConfigHelper(config_path)
     api = _initialize_api(config_helper.configuration)
-    resources_operations = ResourcesOperations(api)
+    resources_operations = ResourcesCommands(api)
     click.echo(resources_operations.show_resources(family))
 
 
 @cli.command()
 @click.option(u'--config', 'config_path', default=CONFIG_PATH, help="Configuration file")
-@click.argument(u'old_resources', type=str, default=None, required=False)
-@click.argument(u'new_resources', type=str, default=None, required=False)
-def migrate(config_path, old_resources, new_resources):
+@click.argument(u'old_resources_str', type=str, default=None, required=False)
+@click.argument(u'new_resources_str', type=str, default=None, required=False)
+def migrate(config_path, old_resources_str, new_resources_str):
     print(sys.argv)
     config_helper = ConfigHelper(config_path)
     api = _initialize_api(config_helper.configuration)
-    resources_operations = ResourcesOperations(api)
-    resources_operations.migrate_resources(old_resources, new_resources)
+    migration_commands = MigrationCommands(api)
+    operations = migration_commands.prepare_operations(old_resources_str, new_resources_str)
+
+    # click.echo('The following operations will be performed:')
+    # click.echo(migration_commands.format_operations(operations))
+    #
+    # if not click.confirm('Do you want to continue?'):
+    #     click.echo('Aborted')
+    #     sys.exit(1)
+    # migration_commands.perform_operations(operations)
 
 
 def _initialize_api(configuration):

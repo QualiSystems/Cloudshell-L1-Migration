@@ -1,10 +1,17 @@
 class Resource(object):
-    def __init__(self, name, address, family, model, driver=None):
+    def __init__(self, name, address=None, family=None, model=None, driver=None, exist=False):
         self.name = name
         self.address = address
         self.family = family
         self.model = model
         self.driver = driver
+
+        self.username = None
+        self.password = None
+        self.connections = None
+        self.logical_routs = None
+        self.api_details = None
+        self.exist = exist
 
     def description(self):
         ent_list = [self.name, self.address, self.family, self.model, self.driver]

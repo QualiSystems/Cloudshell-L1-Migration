@@ -1,7 +1,7 @@
 from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
 
 
-class ConfigOperations(object):
+class ConfigCommands(object):
     NEW_LINE = '\n'
 
     def __init__(self, config_helper):
