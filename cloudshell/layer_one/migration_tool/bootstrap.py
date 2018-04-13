@@ -8,7 +8,8 @@ from cloudshell.layer_one.migration_tool.commands.config_commands import ConfigC
 from cloudshell.layer_one.migration_tool.commands.migration_commands import MigrationCommands
 from cloudshell.layer_one.migration_tool.commands.resources_commands import ResourcesCommands
 from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
-
+from cloudshell.layer_one.migration_tool.helpers.logger import Logger
+from cloudshell.layer_one.migration_tool.helpers.output_formater import OutputFormatter
 
 PACKAGE_NAME = 'migration_tool'
 
@@ -57,16 +58,20 @@ def migrate(config_path, old_resources_str, new_resources_str):
     print(sys.argv)
     config_helper = ConfigHelper(config_path)
     api = _initialize_api(config_helper.configuration)
-    migration_commands = MigrationCommands(api)
-    operations = migration_commands.prepare_operations(old_resources_str, new_resources_str)
+    logger = _initialize_logger(config_helper.configuration)
+    migration_commands = MigrationCommands(api, logger)
+    migration_configs = migration_commands.prepare_configs(old_resources_str, new_resources_str)
+    operations = migration_commands.prepare_operations(migration_configs)
+    click.echo('The following operations will be performed:')
+    click.echo(OutputFormatter.format_prepared_valid_operations(operations))
+    click.echo('The following operations will be ignored:')
+    click.echo(OutputFormatter.format_prepared_invalid_operations(operations))
 
-    # click.echo('The following operations will be performed:')
-    # click.echo(migration_commands.format_operations(operations))
-    #
-    # if not click.confirm('Do you want to continue?'):
-    #     click.echo('Aborted')
-    #     sys.exit(1)
-    # migration_commands.perform_operations(operations)
+    if not click.confirm('Do you want to continue?'):
+        click.echo('Aborted')
+        sys.exit(1)
+    migration_commands.perform_operations(operations)
+    migration_commands.reconnect_logical_routs(operations)
 
 
 def _initialize_api(configuration):
@@ -78,6 +83,13 @@ def _initialize_api(configuration):
                                 configuration.get(ConfigHelper.PASSWORD_KEY),
                                 configuration.get(ConfigHelper.DOMAIN_KEY),
                                 port=configuration.get(ConfigHelper.PORT_KEY))
+
+
+def _initialize_logger(configuration):
+    """
+    :type configuration: dict
+    """
+    return Logger(configuration.get(ConfigHelper.LOGGING_LEVEL))
 
 # @cli.command()
 # @click.argument(u'kv', type=(str, str), default=(None, None), required=False)

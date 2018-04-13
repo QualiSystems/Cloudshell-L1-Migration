@@ -14,6 +14,7 @@ class ConfigUnit(object):
         self.config_str = config_str
 
         self._config_list = None
+        self.valid = False
 
     @property
     def resource_name(self):

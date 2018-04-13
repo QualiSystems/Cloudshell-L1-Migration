@@ -1,4 +1,12 @@
+from cloudshell.layer_one.migration_tool.entities.port import Port
+
+
 class Connection(object):
-    def __init__(self, source_port, target_port):
-        self.source_port = source_port
-        self.target_port = target_port
+    def __init__(self, port, connected_to, weight):
+        """
+        :type port:cloudshell.layer_one.migration_tool.entities.port.Port
+        """
+        self.port = port
+        self.connected_to = connected_to
+        self.weight = weight
+        self.resource = None

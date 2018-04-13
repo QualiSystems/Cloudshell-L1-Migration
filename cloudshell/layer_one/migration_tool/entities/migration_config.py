@@ -10,3 +10,4 @@ class MigrationConfig(object):
         """
         self.old_config = old_config
         self.new_config = new_config
+        self.valid = False

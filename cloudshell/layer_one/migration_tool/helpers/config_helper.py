@@ -13,13 +13,15 @@ class ConfigHelper(object):
     DOMAIN_KEY = 'domain'
     HOST_KEY = 'host'
     PORT_KEY = 'port'
+    LOGGING_LEVEL = 'logging_level'
 
     DEFAULT_CONFIGURATION = {
         USERNAME_KEY: 'admin',
         DOMAIN_KEY: 'Global',
         PASSWORD_KEY: 'admin',
         HOST_KEY: 'localhost',
-        PORT_KEY: 8029
+        PORT_KEY: 8029,
+        LOGGING_LEVEL: 'INFO'
     }
 
     def __init__(self, config_path):

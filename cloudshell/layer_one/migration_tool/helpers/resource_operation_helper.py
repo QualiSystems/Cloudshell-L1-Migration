@@ -1,86 +1,103 @@
 import re
 
+from cloudshell.layer_one.migration_tool.entities.connection import Connection
+from cloudshell.layer_one.migration_tool.entities.port import Port
+
+
 class ResourceOperationHelper(object):
-    def __init__(self, api):
+    def __init__(self, api, logger):
+        """
+        :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
+        :type logger: cloudshell.layer_one.migration_tool.helpers.logger.Logger
+        """
         self._api = api
+        self._logger = logger
+        self._resource_details_container = {}
 
-    def get_logical_routes(self, resource):
+    def _get_resource_details(self, resource):
+        if resource.name not in self._resource_details_container:
+            self._resource_details_container[resource.name] = self._api.GetResourceDetails(resource.name)
+        return self._resource_details_container.get(resource.name)
+
+    def define_resource_attributes(self, resource):
         """
         :type resource: cloudshell.layer_one.migration_tool.entities.resource.Resource
         """
-        routes = []
-        for reservation in self._api.GetCurrentReservations().Reservations:
-            if reservation.Id:
-                details = self._api.GetReservationDetails(reservation.Id).ReservationDescription
-                routes.extend([{'source': x.Source, 'target': x.Target} for x in details.ActiveRoutesInfo])
-        return routes
+        resource_details = self._get_resource_details(resource)
+        if not resource.address:
+            resource.address = resource_details.Address
+        if not resource.family:
+            resource.family = resource_details.ResourceFamilyName
 
+        if not resource.model:
+            resource.model = resource_details.ResourceModelName
 
-    def get_physical_connections(self, resource):
+        for attribute in resource.attributes:
+            value = self._api.GetAttributeValue(resource.name, attribute).Value
+            if attribute == resource.PASSWORD_ATTRIBUTE:
+                value = self._api.DecryptPassword(value).Value
+            resource.attributes[attribute] = value
+
+    def define_physical_connections(self, resource):
         """
         :type resource: cloudshell.layer_one.migration_tool.entities.resource.Resource
         """
-        resource_details = self._api.GetResourceDetails(resource.name)
-        resource_physical_connections = []
+        self._logger.debug('Getting connections for resource {}'.format(resource.name))
+        resource_details = self._get_resource_details(resource)
+        connections = []
         for child_resource in resource_details.ChildResources:
             for grandchild_resource in child_resource.ChildResources:
-                if len(grandchild_resource.Connections) > 0:
-                    resource_physical_connections.append({'source': BladePortParser(grandchild_resource.Name),
-                                                          'target': grandchild_resource.Connections[0].FullPath})
-        return resource_physical_connections
+                if grandchild_resource.Connections:
+                    connection = Connection(Port(grandchild_resource.Name, grandchild_resource.FullAddress),
+                                            grandchild_resource.Connections[0].FullPath,
+                                            grandchild_resource.Connections[0].Weight)
+                    connection.resource = resource
+                    connections.append(connection)
+        return connections
 
+    def get_resource_ports(self, resource):
+        """
+        :type resource: cloudshell.layer_one.migration_tool.entities.resource.Resource
+        """
+        self._logger.debug('Getting ports for resource {}'.format(resource.name))
+        resource_details = self._get_resource_details(resource)
+        ports = []
+        for child_resource in resource_details.ChildResources:
+            for grandchild_resource in child_resource.ChildResources:
+                ports.append(Port(grandchild_resource.Name, grandchild_resource.FullAddress))
+        return ports
 
+    def create_resource(self, resource):
+        """
+        :type resource: cloudshell.layer_one.migration_tool.entities.resource.Resource
+        """
+        self._logger.debug('Creating new resource {}'.format(resource))
+        self._api.CreateResource(resource.family, resource.model, resource.name, resource.address)
+        resource.exist = True
+        if resource.driver:
+            self._api.UpdateResourceDriver(resource.name, resource.driver)
 
+        for attribute, value in resource.attributes.iteritems():
+            if value:
+                self._api.SetAttributeValue(resource.name, attribute, value)
 
+    def autoload_resource(self, resource):
+        """
+        :type resource: cloudshell.layer_one.migration_tool.entities.resource.Resource
+        """
+        self._logger.debug('Autoloading resource {}'.format(resource))
+        self._api.ExcludeResource(resource.name)
 
-class PathParser:
-    """
-    Due to differences in the naming conventions of sub-resources between the old MRV shells to the new one (Port01 vs /Port 1,
-    I created this class in order to handle the migration between the two conventions easily.
-    """
-    def __init__(self, path):
-        self.path = path
-        self.type = ''
-        self.num = -1
-        self.parse()
+        # print "Autoloading resource {}...".format(self.name)
+        self._api.AutoLoad(resource.name)
+        # self.is_loaded = True
+        self._api.IncludeResource(resource.name)
 
-    def parse(self):
-        try:
-            self.type = re.findall("[A-z]+", self.path)[0]
-        except IndexError:
-            self.type = None
-        try:
-            self.num = str(int(re.findall("\d+", self.path)[0]))
-        except IndexError:
-            self.num = None
-
-    def num_to_str(self):
-        return str(self.num) if int(self.num) > 9 else "0{}".format(str(self.num))
-
-    def old_format(self):
-        return "{}{}".format(self.type.lower().title(), self.num_to_str())
-
-    def new_format(self):
-        return "{}{}".format(self.type.lower().title(), self.num)
-
-    def __eq__(self, other):
-        return self.type == other.type and self.num == other.num
-
-class BladePortParser:
-    """
-    This class is uses PathParsers in order to migrate two physical connections (Blade01/Port01 to Blade 1/Port 1 etc.)
-    """
-    def __init__(self, path):
-        self.path = path
-        self.bladeport = self.path.split("/")[::-1][:2][::-1]
-        self.blade = PathParser(self.bladeport[0])
-        self.port = PathParser(self.bladeport[1])
-
-    def old_format(self):
-        return "/".join([self.blade.old_format(), self.port.old_format()])
-
-    def new_format(self):
-        return "/".join([self.blade.new_format(), self.port.new_format()])
-
-    def __repr__(self):
-        return "/".join(self.bladeport)
+    def sync_from_device(self, resource):
+        """
+        :type resource: cloudshell.layer_one.migration_tool.entities.resource.Resource
+        """
+        self._logger.debug('SyncFromDevice resource {}'.format(resource))
+        self._api.ExcludeResource(resource.name)
+        self._api.SyncResourceFromDevice(resource.name)
+        self._api.IncludeResource(resource.name)

@@ -1,6 +1,9 @@
 class ConfigUnitValidator(object):
-    def __init__(self, api):
-        self._api = api
+    def __init__(self, logger):
+        """
+        :type logger: cloudshell.layer_one.migration_tool.helpers.logger.Logger
+        """
+        self._logger = logger
 
     def validate_name(self, config_unit):
         """
@@ -28,3 +31,15 @@ class ConfigUnitValidator(object):
         """
 
         return config_unit
+
+    def validate_old(self, config_unit):
+        """
+        :type config_unit: cloudshell.layer_one.migration_tool.entities.config_unit.ConfigUnit
+        """
+        config_unit.valid = True
+
+    def validate_new(self, config_unit):
+        """
+        :type config_unit: cloudshell.layer_one.migration_tool.entities.config_unit.ConfigUnit
+        """
+        config_unit.valid = True

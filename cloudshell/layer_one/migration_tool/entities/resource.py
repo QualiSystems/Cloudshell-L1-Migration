@@ -1,4 +1,7 @@
 class Resource(object):
+    USERNAME_ATTRIBUTE = 'User'
+    PASSWORD_ATTRIBUTE = 'Password'
+
     def __init__(self, name, address=None, family=None, model=None, driver=None, exist=False):
         self.name = name
         self.address = address
@@ -6,11 +9,7 @@ class Resource(object):
         self.model = model
         self.driver = driver
 
-        self.username = None
-        self.password = None
-        self.connections = None
-        self.logical_routs = None
-        self.api_details = None
+        self.attributes = {self.USERNAME_ATTRIBUTE: None, self.PASSWORD_ATTRIBUTE: None}
         self.exist = exist
 
     def description(self):

@@ -10,11 +10,12 @@ class MigrationConfigHandler(object):
     MODEL_KEY = 'model'
     NEW_RESOURCE_NAME_TEMPLATE = 'new_{}'
 
-    def __init__(self, api):
+    def __init__(self, api, logger):
         """
         :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
         """
         self._api = api
+        self._logger = logger
         self._config_unit_validator = ConfigUnitValidator(self._api)
         self.__installed_resources = {}
 
@@ -32,6 +33,9 @@ class MigrationConfigHandler(object):
         """
         :type migration_config: cloudshell.layer_one.migration_tool.entities.migration_config.MigrationConfig
         """
+        if not migration_config.valid:
+            return []
+
         if migration_config.old_config.is_multi_resource():
             operations = self._define_multiple_operations(migration_config)
         else:
@@ -103,4 +107,5 @@ class MigrationConfigHandler(object):
                     'Resource Family or Model for name {} does not coincide with existent'.format(name))
             return Resource(name, family=resource_family, model=resource_model, exist=True)
         else:
-            return Resource(name, family=config_unit.resource_family, model=config_unit.resource_model)
+            return Resource(name, family=config_unit.resource_family, model=config_unit.resource_model,
+                            driver=config_unit.resource_driver)

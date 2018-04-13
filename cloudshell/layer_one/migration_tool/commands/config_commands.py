@@ -1,3 +1,5 @@
+import click
+
 from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
 
 
@@ -15,8 +17,11 @@ class ConfigCommands(object):
         return self._format_output(key, value)
 
     def set_key_value(self, key, value):
-        self._config_helper.configuration[key] = value
-        self._config_helper.save()
+        if key in ConfigHelper.DEFAULT_CONFIGURATION:
+            self._config_helper.configuration[key] = value
+            self._config_helper.save()
+        else:
+            raise click.UsageError('Configuration key {} does not exist'.format(key))
 
     def get_config_description(self):
         output = ''
