@@ -6,6 +6,7 @@ from cloudshell.layer_one.migration_tool.validators.config_unit_validator import
 
 
 class MigrationConfigHandler(object):
+    ADDRESS_KEY = 'address'
     FAMILY_KEY = 'family'
     MODEL_KEY = 'model'
     NEW_RESOURCE_NAME_TEMPLATE = 'new_{}'
@@ -24,9 +25,11 @@ class MigrationConfigHandler(object):
         if not self.__installed_resources:
             for resource in self._api.GetResourceList().Resources:
                 name = resource.Name
+                address = resource.Address
                 resource_family = resource.ResourceFamilyName
                 resource_model = resource.ResourceModelName
-                self.__installed_resources[name] = {self.FAMILY_KEY: resource_family, self.MODEL_KEY: resource_model}
+                self.__installed_resources[name] = {self.FAMILY_KEY: resource_family, self.MODEL_KEY: resource_model,
+                                                    self.ADDRESS_KEY: address}
         return self.__installed_resources
 
     def define_operations(self, migration_config):
@@ -101,11 +104,12 @@ class MigrationConfigHandler(object):
         if name in self.installed_resources:
             resource_family = self.installed_resources.get(name).get(self.FAMILY_KEY)
             resource_model = self.installed_resources.get(name).get(self.MODEL_KEY)
+            address = self.installed_resources.get(name).get(self.ADDRESS_KEY)
             if config_unit.resource_family and config_unit.resource_family != resource_family or \
                     config_unit.resource_model and config_unit.resource_model != resource_model:
                 raise click.ClickException(
                     'Resource Family or Model for name {} does not coincide with existent'.format(name))
-            return Resource(name, family=resource_family, model=resource_model, exist=True)
+            return Resource(name, address=address, family=resource_family, model=resource_model, exist=True)
         else:
             return Resource(name, family=config_unit.resource_family, model=config_unit.resource_model,
                             driver=config_unit.resource_driver)

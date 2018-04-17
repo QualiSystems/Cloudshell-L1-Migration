@@ -14,4 +14,14 @@ class OutputFormatter(object):
         """
         :type operation: cloudshell.layer_one.migration_tool.entities.migration_operation.MigrationOperation
         """
-        return 'Operation: {0} ({1})'.format(operation, 'Valid' if operation.valid else 'Invalid')
+        return 'Migrate resource: {0} ({1})'.format(operation,
+                                                    'Operation Valid' if operation.valid else 'Operation Invalid')
+
+    @staticmethod
+    def format_logical_routes(logical_routes):
+        return '\n'.join(
+            [OutputFormatter._logical_route_info(logical_route) for logical_route in logical_routes])
+
+    @staticmethod
+    def _logical_route_info(logical_route):
+        return 'Logical route: {}'.format(logical_route)

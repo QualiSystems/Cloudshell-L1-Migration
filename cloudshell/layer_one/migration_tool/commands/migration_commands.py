@@ -2,6 +2,7 @@ import click
 
 from cloudshell.layer_one.migration_tool.entities.config_unit import ConfigUnit
 from cloudshell.layer_one.migration_tool.entities.migration_config import MigrationConfig
+from cloudshell.layer_one.migration_tool.handlers.logical_routes_handler import LogicalRoutesHandler
 from cloudshell.layer_one.migration_tool.handlers.migration_config_handler import MigrationConfigHandler
 from cloudshell.layer_one.migration_tool.handlers.migration_config_parser import MigrationConfigParser
 from cloudshell.layer_one.migration_tool.handlers.migration_operation_handler import MigrationOperationHandler
@@ -19,6 +20,7 @@ class MigrationCommands(object):
         self._api = api
         self._logger = logger
         self._operation_handler = MigrationOperationHandler(self._api, self._logger)
+        self._logical_routes_handler = LogicalRoutesHandler(self._api, self._logger)
 
     def prepare_configs(self, old_resources, new_resources):
         config_validator = MigrationConfigValidator(self._logger)
@@ -40,6 +42,11 @@ class MigrationCommands(object):
         return operations
 
     def perform_operations(self, operations):
+
         for operation in operations:
             if operation.valid:
+                # try:
                 self._operation_handler.perform_operation(operation)
+                # except Exception as e:
+                #     operation.success = False
+                #     self._logger.error('Error: '.format(str(e)))

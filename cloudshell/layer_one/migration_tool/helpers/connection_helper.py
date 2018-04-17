@@ -11,4 +11,6 @@ class ConnectionHelper(object):
         """
         :type connection: cloudshell.layer_one.migration_tool.entities.connection.Connection
         """
+        self._logger.debug('Updating {}'.format(connection))
         self._api.UpdatePhysicalConnection(connection.port.name, connection.connected_to)
+        self._api.UpdateConnectionWeight(connection.port.name, connection.connected_to, connection.weight)

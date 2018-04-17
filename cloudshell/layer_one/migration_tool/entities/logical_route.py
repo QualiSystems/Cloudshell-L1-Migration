@@ -6,4 +6,4 @@ class LogicalRoute(object):
         self.connections = []
 
     def __str__(self):
-        return '{0}->{1}'.format(self.source, self.target)
+        return '{0}<->{1}'.format(self.source, self.target)

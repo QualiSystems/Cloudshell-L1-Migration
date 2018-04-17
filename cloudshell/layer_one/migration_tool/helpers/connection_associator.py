@@ -24,6 +24,8 @@ class ConnectionAssociator(object):
         associated_port = self.port_sorted_by_associated_address.get(connection.port.address)
         if associated_port:
             return Connection(associated_port, connection.connected_to, connection.weight)
+        else:
+            self._logger.error('Cannot find associated port, for {}'.format(connection))
 
     def _associated_address(self, address):
         return address

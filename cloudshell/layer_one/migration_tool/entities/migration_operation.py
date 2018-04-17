@@ -8,8 +8,6 @@ class MigrationOperation(object):
         self.old_resource = old_resource
         self.new_resource = new_resource
         self.migration_config = migration_config
-        self.connections = []
-        self.logical_routes = []
         self.valid = False
         self.success = False
 

@@ -23,14 +23,14 @@ class ResourceOperationHelper(object):
         """
         :type resource: cloudshell.layer_one.migration_tool.entities.resource.Resource
         """
-        resource_details = self._get_resource_details(resource)
-        if not resource.address:
-            resource.address = resource_details.Address
-        if not resource.family:
-            resource.family = resource_details.ResourceFamilyName
-
-        if not resource.model:
-            resource.model = resource_details.ResourceModelName
+        # resource_details = self._get_resource_details(resource)
+        # if not resource.address:
+        #     resource.address = resource_details.Address
+        # if not resource.family:
+        #     resource.family = resource_details.ResourceFamilyName
+        #
+        # if not resource.model:
+        #     resource.model = resource_details.ResourceModelName
 
         for attribute in resource.attributes:
             value = self._api.GetAttributeValue(resource.name, attribute).Value
@@ -38,12 +38,13 @@ class ResourceOperationHelper(object):
                 value = self._api.DecryptPassword(value).Value
             resource.attributes[attribute] = value
 
-    def define_physical_connections(self, resource):
+    def get_physical_connections(self, resource):
         """
         :type resource: cloudshell.layer_one.migration_tool.entities.resource.Resource
         """
         self._logger.debug('Getting connections for resource {}'.format(resource.name))
-        resource_details = self._get_resource_details(resource)
+        # resource_details = self._get_resource_details(resource)
+        resource_details = self._api.GetResourceDetails(resource.name)
         connections = []
         for child_resource in resource_details.ChildResources:
             for grandchild_resource in child_resource.ChildResources:
@@ -51,7 +52,7 @@ class ResourceOperationHelper(object):
                     connection = Connection(Port(grandchild_resource.Name, grandchild_resource.FullAddress),
                                             grandchild_resource.Connections[0].FullPath,
                                             grandchild_resource.Connections[0].Weight)
-                    connection.resource = resource
+                    # connection.resource = resource
                     connections.append(connection)
         return connections
 
