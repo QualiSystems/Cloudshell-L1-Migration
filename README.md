@@ -45,6 +45,8 @@ Usage:
     ```
     Resource Name/Resource Family/Resource Model/Resource Driver
     ```
+    
+    *Examples:*
      
     How to migrate all resources for a specific Family/Model          
     ```bash
