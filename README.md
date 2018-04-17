@@ -24,18 +24,18 @@ Usage:
     
     In order to use the tool, the user must configure his credentials:
 
-        ```bash
-        migration_tool config host <CSHost>
-        migration_tool config username <CSUserName>
-        migration_tool config password <CSPassword>
-        migration_tool config domain <CSDomain>
-        migration_tool config port <CSPort>
-        ```    
+    ```bash
+    migration_tool config host <CSHost>
+    migration_tool config username <CSUserName>
+    migration_tool config password <CSPassword>
+    migration_tool config domain <CSDomain>
+    migration_tool config port <CSPort>
+    ```    
     You may see the current credentials by running:
     
-        ```
-        migration_tool config
-        ```
+    ```
+    migration_tool config
+    ```
 
 
 2.  **Migrate resources**
