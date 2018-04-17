@@ -40,7 +40,7 @@ class MigrationOperationValidator(object):
         """
         :type resource: cloudshell.layer_one.migration_tool.entities.resource.Resource
         """
-        if resource.name and resource.address and resource.family and resource.model:
+        if resource.name and resource.address and resource.family and resource.model and resource.driver:
             return True
         else:
             return False

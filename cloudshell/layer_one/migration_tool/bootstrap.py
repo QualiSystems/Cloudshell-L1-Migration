@@ -53,14 +53,14 @@ def show_resources(config_path, family):
 
 @cli.command()
 @click.option(u'--config', 'config_path', default=CONFIG_PATH, help="Configuration file.")
-@click.argument(u'old_resources', type=str, default=None, required=True)
-@click.argument(u'new_resources', type=str, default=None, required=True)
-def migrate(config_path, old_resources, new_resources):
+@click.argument(u'src_resources', type=str, default=None, required=True)
+@click.argument(u'dst_resources', type=str, default=None, required=True)
+def migrate(config_path, src_resources, dst_resources):
     config_helper = ConfigHelper(config_path)
     api = _initialize_api(config_helper.configuration)
     logger = _initialize_logger(config_helper.configuration)
     migration_commands = MigrationCommands(api, logger)
-    migration_configs = migration_commands.prepare_configs(old_resources, new_resources)
+    migration_configs = migration_commands.prepare_configs(src_resources, dst_resources)
     operations = migration_commands.prepare_operations(migration_configs)
     logical_routes_handler = LogicalRoutesHandler(api, logger)
     logical_routes = logical_routes_handler.get_logical_routes(operations)

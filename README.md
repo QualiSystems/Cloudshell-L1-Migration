@@ -15,31 +15,46 @@ Requirements
 
 Installation
 ============
-Clone the tool from github. You may either use the Execution Server's Python interpreter or one of your own.
-
+```bash
+pip install cloudshell-l1-migration-1.0.1.zip
+```
 Usage:
 ======================
-1. Configure Cloudshell credentials: In order to use the tool, the user must configure his credentials:
-> python main.py --credentials host <CSHost>
-> python main.py --credentials username <CSUserName>
-> python main.py --credentials password <CSPassword>
-> python main.py --credentials domain <CSDomain>
-  
-You may see the current credentials by running >> python main.py --credentials show
+1.  **Configure Cloudshell credentials**
+    
+    In order to use the tool, the user must configure his credentials:
 
-2. Assert old MRV resources to be converted:
-> python main.py --resources add <ResourceName>
-  
-You may delete a resource name:
---resources delete <ResourceName>
+        ```bash
+        migration_tool config host <CSHost>
+        migration_tool config username <CSUserName>
+        migration_tool config password <CSPassword>
+        migration_tool config domain <CSDomain>
+        migration_tool config port <CSPort>
+        ```    
+    You may see the current credentials by running:
+    
+        ```
+        migration_tool config
+        ```
 
-3. Configuring the new shell: The user may configure which shell is the new shell (family, model, driver):
-> python main.py --new-resource family <ResourceFamily>
-> python main.py --new-resource model <ResourceModel>
-> python main.py --new-resource model <ResourceDriver>
-  
-You may see the current configuration by running:
-> python main.py --new-resource show
 
-4. Convert:
-> python main.py convert
+2.  **Migrate resources**
+    
+    In order to run migration process, the user have to specify source resources and destination resources. Migration tool uses format below.
+    
+    ```
+    Resource Name/Resource Family/Resource Model/Resource Driver
+    ```
+     
+    How to migrate all resources for a specific Family/Model          
+    ```bash
+    migration_tool migrate '*/Old Family/Old model', '*/New Family/New Model/New Driver'
+    ```
+    How to migrate a list of resources
+    
+    ```bash
+    migration_tool migrate 'L1Switc 1,L1Switch 2', '*/New Family/New Model/New Driver'
+    ```
+    
+        
+ 
