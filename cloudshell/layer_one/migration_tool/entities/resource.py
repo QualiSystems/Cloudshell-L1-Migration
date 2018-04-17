@@ -13,7 +13,7 @@ class Resource(object):
         self.exist = exist
 
     def description(self):
-        ent_list = [self.name, self.address, self.family, self.model, self.driver]
+        ent_list = [self.name, self.family, self.model, self.driver]
         return '/'.join([ent for ent in ent_list if ent])
 
     def __str__(self):
