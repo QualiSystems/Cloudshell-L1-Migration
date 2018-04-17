@@ -36,6 +36,11 @@ Usage:
     ```
     migration_tool config
     ```
+    To get detailed output, specify logging level:
+    
+    ```bash
+    migration_tool config logging_level DEBUG
+    ```
 
 
 2.  **Migrate resources**
