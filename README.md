@@ -50,12 +50,12 @@ Usage:
      
     How to migrate all resources for a specific Family/Model          
     ```bash
-    migration_tool migrate '*/Old Family/Old model', '*/New Family/New Model/New Driver'
+    migration_tool migrate '*/Old Family/Old model' '*/New Family/New Model/New Driver'
     ```
     How to migrate a list of resources
     
     ```bash
-    migration_tool migrate 'L1Switc 1,L1Switch 2', '*/New Family/New Model/New Driver'
+    migration_tool migrate 'L1Switc 1,L1Switch 2' '*/New Family/New Model/New Driver'
     ```
     
         
