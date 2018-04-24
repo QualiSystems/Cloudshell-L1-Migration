@@ -22,7 +22,7 @@ class ConfigHelper(object):
         PASSWORD_KEY: 'admin',
         HOST_KEY: 'localhost',
         PORT_KEY: 8029,
-        LOGGING_LEVEL: 'INFO',
+        LOGGING_LEVEL: 'DEBUG',
         NAME_PREFIX: 'New_'
     }
 
