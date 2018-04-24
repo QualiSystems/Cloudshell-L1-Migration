@@ -45,7 +45,7 @@ class ResourceOperationHelper(object):
         self._logger.debug('Getting connections for resource {}'.format(resource.name))
         # resource_details = self._get_resource_details(resource)
         resource_details = self._api.GetResourceDetails(resource.name)
-        connections = []
+        connections = {}
         for child_resource in resource_details.ChildResources:
             for grandchild_resource in child_resource.ChildResources:
                 if grandchild_resource.Connections:
@@ -53,7 +53,7 @@ class ResourceOperationHelper(object):
                                             grandchild_resource.Connections[0].FullPath,
                                             grandchild_resource.Connections[0].Weight)
                     # connection.resource = resource
-                    connections.append(connection)
+                    connections[grandchild_resource.Name] = connection
         return connections
 
     def get_resource_ports(self, resource):

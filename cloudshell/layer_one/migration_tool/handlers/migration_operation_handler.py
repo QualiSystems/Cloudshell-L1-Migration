@@ -1,3 +1,4 @@
+from cloudshell.layer_one.migration_tool.entities.resource import Resource
 from cloudshell.layer_one.migration_tool.helpers.connection_associator import ConnectionAssociator
 from cloudshell.layer_one.migration_tool.helpers.connection_helper import ConnectionHelper
 from cloudshell.layer_one.migration_tool.helpers.logical_route_helper import LogicalRouteHelper
@@ -17,6 +18,7 @@ class MigrationOperationHandler(object):
         self._connection_helper = ConnectionHelper(api, logger)
         self._operation_validator = MigrationOperationValidator(self._api, logger)
         self._logical_route_helper = LogicalRouteHelper(api, logger)
+        self._connections = {}
 
     def prepare_operation(self, operation):
         """
@@ -33,6 +35,13 @@ class MigrationOperationHandler(object):
 
         # operation.connections = self._resource_helper.get_physical_connections(operation.old_resource)
         # operation.logical_routes = self._logical_route_helper.get_logical_routes(operation.connections)
+
+    def define_connections(self, operation):
+        """
+        :type operation: cloudshell.layer_one.migration_tool.entities.migration_operation.MigrationOperation
+        """
+        self._connections[operation.old_resource.name] = self._resource_helper.get_physical_connections(
+            operation.old_resource)
 
     def perform_operation(self, operation):
         """
@@ -53,5 +62,11 @@ class MigrationOperationHandler(object):
                                                      self._logger)
 
         self._logger.debug('Updating connections for resource {}'.format(new_resource))
-        for connection in self._resource_helper.get_physical_connections(old_resource):
-            self._connection_helper.update_connection(connection_associator.associated_connection(connection))
+        for connection in self._connections.get(old_resource.name).values():
+            associated_connection = connection_associator.associated_connection(connection)
+            self._connection_helper.update_connection(associated_connection)
+            # update local connection DB
+            connected_to_resource_connections = self._connections.get(connection.connected_to.split('/')[0])
+            if connected_to_resource_connections:
+                connected_to_connection = connected_to_resource_connections.get(connection.connected_to)
+                connected_to_connection.connected_to = associated_connection.port.name

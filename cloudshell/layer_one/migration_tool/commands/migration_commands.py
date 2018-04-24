@@ -12,13 +12,14 @@ from cloudshell.layer_one.migration_tool.validators.migration_operation_validato
 
 class MigrationCommands(object):
 
-    def __init__(self, api, logger):
+    def __init__(self, api, logger, name_prefix=None):
         """
         :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
         :type logger: cloudshell.layer_one.migration_tool.helpers.logger.Logger
         """
         self._api = api
         self._logger = logger
+        self._name_prefix = name_prefix
         self._operation_handler = MigrationOperationHandler(self._api, self._logger)
         self._logical_routes_handler = LogicalRoutesHandler(self._api, self._logger)
 
@@ -33,7 +34,7 @@ class MigrationCommands(object):
         """
         :type migration_configs: list
         """
-        migration_config_handler = MigrationConfigHandler(self._api, self._logger)
+        migration_config_handler = MigrationConfigHandler(self._api, self._logger, self._name_prefix)
         operations = migration_config_handler.define_operations_for_list(migration_configs)
         operation_validator = MigrationOperationValidator(self._api, self._logger)
         for operation in operations:
@@ -42,6 +43,10 @@ class MigrationCommands(object):
         return operations
 
     def perform_operations(self, operations):
+        for operation in operations:
+            if operation.valid:
+                # try:
+                self._operation_handler.define_connections(operation)
 
         for operation in operations:
             if operation.valid:

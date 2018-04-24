@@ -14,6 +14,7 @@ class ConfigHelper(object):
     HOST_KEY = 'host'
     PORT_KEY = 'port'
     LOGGING_LEVEL = 'logging_level'
+    NAME_PREFIX = 'name_prefix'
 
     DEFAULT_CONFIGURATION = {
         USERNAME_KEY: 'admin',
@@ -21,7 +22,8 @@ class ConfigHelper(object):
         PASSWORD_KEY: 'admin',
         HOST_KEY: 'localhost',
         PORT_KEY: 8029,
-        LOGGING_LEVEL: 'INFO'
+        LOGGING_LEVEL: 'INFO',
+        NAME_PREFIX: 'New_'
     }
 
     def __init__(self, config_path):

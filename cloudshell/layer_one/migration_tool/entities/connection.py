@@ -5,6 +5,7 @@ class Connection(object):
     def __init__(self, port, connected_to, weight):
         """
         :type port:cloudshell.layer_one.migration_tool.entities.port.Port
+        :type connected_to: str
         """
         self.port = port
         self.connected_to = connected_to

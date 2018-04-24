@@ -59,7 +59,7 @@ def migrate(config_path, src_resources, dst_resources):
     config_helper = ConfigHelper(config_path)
     api = _initialize_api(config_helper.configuration)
     logger = _initialize_logger(config_helper.configuration)
-    migration_commands = MigrationCommands(api, logger)
+    migration_commands = MigrationCommands(api, logger, config_helper.configuration.get(ConfigHelper.NAME_PREFIX))
     migration_configs = migration_commands.prepare_configs(src_resources, dst_resources)
     operations = migration_commands.prepare_operations(migration_configs)
     logical_routes_handler = LogicalRoutesHandler(api, logger)
