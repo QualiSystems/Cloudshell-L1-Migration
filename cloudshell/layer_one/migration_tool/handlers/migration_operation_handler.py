@@ -1,3 +1,4 @@
+from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
 from cloudshell.layer_one.migration_tool.helpers.connection_associator import ConnectionAssociator
 from cloudshell.layer_one.migration_tool.helpers.connection_helper import ConnectionHelper
 from cloudshell.layer_one.migration_tool.helpers.logical_route_helper import LogicalRouteHelper
@@ -6,13 +7,15 @@ from cloudshell.layer_one.migration_tool.validators.migration_operation_validato
 
 
 class MigrationOperationHandler(object):
-    def __init__(self, api, logger):
+    def __init__(self, api, logger, configuration):
         """
         :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
         :type logger: cloudshell.layer_one.migration_tool.helpers.logger.Logger
+        :type configuration: dict
         """
         self._api = api
         self._logger = logger
+        self._configuration = configuration
         self._resource_helper = ResourceOperationHelper(api, logger)
         self._connection_helper = ConnectionHelper(api, logger)
         self._operation_validator = MigrationOperationValidator(self._api, logger)
@@ -50,8 +53,12 @@ class MigrationOperationHandler(object):
 
         # Associate and update connections
         connection_associator = ConnectionAssociator(self._resource_helper.get_resource_ports(new_resource),
-                                                     self._logger)
+                                                     self._logger,
+                                                     self._configuration.get(ConfigHelper.OLD_PORT_PATTERN),
+                                                     self._configuration.get(ConfigHelper.NEW_PORT_PATTERN))
 
         self._logger.debug('Updating connections for resource {}'.format(new_resource))
         for connection in self._resource_helper.get_physical_connections(old_resource):
-            self._connection_helper.update_connection(connection_associator.associated_connection(connection))
+            associated_connection = connection_associator.associated_connection(connection)
+            if associated_connection:
+                self._connection_helper.update_connection(associated_connection)

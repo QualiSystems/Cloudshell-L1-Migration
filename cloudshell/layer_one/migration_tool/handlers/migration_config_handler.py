@@ -9,15 +9,17 @@ class MigrationConfigHandler(object):
     ADDRESS_KEY = 'address'
     FAMILY_KEY = 'family'
     MODEL_KEY = 'model'
-    NEW_RESOURCE_NAME_TEMPLATE = 'new_{}'
+    NEW_RESOURCE_NAME_PREFIX = 'new_'
 
-    def __init__(self, api, logger):
+    def __init__(self, api, logger, name_prefix):
         """
         :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
         """
+        name_prefix = name_prefix or self.NEW_RESOURCE_NAME_PREFIX
+        self._name_template = name_prefix + '{}'
         self._api = api
         self._logger = logger
-        self._config_unit_validator = ConfigUnitValidator(self._api)
+        self._config_unit_validator = ConfigUnitValidator(logger)
         self.__installed_resources = {}
 
     @property
@@ -80,7 +82,7 @@ class MigrationConfigHandler(object):
         return [MigrationOperation(old_resource, new_resource, migration_config)]
 
     def _generate_name(self, name):
-        return self.NEW_RESOURCE_NAME_TEMPLATE.format(name)
+        return self._name_template.format(name)
 
     def _get_resources_by_family_model(self, family, model):
         resources_list = []

@@ -6,20 +6,22 @@ from cloudshell.layer_one.migration_tool.handlers.logical_routes_handler import 
 from cloudshell.layer_one.migration_tool.handlers.migration_config_handler import MigrationConfigHandler
 from cloudshell.layer_one.migration_tool.handlers.migration_config_parser import MigrationConfigParser
 from cloudshell.layer_one.migration_tool.handlers.migration_operation_handler import MigrationOperationHandler
+from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
 from cloudshell.layer_one.migration_tool.validators.migration_config_validator import MigrationConfigValidator
 from cloudshell.layer_one.migration_tool.validators.migration_operation_validator import MigrationOperationValidator
 
 
 class MigrationCommands(object):
 
-    def __init__(self, api, logger):
+    def __init__(self, api, logger, configuration):
         """
         :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
         :type logger: cloudshell.layer_one.migration_tool.helpers.logger.Logger
         """
         self._api = api
         self._logger = logger
-        self._operation_handler = MigrationOperationHandler(self._api, self._logger)
+        self._configuration = configuration
+        self._operation_handler = MigrationOperationHandler(self._api, self._logger, configuration)
         self._logical_routes_handler = LogicalRoutesHandler(self._api, self._logger)
 
     def prepare_configs(self, old_resources, new_resources):
@@ -33,7 +35,8 @@ class MigrationCommands(object):
         """
         :type migration_configs: list
         """
-        migration_config_handler = MigrationConfigHandler(self._api, self._logger)
+        migration_config_handler = MigrationConfigHandler(self._api, self._logger, self._configuration.get(
+            ConfigHelper.NEW_RESOURCE_NAME_PREFIX))
         operations = migration_config_handler.define_operations_for_list(migration_configs)
         operation_validator = MigrationOperationValidator(self._api, self._logger)
         for operation in operations:
