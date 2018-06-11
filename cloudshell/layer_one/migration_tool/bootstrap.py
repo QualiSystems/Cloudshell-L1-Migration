@@ -18,6 +18,8 @@ CONFIG_PATH = os.path.join(click.get_app_dir('Quali'), PACKAGE_NAME, 'cloudshell
 
 L1_FAMILY = 'L1 Switch'
 
+DRY_RUN = False
+
 
 @click.group()
 def cli():
@@ -53,16 +55,17 @@ def show_resources(config_path, family):
 
 @cli.command()
 @click.option(u'--config', 'config_path', default=CONFIG_PATH, help="Configuration file.")
+@click.option(u'--dry-run/--run', 'dry_run', default=False)
 @click.argument(u'src_resources', type=str, default=None, required=True)
 @click.argument(u'dst_resources', type=str, default=None, required=True)
-def migrate(config_path, src_resources, dst_resources):
+def migrate(config_path, dry_run, src_resources, dst_resources):
     config_helper = ConfigHelper(config_path)
     api = _initialize_api(config_helper.configuration)
     logger = _initialize_logger(config_helper.configuration)
-    migration_commands = MigrationCommands(api, logger, config_helper.configuration)
+    migration_commands = MigrationCommands(api, logger, config_helper.configuration, dry_run)
     migration_configs = migration_commands.prepare_configs(src_resources, dst_resources)
     operations = migration_commands.prepare_operations(migration_configs)
-    logical_routes_handler = LogicalRoutesHandler(api, logger)
+    logical_routes_handler = LogicalRoutesHandler(api, logger, dry_run)
     logical_routes = logical_routes_handler.get_logical_routes(operations)
     operations_is_valid = len([operation for operation in operations if operation.valid]) > 0
     if not operations_is_valid:
@@ -76,6 +79,9 @@ def migrate(config_path, src_resources, dst_resources):
     click.echo(OutputFormatter.format_prepared_invalid_operations(operations))
     click.echo('Following routes will be reconnected:')
     click.echo(OutputFormatter.format_logical_routes(logical_routes))
+
+    if dry_run:
+        click.echo('*' * 10 + ' DRY RUN: Logical routes and connections will not be changed ' + '*' * 10)
 
     if not click.confirm('Do you want to continue?'):
         click.echo('Aborted')

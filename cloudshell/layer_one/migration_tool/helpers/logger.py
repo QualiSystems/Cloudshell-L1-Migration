@@ -25,4 +25,4 @@ class Logger(object):
         """
         :type message: str
         """
-        click.echo(message)
+        click.echo('ERROR: ' + str(message), err=True)

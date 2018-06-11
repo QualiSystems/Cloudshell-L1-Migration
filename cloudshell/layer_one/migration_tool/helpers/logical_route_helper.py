@@ -4,13 +4,14 @@ from cloudshell.layer_one.migration_tool.entities.logical_route import LogicalRo
 
 
 class LogicalRouteHelper(object):
-    def __init__(self, api, logger):
+    def __init__(self, api, logger, dry_run):
         """
         :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
         :type logger: cloudshell.layer_one.migration_tool.helpers.logger.Logger
         """
         self._api = api
         self._logger = logger
+        self._dry_run = dry_run
         self._logical_routes = {}
         self._logical_routes_by_resource_name = defaultdict(set)
 
@@ -49,16 +50,18 @@ class LogicalRouteHelper(object):
         :type logical_route: cloudshell.layer_one.migration_tool.entities.logical_route.LogicalRoute
         """
         self._logger.debug('Removing logical route {}'.format(logical_route))
-        self._api.RemoveRoutesFromReservation(logical_route.reservation_id,
-                                              [logical_route.source, logical_route.target], 'bi')
+        if not self._dry_run:
+            self._api.RemoveRoutesFromReservation(logical_route.reservation_id,
+                                                  [logical_route.source, logical_route.target], 'bi')
 
     def create_route(self, logical_route):
         """
         :type logical_route: cloudshell.layer_one.migration_tool.entities.logical_route.LogicalRoute
         """
         self._logger.debug('Creating logical route {}'.format(logical_route))
-        self._api.CreateRouteInReservation(logical_route.reservation_id, logical_route.source, logical_route.target,
-                                           False, 'bi', 2, '', False)
+        if not self._dry_run:
+            self._api.CreateRouteInReservation(logical_route.reservation_id, logical_route.source, logical_route.target,
+                                               False, 'bi', 2, '', False)
 
     def get_logical_routes_for_connection(self, connections):
         """

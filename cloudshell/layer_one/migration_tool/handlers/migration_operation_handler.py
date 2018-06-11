@@ -1,13 +1,12 @@
 from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
 from cloudshell.layer_one.migration_tool.helpers.connection_associator import ConnectionAssociator
 from cloudshell.layer_one.migration_tool.helpers.connection_helper import ConnectionHelper
-from cloudshell.layer_one.migration_tool.helpers.logical_route_helper import LogicalRouteHelper
 from cloudshell.layer_one.migration_tool.helpers.resource_operation_helper import ResourceOperationHelper
 from cloudshell.layer_one.migration_tool.validators.migration_operation_validator import MigrationOperationValidator
 
 
 class MigrationOperationHandler(object):
-    def __init__(self, api, logger, configuration):
+    def __init__(self, api, logger, configuration, dry_run):
         """
         :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
         :type logger: cloudshell.layer_one.migration_tool.helpers.logger.Logger
@@ -16,10 +15,10 @@ class MigrationOperationHandler(object):
         self._api = api
         self._logger = logger
         self._configuration = configuration
+        self._dry_run = dry_run
         self._resource_helper = ResourceOperationHelper(api, logger)
-        self._connection_helper = ConnectionHelper(api, logger)
+        self._connection_helper = ConnectionHelper(api, logger, dry_run)
         self._operation_validator = MigrationOperationValidator(self._api, logger)
-        self._logical_route_helper = LogicalRouteHelper(api, logger)
 
     def prepare_operation(self, operation):
         """
@@ -33,9 +32,6 @@ class MigrationOperationHandler(object):
         else:
             operation.new_resource.address = operation.old_resource.address
             operation.new_resource.attributes = operation.old_resource.attributes
-
-        # operation.connections = self._resource_helper.get_physical_connections(operation.old_resource)
-        # operation.logical_routes = self._logical_route_helper.get_logical_routes(operation.connections)
 
     def perform_operation(self, operation):
         """
@@ -55,7 +51,7 @@ class MigrationOperationHandler(object):
         connection_associator = ConnectionAssociator(self._resource_helper.get_resource_ports(new_resource),
                                                      self._logger,
                                                      self._configuration.get(ConfigHelper.OLD_PORT_PATTERN),
-                                                     self._configuration.get(ConfigHelper.NEW_PORT_PATTERN))
+                                                     self._configuration.get(ConfigHelper.NEW_PORT_PATTERN), )
 
         self._logger.debug('Updating connections for resource {}'.format(new_resource))
         for connection in self._resource_helper.get_physical_connections(old_resource):
