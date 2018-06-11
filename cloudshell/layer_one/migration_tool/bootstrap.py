@@ -55,7 +55,7 @@ def show_resources(config_path, family):
 
 @cli.command()
 @click.option(u'--config', 'config_path', default=CONFIG_PATH, help="Configuration file.")
-@click.option(u'--dry-run/--run', 'dry_run', default=False)
+@click.option(u'--dry-run/--run', 'dry_run', default=False, help="Dry run.")
 @click.argument(u'src_resources', type=str, default=None, required=True)
 @click.argument(u'dst_resources', type=str, default=None, required=True)
 def migrate(config_path, dry_run, src_resources, dst_resources):
