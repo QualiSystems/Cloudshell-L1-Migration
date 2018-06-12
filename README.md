@@ -25,11 +25,14 @@ Usage:
     In order to use the tool, the user must configure his credentials:
 
     ```bash
-    migration_tool config host <CSHost>
-    migration_tool config username <CSUserName>
-    migration_tool config password <CSPassword>
-    migration_tool config domain <CSDomain>
-    migration_tool config port <CSPort>
+    migration_tool config host <CSHost>  # CS Host
+    migration_tool config username <CSUserName> # CS Username
+    migration_tool config password <CSPassword> # CS Password
+    migration_tool config domain <CSDomain> # CS Domain
+    migration_tool config port <CSPort> # CS Port
+    migration_tool config name_prefix "New" # Prefix for new resource
+    migration_tool config new_port_pattern "(.*)/(.*)" # Relative address pattern for the new resource ports
+    migration_tool config old_port_pattern ".*/(.*)/(.*)"   # Relative address pattern for the old resource ports
     ```    
     You may see the current credentials by running:
     
@@ -41,6 +44,9 @@ Usage:
     ```bash
     migration_tool config logging_level DEBUG
     ```
+    Relative address pattern configuration *new_port_pattern/old_port_pattern* distinguish blocks of address which will be used for the association.
+    "(.*)" will use full relative address string.
+    
 
 
 2.  **Migrate resources**
@@ -61,6 +67,11 @@ Usage:
     
     ```bash
     migration_tool migrate "L1Switc 1,L1Switch 2" "*/New Family/New Model/New Driver"
+    ```
+    Dry run option used to verify port association. Do not remove routes and do not switch connections. 
+    
+    ```bash
+    migration_tool migrate --dry-run "L1Switc 1,L1Switch 2" "*/New Family/New Model/New Driver"
     ```
     
         
