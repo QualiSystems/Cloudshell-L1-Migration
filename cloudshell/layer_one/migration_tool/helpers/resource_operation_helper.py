@@ -1,5 +1,3 @@
-import re
-
 from cloudshell.layer_one.migration_tool.entities.connection import Connection
 from cloudshell.layer_one.migration_tool.entities.port import Port
 
@@ -45,15 +43,21 @@ class ResourceOperationHelper(object):
         self._logger.debug('Getting connections for resource {}'.format(resource.name))
         # resource_details = self._get_resource_details(resource)
         resource_details = self._api.GetResourceDetails(resource.name)
+        connections = self._define_connections(resource_details)
+        return connections
+
+    def _define_connections(self, resource_info):
+        """
+        :type resource_info: cloudshell.api.cloudshell_api.ResourceInfo
+        """
         connections = []
-        for child_resource in resource_details.ChildResources:
-            for grandchild_resource in child_resource.ChildResources:
-                if grandchild_resource.Connections:
-                    connection = Connection(Port(grandchild_resource.Name, grandchild_resource.FullAddress),
-                                            grandchild_resource.Connections[0].FullPath,
-                                            grandchild_resource.Connections[0].Weight)
-                    # connection.resource = resource
-                    connections.append(connection)
+        if resource_info.Connections:
+            connection = Connection(Port(resource_info.Name, resource_info.FullAddress),
+                                    resource_info.Connections[0].FullPath,
+                                    resource_info.Connections[0].Weight)
+            connections.append(connection)
+        for child_resource_info in resource_info.ChildResources:
+            connections += self._define_connections(child_resource_info)
         return connections
 
     def get_resource_ports(self, resource):
