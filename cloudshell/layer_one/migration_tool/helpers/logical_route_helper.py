@@ -74,7 +74,8 @@ class LogicalRouteHelper(object):
             self._api.CreateRouteInReservation(logical_route.reservation_id, logical_route.source, logical_route.target,
                                                False, logical_route.route_type, 2, logical_route.route_alias, False)
             if not logical_route.active:
-                self._api.DisconnectRoutesInReservation(logical_route.reservation_id, [logical_route.source])
+                self._api.DisconnectRoutesInReservation(logical_route.reservation_id,
+                                                        [logical_route.source, logical_route.target])
 
     # def get_logical_routes_for_connection(self, connections):
     #     """
