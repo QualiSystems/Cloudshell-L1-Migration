@@ -71,21 +71,12 @@ class LogicalRouteHelper(object):
         """
         self._logger.debug('Creating logical route {}'.format(logical_route))
         if not self._dry_run:
-            self._api.CreateRouteInReservation(logical_route.reservation_id, logical_route.source, logical_route.target,
-                                               False, logical_route.route_type, 2, logical_route.route_alias, False)
-            if not logical_route.active:
-                self._api.DisconnectRoutesInReservation(logical_route.reservation_id,
-                                                        [logical_route.source, logical_route.target])
+            if logical_route.active:
+                self._api.CreateRouteInReservation(logical_route.reservation_id, logical_route.source,
+                                                   logical_route.target,
+                                                   False, logical_route.route_type, 2, logical_route.route_alias, False)
+            else:
+                self._api.AddRoutesToReservation(logical_route.reservation_id, [logical_route.source],
+                                                 [logical_route.target],
+                                                 logical_route.route_type, 2, logical_route.route_alias, False)
 
-    # def get_logical_routes_for_connection(self, connections):
-    #     """
-    #     :type connections: list
-    #     """
-    #     logical_routes = []
-    #     for connection in connections:
-    #         logical_route = self.logical_routes_by_segments.get(connection.port.name)
-    #         if logical_route:
-    #             logical_route.connections.append(connection)
-    #             if logical_route not in logical_routes:
-    #                 logical_routes.append(logical_route)
-    #     return logical_routes

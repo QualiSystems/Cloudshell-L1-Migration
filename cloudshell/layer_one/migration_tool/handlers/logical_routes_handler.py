@@ -30,6 +30,6 @@ class LogicalRoutesHandler(object):
     def get_logical_routes(self, operations):
         logical_routes_set = set()
         for operation in operations:
-            logical_routes_set = logical_routes_set | self._get_routes_for_resource(
-                operation.old_resource)
+            dd = self._get_routes_for_resource(operation.old_resource)
+            logical_routes_set = logical_routes_set | dd
         return logical_routes_set

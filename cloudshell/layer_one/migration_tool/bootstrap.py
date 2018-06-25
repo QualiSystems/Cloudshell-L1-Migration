@@ -94,6 +94,15 @@ def migrate(config_path, dry_run, src_resources, dst_resources):
     logger.debug('Connecting logical routes:')
     logical_routes_handler.create_logical_routes(logical_routes)
 
+@cli.command()
+@click.option(u'--config', 'config_path', default=CONFIG_PATH, help="Configuration file.")
+@click.option(u'--dry-run/--run', 'dry_run', default=False, help="Dry run.")
+@click.argument(u'resources', type=str, default=None, required=True)
+def backup(config_path, dry_run, resources):
+    config_helper = ConfigHelper(config_path)
+    api = _initialize_api(config_helper.configuration)
+    logger = _initialize_logger(config_helper.configuration)
+
 
 def _initialize_api(configuration):
     """
