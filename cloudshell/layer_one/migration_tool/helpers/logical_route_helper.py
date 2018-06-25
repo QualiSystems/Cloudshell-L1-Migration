@@ -50,7 +50,8 @@ class LogicalRouteHelper(object):
         target = route_info.Target
         route_type = route_info.RouteType
         route_alias = route_info.Alias
-        logical_route = LogicalRoute(source, target, reservation_id, route_type, route_alias, active)
+        shared = route_info.Shared
+        logical_route = LogicalRoute(source, target, reservation_id, route_type, route_alias, active, shared)
         for segment in route_info.Segments:
             self._logical_routes_by_resource_name[segment.Source.split('/')[0]].add(logical_route)
             self._logical_routes_by_resource_name[segment.Target.split('/')[0]].add(logical_route)
@@ -74,9 +75,10 @@ class LogicalRouteHelper(object):
             if logical_route.active:
                 self._api.CreateRouteInReservation(logical_route.reservation_id, logical_route.source,
                                                    logical_route.target,
-                                                   False, logical_route.route_type, 2, logical_route.route_alias, False)
+                                                   False, logical_route.route_type, 2, logical_route.route_alias,
+                                                   logical_route.shared)
             else:
                 self._api.AddRoutesToReservation(logical_route.reservation_id, [logical_route.source],
                                                  [logical_route.target],
-                                                 logical_route.route_type, 2, logical_route.route_alias, False)
-
+                                                 logical_route.route_type, 2, logical_route.route_alias,
+                                                 logical_route.shared)
