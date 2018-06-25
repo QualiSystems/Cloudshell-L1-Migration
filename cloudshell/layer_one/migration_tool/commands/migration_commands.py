@@ -43,10 +43,11 @@ class MigrationCommands(object):
         for operation in operations:
             self._operation_handler.prepare_operation(operation)
             operation_validator.validate(operation)
+            if operation.valid:
+                self._operation_handler.define_connections(operation)
         return operations
 
     def perform_operations(self, operations):
-
         for operation in operations:
             if operation.valid:
                 # try:

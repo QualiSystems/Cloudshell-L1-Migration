@@ -50,14 +50,14 @@ class ResourceOperationHelper(object):
         """
         :type resource_info: cloudshell.api.cloudshell_api.ResourceInfo
         """
-        connections = []
+        connections = {}
         if resource_info.Connections:
             connection = Connection(Port(resource_info.Name, resource_info.FullAddress),
                                     resource_info.Connections[0].FullPath,
                                     resource_info.Connections[0].Weight)
-            connections.append(connection)
+            connections[resource_info.Name] = connection
         for child_resource_info in resource_info.ChildResources:
-            connections += self._define_connections(child_resource_info)
+            connections.update(self._define_connections(child_resource_info))
         return connections
 
     def get_resource_ports(self, resource):
