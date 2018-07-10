@@ -44,8 +44,8 @@ Usage:
     ```bash
     migration_tool config logging_level DEBUG
     ```
-    Relative address pattern configuration *new_port_pattern/old_port_pattern* distinguish blocks of address which will be used for the association.
-    "(.*)" will use full relative address string.
+    Relative address patterns *new_port_pattern/old_port_pattern* distinguish blocks of address which will be used for ports association.
+    To compare full string of relative address use "(.*)".
     
 
 
