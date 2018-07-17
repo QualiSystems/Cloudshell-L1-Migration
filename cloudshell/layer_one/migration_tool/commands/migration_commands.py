@@ -1,9 +1,4 @@
-import click
-
-from cloudshell.layer_one.migration_tool.entities.config_unit import ConfigUnit
-from cloudshell.layer_one.migration_tool.entities.migration_config import MigrationConfig
-from cloudshell.layer_one.migration_tool.handlers.config_handler import ConfigHandler
-from cloudshell.layer_one.migration_tool.handlers.logical_routes_handler import LogicalRoutesHandler
+from cloudshell.layer_one.migration_tool.handlers.migration_config_handler import MigrationConfigHandler
 from cloudshell.layer_one.migration_tool.handlers.migration_operation_handler import MigrationOperationHandler
 from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
 from cloudshell.layer_one.migration_tool.validators.migration_config_validator import MigrationConfigValidator
@@ -21,8 +16,8 @@ class MigrationCommands(object):
         self._logger = logger
         self._configuration = configuration
         self._dri_run = dry_run
-        self._config_handler = ConfigHandler(self._api, self._logger,
-                                             self._configuration.get(ConfigHelper.NEW_RESOURCE_NAME_PREFIX))
+        self._config_handler = MigrationConfigHandler(self._api, self._logger,
+                                                      self._configuration.get(ConfigHelper.NEW_RESOURCE_NAME_PREFIX))
         self._operation_handler = MigrationOperationHandler(self._api, self._logger, configuration, dry_run)
         # self._logical_routes_handler = LogicalRoutesHandler(self._api, self._logger, dry_run)
 
