@@ -1,5 +1,4 @@
-from cloudshell.layer_one.migration_tool.handlers.config_handler import ConfigHandler
-from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
+from cloudshell.layer_one.migration_tool.handlers.backup_config_handler import BackupConfigHandler
 
 
 class BackupCommands(object):
@@ -13,38 +12,17 @@ class BackupCommands(object):
         self._logger = logger
         self._configuration = configuration
         self._dri_run = dry_run
-        self._config_handler = ConfigHandler(self._api, self._logger,
-                                             self._configuration.get(ConfigHelper.NEW_RESOURCE_NAME_PREFIX))
+        self._backup_config_handler = BackupConfigHandler(self._api, self._logger)
 
-    def prepare_configs(self, old_resources, new_resources):
-        config_validator = MigrationConfigValidator(self._logger)
-        configs = self._config_handler.parse_configuration(old_resources, new_resources)
+    def define_resources(self, resource_string):
+        configs = self._backup_config_handler.parse_backup_configuration(resource_string)
+        resources = []
         for config in configs:
-            config_validator.validate(config)
-        return configs
+            resources.extend(self._backup_config_handler.define_backup_resources(config))
+        return resources
 
-    def prepare_operations(self, migration_configs):
-        """
-        :type migration_configs: list
-        """
+    def define_connections(self, resources):
+        pass
 
-        operations_list = []
-        for migration_config in migration_configs:
-            operations_list.extend(self._config_handler.define_operations(migration_config))
-
-        operation_validator = MigrationOperationValidator(self._api, self._logger)
-        for operation in operations_list:
-            self._operation_handler.prepare_operation(operation)
-            operation_validator.validate(operation)
-            if operation.valid:
-                self._operation_handler.define_connections(operation)
-        return operations_list
-
-    def perform_operations(self, operations):
-        for operation in operations:
-            if operation.valid:
-                # try:
-                self._operation_handler.perform_operation(operation)
-                # except Exception as e:
-                #     operation.success = False
-                #     self._logger.error('Error: '.format(str(e)))
+    def define_logical_routes(self, resources):
+        pass

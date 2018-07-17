@@ -1,4 +1,5 @@
 class Resource(object):
+    SEPARATOR = '/'
     USERNAME_ATTRIBUTE = 'User'
     PASSWORD_ATTRIBUTE = 'Password'
 
@@ -14,7 +15,7 @@ class Resource(object):
 
     def description(self):
         ent_list = [self.name, self.family, self.model, self.driver]
-        return '/'.join([ent for ent in ent_list if ent])
+        return self.SEPARATOR.join([ent for ent in ent_list if ent])
 
     def __str__(self):
         return self.description()
@@ -27,4 +28,4 @@ class Resource(object):
         """
         :type resource_string: str
         """
-        return cls(*resource_string.split('/'))
+        return cls(*resource_string.split(cls.SEPARATOR))

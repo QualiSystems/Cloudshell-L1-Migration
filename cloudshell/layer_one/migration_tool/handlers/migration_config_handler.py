@@ -7,7 +7,7 @@ from cloudshell.layer_one.migration_tool.entities.resource import Resource
 from cloudshell.layer_one.migration_tool.validators.config_unit_validator import ConfigUnitValidator
 
 
-class ConfigHandler(object):
+class MigrationConfigHandler(object):
     SEPARATOR = ','
     ADDRESS_KEY = 'address'
     FAMILY_KEY = 'family'
@@ -44,17 +44,6 @@ class ConfigHandler(object):
                                     ConfigUnit(new_resources_conf_list[index])))
 
         return migration_config_list
-
-    def parse_backup_configuration(self, resources_str):
-        """
-        :type resources_str: str
-
-        """
-        backup_config_list = []
-        resources_conf_list = resources_str.split(self.SEPARATOR)
-        for index in xrange(len(resources_conf_list)):
-            backup_config_list.append(ConfigUnit(resources_conf_list[index]))
-        return backup_config_list
 
     @property
     def _installed_resources(self):
