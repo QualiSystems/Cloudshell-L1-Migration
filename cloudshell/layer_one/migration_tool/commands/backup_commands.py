@@ -1,16 +1,8 @@
-import click
-
-from cloudshell.layer_one.migration_tool.entities.config_unit import ConfigUnit
-from cloudshell.layer_one.migration_tool.entities.migration_config import MigrationConfig
 from cloudshell.layer_one.migration_tool.handlers.config_handler import ConfigHandler
-from cloudshell.layer_one.migration_tool.handlers.logical_routes_handler import LogicalRoutesHandler
-from cloudshell.layer_one.migration_tool.handlers.migration_operation_handler import MigrationOperationHandler
 from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
-from cloudshell.layer_one.migration_tool.validators.migration_config_validator import MigrationConfigValidator
-from cloudshell.layer_one.migration_tool.validators.migration_operation_validator import MigrationOperationValidator
 
 
-class MigrationCommands(object):
+class BackupCommands(object):
 
     def __init__(self, api, logger, configuration, dry_run):
         """
@@ -23,12 +15,10 @@ class MigrationCommands(object):
         self._dri_run = dry_run
         self._config_handler = ConfigHandler(self._api, self._logger,
                                              self._configuration.get(ConfigHelper.NEW_RESOURCE_NAME_PREFIX))
-        self._operation_handler = MigrationOperationHandler(self._api, self._logger, configuration, dry_run)
-        # self._logical_routes_handler = LogicalRoutesHandler(self._api, self._logger, dry_run)
 
     def prepare_configs(self, old_resources, new_resources):
         config_validator = MigrationConfigValidator(self._logger)
-        configs = self._config_handler.parse_migration_configuration(old_resources, new_resources)
+        configs = self._config_handler.parse_configuration(old_resources, new_resources)
         for config in configs:
             config_validator.validate(config)
         return configs
@@ -40,7 +30,7 @@ class MigrationCommands(object):
 
         operations_list = []
         for migration_config in migration_configs:
-            operations_list.extend(self._config_handler.define_migration_operations(migration_config))
+            operations_list.extend(self._config_handler.define_operations(migration_config))
 
         operation_validator = MigrationOperationValidator(self._api, self._logger)
         for operation in operations_list:
