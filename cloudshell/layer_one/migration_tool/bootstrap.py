@@ -104,6 +104,7 @@ def backup(config_path, dry_run, resources):
     logger = _initialize_logger(config_helper.configuration)
 
 
+
 def _initialize_api(configuration):
     """
     :type configuration: dict
