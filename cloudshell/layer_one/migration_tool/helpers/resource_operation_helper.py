@@ -66,10 +66,19 @@ class ResourceOperationHelper(object):
         """
         self._logger.debug('Getting ports for resource {}'.format(resource.name))
         resource_details = self._get_resource_details(resource)
+        ports = self._define_ports(resource_details)
+        return ports
+
+    def _define_ports(self, resource_info):
+        """
+        :param resource_info:
+        """
         ports = []
-        for child_resource in resource_details.ChildResources:
-            for grandchild_resource in child_resource.ChildResources:
-                ports.append(Port(grandchild_resource.Name, grandchild_resource.FullAddress))
+        if resource_info.ChildResources:
+            for child_resource_info in resource_info.ChildResources:
+                ports.extend(self._define_ports(child_resource_info))
+        else:
+            ports.append(Port(resource_info.Name, resource_info.FullAddress))
         return ports
 
     def create_resource(self, resource):
