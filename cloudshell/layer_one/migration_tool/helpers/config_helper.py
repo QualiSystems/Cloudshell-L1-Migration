@@ -4,19 +4,25 @@ import os
 from copy import deepcopy
 from platform import node
 
+import click
 import yaml
 
 
 class ConfigHelper(object):
+    PACKAGE_NAME = 'migration_tool'
+    CONFIG_PATH = os.path.join(click.get_app_dir('Quali'), PACKAGE_NAME, 'cloudshell_config.yml')
+    BACKUP_LOCATION = os.path.join(click.get_app_dir('Quali'), PACKAGE_NAME, 'Backup')
+
     USERNAME_KEY = 'username'
     PASSWORD_KEY = 'password'
     DOMAIN_KEY = 'domain'
     HOST_KEY = 'host'
     PORT_KEY = 'port'
-    LOGGING_LEVEL = 'logging_level'
-    OLD_PORT_PATTERN = 'old_port_pattern'
-    NEW_PORT_PATTERN = 'new_port_pattern'
-    NEW_RESOURCE_NAME_PREFIX = 'name_prefix'
+    LOGGING_LEVEL_KEY = 'logging_level'
+    OLD_PORT_PATTERN_KEY = 'old_port_pattern'
+    NEW_PORT_PATTERN_KEY = 'new_port_pattern'
+    NEW_RESOURCE_NAME_PREFIX_KEY = 'name_prefix'
+    BACKUP_LOCATION_KEY = 'backup_location'
 
     DEFAULT_CONFIGURATION = {
         USERNAME_KEY: 'admin',
@@ -24,14 +30,15 @@ class ConfigHelper(object):
         PASSWORD_KEY: 'admin',
         HOST_KEY: 'localhost',
         PORT_KEY: 8029,
-        LOGGING_LEVEL: 'DEBUG',
-        OLD_PORT_PATTERN: '(.*)',
-        NEW_PORT_PATTERN: '(.*)',
-        NEW_RESOURCE_NAME_PREFIX: 'new_'
+        LOGGING_LEVEL_KEY: 'DEBUG',
+        OLD_PORT_PATTERN_KEY: '(.*)',
+        NEW_PORT_PATTERN_KEY: '(.*)',
+        NEW_RESOURCE_NAME_PREFIX_KEY: 'new_',
+        BACKUP_LOCATION_KEY: BACKUP_LOCATION
     }
 
     def __init__(self, config_path):
-        self._config_path = config_path
+        self._config_path = config_path or self.CONFIG_PATH
         self._configuration = None
 
     @property

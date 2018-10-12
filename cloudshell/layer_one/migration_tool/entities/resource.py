@@ -9,6 +9,8 @@ class Resource(object):
         self.family = family
         self.model = model
         self.driver = driver
+        self.connections = None
+        self.logical_routes = None
 
         self.attributes = {self.USERNAME_ATTRIBUTE: None, self.PASSWORD_ATTRIBUTE: None}
         self.exist = exist

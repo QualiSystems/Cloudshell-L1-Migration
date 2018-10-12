@@ -16,21 +16,6 @@ class LogicalRouteHelper(object):
         self._logical_routes_by_resource_name = defaultdict(set)
 
     @property
-    def logical_routes_by_segments(self):
-        if not self._logical_routes:
-            for reservation in self._api.GetCurrentReservations().Reservations:
-                if reservation.Id:
-                    details = self._api.GetReservationDetails(reservation.Id).ReservationDescription
-                    for route_info in details.ActiveRoutesInfo:
-                        source = route_info.Source
-                        target = route_info.Target
-                        logical_route = LogicalRoute(source, target, reservation.Id)
-                        for segment in route_info.Segments:
-                            self._logical_routes[segment.Source] = logical_route
-                            self._logical_routes[segment.Target] = logical_route
-        return self._logical_routes
-
-    @property
     def logical_routes_by_resource_name(self):
         if not self._logical_routes_by_resource_name:
             active_routes = []

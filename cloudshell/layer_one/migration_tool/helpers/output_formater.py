@@ -25,3 +25,7 @@ class OutputFormatter(object):
     @staticmethod
     def _logical_route_info(logical_route):
         return 'Logical route: {}'.format(logical_route)
+
+    @staticmethod
+    def format_resources(resources):
+        return resources

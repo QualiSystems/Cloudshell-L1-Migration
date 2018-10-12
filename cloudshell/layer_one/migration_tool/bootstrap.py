@@ -2,19 +2,21 @@ import os
 import sys
 
 import click
+import yaml
+
 from cloudshell.api.cloudshell_api import CloudShellAPISession
+from cloudshell.layer_one.migration_tool.commands.backup_commands import BackupCommands
 
 from cloudshell.layer_one.migration_tool.commands.config_commands import ConfigCommands
 from cloudshell.layer_one.migration_tool.commands.migration_commands import MigrationCommands
 from cloudshell.layer_one.migration_tool.commands.resources_commands import ResourcesCommands
+from cloudshell.layer_one.migration_tool.commands.restore_commands import RestoreCommands
 from cloudshell.layer_one.migration_tool.handlers.logical_routes_handler import LogicalRoutesHandler
 from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
 from cloudshell.layer_one.migration_tool.helpers.logger import Logger
+from cloudshell.layer_one.migration_tool.helpers.logical_route_helper import LogicalRouteHelper
 from cloudshell.layer_one.migration_tool.helpers.output_formater import OutputFormatter
 
-PACKAGE_NAME = 'migration_tool'
-
-CONFIG_PATH = os.path.join(click.get_app_dir('Quali'), PACKAGE_NAME, 'cloudshell_config.yml')
 
 L1_FAMILY = 'L1 Switch'
 
@@ -29,7 +31,7 @@ def cli():
 @cli.command()
 @click.argument(u'key', type=str, default=None, required=False)
 @click.argument(u'value', type=str, default=None, required=False)
-@click.option(u'--config', 'config_path', default=CONFIG_PATH, help="Configuration file.")
+@click.option(u'--config', 'config_path', default=None, help="Configuration file.")
 def config(key, value, config_path):
     """
     Configuration
@@ -44,7 +46,7 @@ def config(key, value, config_path):
 
 
 @cli.command()
-@click.option(u'--config', 'config_path', default=CONFIG_PATH, help="Configuration file.")
+@click.option(u'--config', 'config_path', default=None, help="Configuration file.")
 @click.option(u'--family', 'family', default=L1_FAMILY, help="Resource Family.")
 def show_resources(config_path, family):
     config_helper = ConfigHelper(config_path)
@@ -54,7 +56,7 @@ def show_resources(config_path, family):
 
 
 @cli.command()
-@click.option(u'--config', 'config_path', default=CONFIG_PATH, help="Configuration file.")
+@click.option(u'--config', 'config_path', default=None, help="Configuration file.")
 @click.option(u'--dry-run/--run', 'dry_run', default=False, help="Dry run.")
 @click.argument(u'src_resources', type=str, default=None, required=True)
 @click.argument(u'dst_resources', type=str, default=None, required=True)
@@ -94,14 +96,53 @@ def migrate(config_path, dry_run, src_resources, dst_resources):
     logger.debug('Connecting logical routes:')
     logical_routes_handler.create_logical_routes(logical_routes)
 
+
 @cli.command()
-@click.option(u'--config', 'config_path', default=CONFIG_PATH, help="Configuration file.")
+@click.option(u'--config', 'config_path', default=None, help="Configuration file.")
 @click.option(u'--dry-run/--run', 'dry_run', default=False, help="Dry run.")
+@click.option(u'--file', 'backup_file', default=None, help="Backup file path.")
 @click.argument(u'resources', type=str, default=None, required=True)
-def backup(config_path, dry_run, resources):
+def backup(config_path, backup_file, dry_run, resources):
     config_helper = ConfigHelper(config_path)
+
     api = _initialize_api(config_helper.configuration)
     logger = _initialize_logger(config_helper.configuration)
+    backup_commands = BackupCommands(api, logger, config_helper.configuration, backup_file)
+    resources = backup_commands.define_resources(resources)
+    data=backup_commands.backup_resources(resources)
+    # connections = backup_commands.get_physical_connections(resources)
+    # logical_route_helper = LogicalRouteHelper(api, logger, False)
+    # routes = logical_route_helper.logical_routes_by_resource_name.get(resources)
+    # data = yaml.dump(connections, default_flow_style=False, allow_unicode=True, encoding=None)
+    # out = api.GetResourceList()
+    print(data)
+
+@cli.command()
+@click.option(u'--config', 'config_path', default=None, help="Configuration file.")
+@click.option(u'--dry-run/--run', 'dry_run', default=False, help="Dry run.")
+@click.option(u'--file', 'backup_file', default=None, help="Backup file path.")
+@click.argument(u'resources', type=str, default=None, required=True)
+def restore(config_path, backup_file, dry_run, resources):
+    config_helper = ConfigHelper(config_path)
+
+    api = _initialize_api(config_helper.configuration)
+    logger = _initialize_logger(config_helper.configuration)
+    restore_commands = RestoreCommands(api, logger, config_helper.configuration, backup_file)
+    # resources = backup_commands.define_resources(resources)
+    # data=backup_commands.backup_resources(resources)
+    # connections = backup_commands.get_physical_connections(resources)
+    # logical_route_helper = LogicalRouteHelper(api, logger, False)
+    # routes = logical_route_helper.logical_routes_by_resource_name.get(resources)
+    # data = yaml.dump(connections, default_flow_style=False, allow_unicode=True, encoding=None)
+    # out = api.GetResourceList()
+    restore_resources = restore_commands.prepare_resources(resources)
+    click.echo('Following resources will be restored:')
+    click.echo(OutputFormatter.format_resources(restore_resources))
+    # if not click.confirm('Do you want to continue?'):
+    #     click.echo('Aborted')
+    #     sys.exit(1)
+
+    restore_commands.restore(restore_resources)
 
 
 
@@ -120,4 +161,4 @@ def _initialize_logger(configuration):
     """
     :type configuration: dict
     """
-    return Logger(configuration.get(ConfigHelper.LOGGING_LEVEL))
+    return Logger(configuration.get(ConfigHelper.LOGGING_LEVEL_KEY))
