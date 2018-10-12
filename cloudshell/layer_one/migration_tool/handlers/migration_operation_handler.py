@@ -1,6 +1,5 @@
 from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
 from cloudshell.layer_one.migration_tool.helpers.connection_associator import ConnectionAssociator
-from cloudshell.layer_one.migration_tool.helpers.connection_helper import ConnectionHelper
 from cloudshell.layer_one.migration_tool.helpers.resource_operation_helper import ResourceOperationHelper
 from cloudshell.layer_one.migration_tool.validators.migration_operation_validator import MigrationOperationValidator
 
@@ -16,8 +15,7 @@ class MigrationOperationHandler(object):
         self._logger = logger
         self._configuration = configuration
         self._dry_run = dry_run
-        self._resource_helper = ResourceOperationHelper(api, logger)
-        self._connection_helper = ConnectionHelper(api, logger, dry_run)
+        self._resource_helper = ResourceOperationHelper(api, logger, dry_run)
         self._operation_validator = MigrationOperationValidator(self._api, logger)
 
         self._connections = {}
@@ -60,8 +58,8 @@ class MigrationOperationHandler(object):
         # Associate and update connections
         connection_associator = ConnectionAssociator(self._resource_helper.get_resource_ports(new_resource),
                                                      self._logger,
-                                                     self._configuration.get(ConfigHelper.OLD_PORT_PATTERN),
-                                                     self._configuration.get(ConfigHelper.NEW_PORT_PATTERN), )
+                                                     self._configuration.get(ConfigHelper.OLD_PORT_PATTERN_KEY),
+                                                     self._configuration.get(ConfigHelper.NEW_PORT_PATTERN_KEY), )
 
         self._logger.debug('Updating connections for resource {}'.format(new_resource))
         # for connection in self._resource_helper.get_physical_connections(old_resource):
@@ -72,9 +70,10 @@ class MigrationOperationHandler(object):
         for connection in self._connections.get(old_resource.name).values():
             try:
                 associated_connection = connection_associator.associated_connection(connection)
-                self._connection_helper.update_connection(associated_connection)
+                self._resource_helper.update_connection(associated_connection)
             except Exception as e:
                 self._logger.error(','.join(e.args))
+                continue
             # update local connection DB
             connected_to_resource_connections = self._connections.get(connection.connected_to.split('/')[0])
             if connected_to_resource_connections:

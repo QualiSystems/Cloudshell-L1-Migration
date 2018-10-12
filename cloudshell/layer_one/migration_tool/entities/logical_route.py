@@ -5,10 +5,16 @@ class LogicalRoute(object):
         self.reservation_id = reservation_id
         self.route_type = route_type
         self.route_alias = route_alias
-        self.connections = []
+        # self.connections = []
         self.active = active
         self.shared = shared
 
     def __str__(self):
         return '{0}<->{1}, {2}, {3}'.format(self.source, self.target, self.route_type,
                                             'Active' if self.active else 'Inactive')
+
+    def __eq__(self, other):
+        """
+        :type other: LogicalRoute
+        """
+        return self.source == other.source and self.target == other.target

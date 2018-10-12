@@ -3,13 +3,14 @@ from cloudshell.layer_one.migration_tool.entities.port import Port
 
 
 class ResourceOperationHelper(object):
-    def __init__(self, api, logger):
+    def __init__(self, api, logger, dry_run):
         """
         :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
         :type logger: cloudshell.layer_one.migration_tool.helpers.logger.Logger
         """
         self._api = api
         self._logger = logger
+        self._dry_run = dry_run
         self._resource_details_container = {}
 
     def _get_resource_details(self, resource):
@@ -115,3 +116,12 @@ class ResourceOperationHelper(object):
         self._api.ExcludeResource(resource.name)
         self._api.SyncResourceFromDevice(resource.name)
         self._api.IncludeResource(resource.name)
+
+    def update_connection(self, connection):
+        """
+        :type connection: cloudshell.layer_one.migration_tool.entities.connection.Connection
+        """
+        self._logger.debug('Updating Connection {}=>{}'.format(connection.port.name, connection.connected_to))
+        if not self._dry_run:
+            self._api.UpdatePhysicalConnection(connection.port.name, connection.connected_to)
+            self._api.UpdateConnectionWeight(connection.port.name, connection.connected_to, connection.weight)
