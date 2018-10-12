@@ -33,9 +33,11 @@ class ConnectionAssociator(object):
             self._logger.error('Cannot find associated port, for {}'.format(connection))
 
     def _format_new_address(self, address):
+        self._logger.debug('Matching new address {} for pattern {}'.format(address, self._new_port_pattern))
         return self._format_address(address, self._new_port_pattern)
 
     def _format_old_address(self, address):
+        self._logger.debug('Matching old address {} for pattern {}'.format(address, self._old_port_pattern))
         return self._format_address(address, self._old_port_pattern)
 
     def _format_address(self, address, pattern):

@@ -70,8 +70,11 @@ class MigrationOperationHandler(object):
         #         self._connection_helper.update_connection(associated_connection)
 
         for connection in self._connections.get(old_resource.name).values():
-            associated_connection = connection_associator.associated_connection(connection)
-            self._connection_helper.update_connection(associated_connection)
+            try:
+                associated_connection = connection_associator.associated_connection(connection)
+                self._connection_helper.update_connection(associated_connection)
+            except Exception as e:
+                self._logger.error(','.join(e.args))
             # update local connection DB
             connected_to_resource_connections = self._connections.get(connection.connected_to.split('/')[0])
             if connected_to_resource_connections:
