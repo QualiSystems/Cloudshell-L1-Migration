@@ -7,7 +7,7 @@ from cloudshell.layer_one.migration_tool.entities.resource import Resource
 from cloudshell.layer_one.migration_tool.validators.config_unit_validator import ConfigUnitValidator
 
 
-class MigrationConfigHandler(object):
+class ArgumentHandler(object):
     SEPARATOR = ','
     ADDRESS_KEY = 'address'
     FAMILY_KEY = 'family'
@@ -25,7 +25,7 @@ class MigrationConfigHandler(object):
         self._config_unit_validator = ConfigUnitValidator(logger)
         self.__installed_resources = {}
 
-    def parse_migration_configuration(self, old_resources_str, new_resources_str):
+    def parse_migration_arguments(self, old_resources_str, new_resources_str):
         """
         :type old_resources_str: str
         :type new_resources_str: str
@@ -44,6 +44,8 @@ class MigrationConfigHandler(object):
                                     ConfigUnit(new_resources_conf_list[index])))
 
         return migration_config_list
+
+    def
 
     @property
     def _installed_resources(self):

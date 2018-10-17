@@ -1,11 +1,9 @@
 import os
-
 import yaml
-
-from cloudshell.layer_one.migration_tool.entities.resource import Resource
 from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
 from cloudshell.layer_one.migration_tool.helpers.logical_route_helper import LogicalRouteHelper
-from cloudshell.layer_one.migration_tool.helpers.resource_operation_helper import ResourceOperationHelper
+from cloudshell.layer_one.migration_tool.operations.argument_parser import ArgumentParser
+from cloudshell.layer_one.migration_tool.operations.resource_operations import ResourceOperations
 
 
 class BackupCommands(object):
@@ -17,7 +15,7 @@ class BackupCommands(object):
         self._configuration = configuration
         self._backup_file = backup_file or self._backup_file_path()
 
-        self._resource_operation_helper = ResourceOperationHelper(api, logger, dry_run=False)
+        self._resource_operations = ResourceOperations(api, logger)
         self._logical_route_helper = LogicalRouteHelper(api, logger, dry_run=False)
 
     def _backup_file_path(self):
@@ -33,18 +31,26 @@ class BackupCommands(object):
         with open(self._backup_file, 'w') as backup_file:
             backup_file.write(data)
 
-    def define_resources(self, resources_string):
+    def define_resources(self, resources_argument):
         """
-        :param resources_string:
-        :type resources_string: str
+        :type resources_argument: str
         :rtype:list
         """
-        return map(Resource.from_string, resources_string.split(self.SEPARATOR))
+        resources = []
+        for config_unit in ArgumentParser().parse_argument_string(resources_argument):
+            resources.extend(self._resource_operations.initialize(config_unit))
+        return resources
 
-    def backup_resources(self, resources):
+    def backup_resources(self, resources, connections, routes):
+        if not connections and not routes:
+            connections = routes = True
+
         for resource in resources:
-            resource.connections = self._resource_operation_helper.get_physical_connections(resource).values()
-            resource.logical_routes = list(self._logical_route_helper.logical_routes_by_resource_name.get(resource.name))
+            if connections:
+                self._resource_operations.define_details(resource)
+            if routes:
+                resource.associated_logical_routes = list(
+                    self._logical_route_helper.logical_routes_by_resource_name.get(resource.name, []))
+
         data = yaml.dump(resources, default_flow_style=False, allow_unicode=True, encoding=None)
         self._write_to_file(data)
-
