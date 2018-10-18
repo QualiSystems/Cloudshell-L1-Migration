@@ -1,4 +1,4 @@
-from cloudshell.layer_one.migration_tool.entities.config_unit import ConfigUnit
+from cloudshell.layer_one.migration_tool.operational_entities.config_unit import ConfigUnit
 
 
 class MigrationConfig(object):

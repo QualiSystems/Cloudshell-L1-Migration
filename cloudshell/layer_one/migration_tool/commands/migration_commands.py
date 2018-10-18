@@ -1,10 +1,10 @@
 import click
 
-from cloudshell.layer_one.migration_tool.entities.config_unit import ConfigUnit
-from cloudshell.layer_one.migration_tool.entities.migration_config import MigrationConfig
+from cloudshell.layer_one.migration_tool.operational_entities.config_unit import ConfigUnit
+from cloudshell.layer_one.migration_tool.operational_entities.migration_config import MigrationConfig
 from cloudshell.layer_one.migration_tool.handlers.logical_routes_handler import LogicalRoutesHandler
 from cloudshell.layer_one.migration_tool.handlers.migration_config_handler import MigrationConfigHandler
-from cloudshell.layer_one.migration_tool.handlers.migration_config_parser import MigrationConfigParser
+# from cloudshell.layer_one.migration_tool.handlers.migration_config_parser import MigrationConfigParser
 from cloudshell.layer_one.migration_tool.handlers.migration_operation_handler import MigrationOperationHandler
 from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
 from cloudshell.layer_one.migration_tool.validators.migration_config_validator import MigrationConfigValidator
@@ -27,7 +27,7 @@ class MigrationCommands(object):
 
     def prepare_configs(self, old_resources, new_resources):
         config_validator = MigrationConfigValidator(self._logger)
-        configs = MigrationConfigParser(self._logger).parse_configuration(old_resources, new_resources)
+        configs = MigrationConfigHandler(self._logger).parse_migration_configuration(old_resources, new_resources)
         for config in configs:
             config_validator.validate(config)
         return configs

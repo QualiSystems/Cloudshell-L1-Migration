@@ -1,11 +1,11 @@
-from cloudshell.layer_one.migration_tool.entities.config_unit import ConfigUnit
+from cloudshell.layer_one.migration_tool.operational_entities.config_unit import ConfigUnit
 
 
 class ArgumentParser(object):
     SEPARATOR = ','
 
-    def __init__(self):
-        pass
+    def __init__(self, logger):
+        self._logger = logger
 
     def build_config_unit(self, single_argument):
         """

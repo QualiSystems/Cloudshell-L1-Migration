@@ -1,7 +1,7 @@
 import os
 import yaml
 from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
-from cloudshell.layer_one.migration_tool.helpers.logical_route_helper import LogicalRouteHelper
+from cloudshell.layer_one.migration_tool.operations.logical_route_operations import LogicalRouteHelper
 from cloudshell.layer_one.migration_tool.operations.argument_parser import ArgumentParser
 from cloudshell.layer_one.migration_tool.operations.resource_operations import ResourceOperations
 
@@ -37,7 +37,7 @@ class BackupCommands(object):
         :rtype:list
         """
         resources = []
-        for config_unit in ArgumentParser().parse_argument_string(resources_argument):
+        for config_unit in ArgumentParser(self._logger).parse_argument_string(resources_argument):
             resources.extend(self._resource_operations.initialize(config_unit))
         return resources
 
@@ -47,7 +47,7 @@ class BackupCommands(object):
 
         for resource in resources:
             if connections:
-                self._resource_operations.define_details(resource)
+                self._resource_operations.update_details(resource)
             if routes:
                 resource.associated_logical_routes = list(
                     self._logical_route_helper.logical_routes_by_resource_name.get(resource.name, []))

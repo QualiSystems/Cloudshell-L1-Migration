@@ -1,4 +1,4 @@
-from cloudshell.layer_one.migration_tool.helpers.logical_route_helper import LogicalRouteHelper
+from cloudshell.layer_one.migration_tool.operations.logical_route_operations import LogicalRouteHelper
 
 
 class LogicalRoutesHandler(object):

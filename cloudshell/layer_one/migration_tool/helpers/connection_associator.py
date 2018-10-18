@@ -1,6 +1,6 @@
 import re
 
-from cloudshell.layer_one.migration_tool.entities.connection import Connection
+from cloudshell.layer_one.migration_tool.operational_entities.connection import Connection
 
 
 class ConnectionAssociator(object):
