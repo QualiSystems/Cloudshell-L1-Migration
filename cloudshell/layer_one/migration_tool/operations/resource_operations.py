@@ -63,25 +63,26 @@ class ResourceOperations(object):
 
     def define_resource_attributes(self, resource):
         """
-        :type resource: cloudshell.layer_one.migration_tool.entities.resource.Resource
+        :type resource: cloudshell.layer_one.migration_tool.entities.Resource
         """
         for attribute in resource.attributes:
             value = self._api.GetAttributeValue(resource.name, attribute).Value
             resource.attributes[attribute] = value
 
-    def define_details(self, resource):
+    def update_details(self, resource):
         """
-        :type resource: cloudshell.layer_one.migration_tool.entities.resource.Resource
+        :type resource: cloudshell.layer_one.migration_tool.entities.Resource
         """
         resource_details = self._get_resource_details(resource)
         # resource.address = resource_details.RootAddress
         resource.driver = resource_details.DriverName
         self.define_resource_ports(resource)
         self.define_resource_attributes(resource)
+        return resource
 
     def define_resource_ports(self, resource):
         """
-        :type resource: cloudshell.layer_one.migration_tool.entities.resource.Resource
+        :type resource: cloudshell.layer_one.migration_tool.entities.Resource
         """
         self._logger.debug('Getting ports for resource {}'.format(resource.name))
         resource_details = self._get_resource_details(resource)
@@ -123,7 +124,7 @@ class ResourceOperations(object):
 
     def create_resource(self, resource):
         """
-        :type resource: cloudshell.layer_one.migration_tool.entities.resource.Resource
+        :type resource: cloudshell.layer_one.migration_tool.entities.Resource
         """
         self._logger.debug('Creating new resource {}'.format(resource))
         self._api.CreateResource(resource.family, resource.model, resource.name, resource.address)
@@ -139,7 +140,7 @@ class ResourceOperations(object):
 
     def autoload_resource(self, resource):
         """
-        :type resource: cloudshell.layer_one.migration_tool.entities.resource.Resource
+        :type resource: cloudshell.layer_one.migration_tool.entities.Resource
         """
         self._logger.debug('Autoloading resource {}'.format(resource))
         self._api.ExcludeResource(resource.name)
@@ -151,23 +152,18 @@ class ResourceOperations(object):
 
     def sync_from_device(self, resource):
         """
-        :type resource: cloudshell.layer_one.migration_tool.entities.resource.Resource
+        :type resource: cloudshell.layer_one.migration_tool.entities.Resource
         """
         self._logger.debug('SyncFromDevice resource {}'.format(resource))
         self._api.ExcludeResource(resource.name)
         self._api.SyncResourceFromDevice(resource.name)
         self._api.IncludeResource(resource.name)
 
-    def update_connections(self, resource):
+    def update_connection(self, port):
         """
-        :type resource: cloudshell.layer_one.migration_tool.entities.resource.Resource
+        :type port: cloudshell.layer_one.migration_tool.entities.Port
         """
-        for port in resource.ports:
-            self._logger.debug('Updating Connection {}=>{}'.format(port.name, port.connected_to))
-            if port.connected_to and not self._dry_run:
-                try:
-                    self._api.UpdatePhysicalConnection(port.name, port.connected_to)
-                    self._api.UpdateConnectionWeight(port.name, port.connected_to, port.connection_weight)
-                except Exception as e:
-                    self._logger.error(','.join(e.args))
-                    continue
+        self._logger.debug('Updating Connection {}=>{}'.format(port.name, port.connected_to))
+        if port.connected_to and not self._dry_run:
+            self._api.UpdatePhysicalConnection(port.name, port.connected_to)
+            self._api.UpdateConnectionWeight(port.name, port.connected_to, port.connection_weight)

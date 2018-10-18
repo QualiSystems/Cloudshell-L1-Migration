@@ -1,5 +1,5 @@
-from cloudshell.layer_one.migration_tool.entities.config_unit import ConfigUnit
-from cloudshell.layer_one.migration_tool.entities.resource import Resource
+from cloudshell.layer_one.migration_tool.operational_entities.config_unit import ConfigUnit
+from cloudshell.layer_one.migration_tool.entities import Resource
 
 
 class ResourcesCommands(object):
@@ -9,7 +9,7 @@ class ResourcesCommands(object):
         self.__installed_resources = None
 
     def show_resources(self, family):
-        resources_output = '\n'.join([res.description() for res in self._get_installed_resources(family)])
+        resources_output = '\n'.join([res.to_string() for res in self._get_installed_resources(family)])
         return ConfigUnit.FORMAT + '\n' + resources_output
 
     def _get_installed_resources(self, family=None):

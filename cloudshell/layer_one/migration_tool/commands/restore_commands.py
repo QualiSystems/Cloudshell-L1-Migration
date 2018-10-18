@@ -1,7 +1,11 @@
+from copy import copy
+
 import yaml
 
-from cloudshell.layer_one.migration_tool.helpers.logical_route_helper import LogicalRouteHelper
-from cloudshell.layer_one.migration_tool.helpers.resource_operation_helper import ResourceOperationHelper
+from cloudshell.layer_one.migration_tool.exceptions import MigrationToolException
+from cloudshell.layer_one.migration_tool.operations.argument_parser import ArgumentParser
+from cloudshell.layer_one.migration_tool.operations.logical_route_operations import LogicalRouteOperations
+from cloudshell.layer_one.migration_tool.operations.resource_operations import ResourceOperations
 
 
 class RestoreCommands(object):
@@ -13,8 +17,8 @@ class RestoreCommands(object):
         self._configuration = configuration
         self._backup_file = backup_file
 
-        self._resource_operation_helper = ResourceOperationHelper(api, logger, dry_run=False)
-        self._logical_route_helper = LogicalRouteHelper(api, logger, dry_run=False)
+        self._logical_route_helper = LogicalRouteOperations(api, logger, dry_run=False)
+        self._resource_operations = ResourceOperations(api, logger)
 
         self.__logical_routes = []
 
@@ -32,23 +36,50 @@ class RestoreCommands(object):
             data = yaml.load(backup_file)
             return data
 
-    def prepare_resources(self, resources_string=None):
-        """
-        :param resources_string:
-        :type resources_string: str
-        :return:
-        """
-        resource_list = self._load_backup()
-        resources_by_name = {resource.name: resource for resource in resource_list}
-        restore_resources = []
-        if resources_string:
-            resources_names = resources_string.split(self.SEPARATOR)
-            for name in resources_names:
-                if name in resources_by_name:
-                    restore_resources.append(resources_by_name.get(name))
+    def initialize_resources(self, resources_arguments, connections, routes, override):
+
+        if not connections and not routes:
+            connections = routes = True
+
+        requested_resources = self._requested_resources(resources_arguments)
+        backup_resources = self._load_backup()
+        requested_backup_resources = []
+        if requested_resources:
+            for resource in requested_resources:
+                if resource not in backup_resources:
+                    raise MigrationToolException('Requested resource {} is not in the backup file'.format(resource))
+                requested_backup_resources.append(backup_resources[backup_resources.index(resource)])
         else:
-            restore_resources = resource_list
-        return restore_resources
+            requested_backup_resources = backup_resources
+
+        requested_cs_resources = map(lambda x: self._resource_operations.update_details(copy(x)), requested_backup_resources)
+        print(cs_resources)
+
+    def _prepare_actions(self):
+        pass
+
+    def _define_connections_operations(self, backup_resource, cs_resource, override):
+        """
+        :type backup_resource: cloudshell.layer_one.migration_tool.entities.Resource
+        :type cs_resource: cloudshell.layer_one.migration_tool.entities.Resource
+        :type override: bool
+        """
+        if len(backup_resource.ports) != len(cs_resource.ports):
+            raise MigrationToolException('Number of ports for resource {} does not match'.format(backup_resource))
+        for backup_port, cs_port in zip(backup_resource.ports, cs_resource.ports):
+            if backup_port.connected_to != cs_port.connected_to:
+
+
+
+
+    def _requested_resources(self, resources_arguments):
+        """
+        :type resources_arguments: str
+        """
+        config_resources = []
+        for config_unit in ArgumentParser(self._logger).parse_argument_string(resources_arguments):
+            config_resources.extend(self._resource_operations.initialize(config_unit))
+        return config_resources
 
     def restore(self, resources):
         routes_set = set()
@@ -57,33 +88,3 @@ class RestoreCommands(object):
             routes_set.update(resource.logical_routes)
         self._restore_logical_routes(routes_set)
         # self._replace_with_active(backup_routes)
-
-    # def _cross_active_routes(self, backup_routes):
-    #     """
-    #     :type backup_routes: list
-    #     """
-    #     cross_active_routes=[]
-    #     for route in backup_routes:
-    #         if route in self._active_routes:
-    #             cross_active_routes.append(self._active_routes.)
-    #         # self._resource_operation_helper.
-
-    # def _active_routes(self, backup_routes):
-    #     active_routes = []
-    #     for route in self._logical_route_helper.logical_routes_by_resource_name.values():
-    #         if route in backup_routes:
-    #             active_routes.append(route)
-    #     return active_routes
-
-    def _restore_connections(self, resource):
-        """
-        :param resource:
-        :type resource: cloudshell.layer_one.migration_tool.entities.resource.Resource
-        :return:
-        """
-        for connection in resource.connections:
-            self._resource_operation_helper.update_connection(connection)
-
-    def _restore_logical_routes(self, logical_routes):
-        for logical_route in logical_routes:
-            self._logical_route_helper.create_route(logical_route)

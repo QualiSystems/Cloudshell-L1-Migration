@@ -1,10 +1,10 @@
 from collections import defaultdict
 
-from cloudshell.layer_one.migration_tool.entities.logical_route import LogicalRoute
+from cloudshell.layer_one.migration_tool.entities import LogicalRoute
 
 
-class LogicalRouteHelper(object):
-    def __init__(self, api, logger, dry_run):
+class LogicalRouteOperations(object):
+    def __init__(self, api, logger, dry_run=False):
         """
         :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
         :type logger: cloudshell.layer_one.migration_tool.helpers.logger.Logger
