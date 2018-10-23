@@ -116,6 +116,7 @@ class ResourceOperations(object):
         """
         if resource_info.Connections:
             connected_to = resource_info.Connections[0].FullPath
+            # connected_to = Port(resource_info.Connections[0].FullPath)
             connection_weight = resource_info.Connections[0].Weight
         else:
             connected_to = None
@@ -167,3 +168,12 @@ class ResourceOperations(object):
         if port.connected_to and not self._dry_run:
             self._api.UpdatePhysicalConnection(port.name, port.connected_to)
             self._api.UpdateConnectionWeight(port.name, port.connected_to, port.connection_weight)
+
+    # @staticmethod
+    # def define_port_connections(*resources):
+    #     ports = []
+    #     map(lambda x: ports.extend(x.ports), resources)
+    #     for port in ports:
+    #         if port.connected_to and port.connected_to in ports:
+    #             port.connected_to = ports[ports.index(port.connected_to)]
+    #     print ports
