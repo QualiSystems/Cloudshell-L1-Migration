@@ -1,20 +1,3 @@
-class Port(object):
-    def __init__(self, name, address, connected_to=None, connection_weight=None):
-        self.name = name
-        self.address = address
-        self.connected_to = connected_to
-        self.connection_weight = connection_weight
-
-    def to_string(self):
-        return 'Port:{}=>{}'.format(self.name, self.connected_to)
-
-    def __str__(self):
-        return self.to_string()
-
-    def __repr__(self):
-        return self.to_string()
-
-
 class Resource(object):
     SEPARATOR = '/'
     USERNAME_ATTRIBUTE = 'User'
@@ -56,6 +39,34 @@ class Resource(object):
         return cls(*resource_string.split(cls.SEPARATOR))
 
 
+class Port(object):
+    def __init__(self, name, address=None, connected_to=None, connection_weight=None, associated_logical_route=None):
+        self.name = name
+        self.address = address
+        self.connected_to = connected_to
+        self.connection_weight = connection_weight
+        self.associated_logical_route = associated_logical_route
+
+    def to_string(self):
+        # return 'Port: {}=>{}'.format(self.name, self.connected_to)
+        return 'Port: {}'.format(self.name)
+
+    def __str__(self):
+        return self.to_string()
+
+    def __repr__(self):
+        return self.to_string()
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other):
+        return self.name == other.name
+
+    def __lt__(self, other):
+        return self.name < other.name
+
+
 class LogicalRoute(object):
     def __init__(self, source, target, reservation_id, route_type, route_alias, active=True, shared=False):
         self.source = source
@@ -79,3 +90,6 @@ class LogicalRoute(object):
         :type other: LogicalRoute
         """
         return self.source == other.source and self.target == other.target
+
+    def __hash__(self):
+        return hash(self.source + self.target)

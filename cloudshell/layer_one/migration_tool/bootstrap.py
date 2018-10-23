@@ -1,3 +1,5 @@
+import sys
+
 import click
 
 from cloudshell.api.cloudshell_api import CloudShellAPISession
@@ -125,7 +127,11 @@ def restore(config_path, backup_file, dry_run, resources, connections, routes, o
     api = _initialize_api(config_helper.configuration)
     logger = _initialize_logger(config_helper.configuration)
     restore_commands = RestoreCommands(api, logger, config_helper.configuration, backup_file)
-    resources = restore_commands.initialize_resources(resources, connections, routes, override)
+    actions_container_list = restore_commands.initialize_actions(resources, connections, routes, override)
+    for action_container in actions_container_list:
+        map(click.echo, action_container.sequence())
+
+
     # resources = backup_commands.define_resources(resources)
     # data=backup_commands.backup_resources(resources)
     # connections = backup_commands.get_physical_connections(resources)
@@ -136,11 +142,12 @@ def restore(config_path, backup_file, dry_run, resources, connections, routes, o
     # restore_resources = restore_commands.prepare_resources(resources, connections, routes, override)
     # click.echo('Following resources will be restored:')
     # click.echo(OutputFormatter.format_resources(restore_resources))
-    # if not click.confirm('Do you want to continue?'):
-    #     click.echo('Aborted')
-    #     sys.exit(1)
+    if not click.confirm('Do you want to continue?'):
+        click.echo('Aborted')
+        sys.exit(1)
     #
     # restore_commands.restore(restore_resources)
+    actions_container.execute_actions()
 
 
 def _initialize_api(configuration):

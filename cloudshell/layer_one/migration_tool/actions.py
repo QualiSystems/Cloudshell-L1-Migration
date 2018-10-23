@@ -1,6 +1,32 @@
 from abc import ABCMeta, abstractmethod
 
 
+class ActionsContainer(object):
+    def __init__(self, resource, remove_routes=None, update_connections=None, create_routes=None):
+        self.resource = resource
+        self.remove_routes = remove_routes or []
+        self.update_connections = update_connections or []
+        self.create_routes = create_routes or []
+
+    def sequence(self):
+        sequence = []
+        sequence.extend(set(self.remove_routes))
+        sequence.extend(set(self.update_connections))
+        sequence.extend(set(self.create_routes))
+        return sequence
+
+    def execute_actions(self):
+        return map(lambda x: x.execute(), self.sequence())
+
+    def update(self, container):
+        """
+        :type container: ActionsContainer
+        """
+        self.remove_routes = set(self.remove_routes) | set(container.remove_routes)
+        self.update_connections = set(self.update_connections) | set(container.update_connections)
+        self.create_routes = set(self.create_routes) | set(container.create_routes)
+
+
 class Action(object):
     __metaclass__ = ABCMeta
 
