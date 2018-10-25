@@ -165,9 +165,10 @@ class ResourceOperations(object):
         :type port: cloudshell.layer_one.migration_tool.entities.Port
         """
         self._logger.debug('Updating Connection {}=>{}'.format(port.name, port.connected_to))
-        if port.connected_to and not self._dry_run:
+        if not self._dry_run:
             self._api.UpdatePhysicalConnection(port.name, port.connected_to)
-            self._api.UpdateConnectionWeight(port.name, port.connected_to, port.connection_weight)
+            if port.connected_to and port.connection_weight:
+                self._api.UpdateConnectionWeight(port.name, port.connected_to, port.connection_weight)
 
     # @staticmethod
     # def define_port_connections(*resources):

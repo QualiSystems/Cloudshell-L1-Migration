@@ -12,7 +12,7 @@ class LogicalRouteOperations(object):
         self._api = api
         self._logger = logger
         self._dry_run = dry_run
-        self._logical_routes = {}
+        # self._logical_routes = {}
         self._logical_routes_by_resource_name = defaultdict(set)
         self._logical_routes_by_segment = {}
 
@@ -63,26 +63,47 @@ class LogicalRouteOperations(object):
         route_type = route_info.RouteType
         route_alias = route_info.Alias
         shared = route_info.Shared
-        logical_route = LogicalRoute(source, target, reservation_id, route_type, route_alias, active, shared)
-        if logical_route not in handled_logical_routes:
-            handled_logical_routes.append(logical_route)
-            for segment in route_info.Segments:
-                self._logical_routes_by_segment[segment.Source] = logical_route
-                self._logical_routes_by_segment[segment.Target] = logical_route
+        if source and target:
+            logical_route = LogicalRoute(source, target, reservation_id, route_type, route_alias, active, shared)
+            if route_info.Segments and logical_route not in handled_logical_routes:
+                handled_logical_routes.append(logical_route)
+                self._add_segment(logical_route, route_info.Segments[0], True)
+                self._add_segment(logical_route, route_info.Segments[-1], True)
+
+                for segment in route_info.Segments[1:-1]:
+                    self._add_segment(logical_route, segment, False)
+
+    def _add_segment(self, logical_route, segment, endpoint):
+        if not self._logical_routes_by_segment.get(segment.Source):
+            self._logical_routes_by_segment[segment.Source] = (logical_route, endpoint)
+        if not self._logical_routes_by_segment.get(segment.Target):
+            self._logical_routes_by_segment[segment.Target] = (logical_route, endpoint)
+
         # for segment in route_info.Segments:
         #     self._logical_routes_by_resource_name[segment.Source.split('/')[0]].add(logical_route)
         #     self._logical_routes_by_resource_name[segment.Target.split('/')[0]].add(logical_route)
 
-    def define_logical_routes(self, resource):
+    def get_logical_routes_table(self, resource):
         """
         :type resource: cloudshell.layer_one.migration_tool.entities.Resource
         """
+        logical_routes_table = []
         for port in resource.ports:
             logical_route = self.logical_routes_by_segment.get(port.name)
-            if logical_route:
-                port.associated_logical_route = logical_route
-                if logical_route not in resource.associated_logical_routes:
-                    resource.associated_logical_routes.append(logical_route)
+            if logical_route and logical_route not in logical_routes_table:
+                logical_routes_table.append(logical_route)
+            # port.associated_logical_route = logical_route
+            # if logical_route and logical_route not in resource.associated_logical_routes:
+            #     resource.associated_logical_routes.append(logical_route)
+        return logical_routes_table
+
+    def define_associated_logical_routes(self, resource):
+        """
+        :type resource: cloudshell.layer_one.migration_tool.entities.Resource
+        """
+        logical_routes_table = self.get_logical_routes_table(resource)
+        resource.associated_logical_routes = [route for route, endpoint in logical_routes_table if endpoint]
+        return resource
 
     def remove_route(self, logical_route):
         """

@@ -38,11 +38,7 @@ class RestoreCommands(object):
             data = yaml.load(backup_file)
             return data
 
-    def initialize_actions(self, resources_arguments, connections, routes, override):
-
-        if not connections and not routes:
-            connections = routes = True
-
+    def initialize_resources(self, resources_arguments):
         requested_resources = self._parse_arguments(resources_arguments)
         backup_resources = self._load_backup()
         requested_backup_resources = []
@@ -53,43 +49,56 @@ class RestoreCommands(object):
                 requested_backup_resources.append(backup_resources[backup_resources.index(resource)])
         else:
             requested_backup_resources = backup_resources
+        return requested_backup_resources
 
-        # requested_cs_resources = map(lambda x: self._resource_operations.update_details(copy(x)),
-        #
-        #                            requested_backup_resources)
+    def define_actions(self, requested_backup_resources, connections, routes, override):
+        if not connections and not routes:
+            routes = connections = True
+        actions_container = ActionsContainer()
+        if routes:
+            actions_container.update(self._route_actions(requested_backup_resources, override))
+        if connections:
+            actions_container.update(self._connection_actions(requested_backup_resources, override))
+        return actions_container
 
-        actions_container_list = []
+    def _route_actions(self, requested_backup_resources, override):
+        actions_container = ActionsContainer()
+        for resource in requested_backup_resources:
+            actions_container.update(self._route_actions_for_resource(resource, override))
+        return actions_container
+
+    def _connection_actions(self, requested_backup_resources, override):
+        actions_container = ActionsContainer()
         for backup_resource in requested_backup_resources:
             cs_resource = copy(backup_resource)
             self._resource_operations.update_details(cs_resource)
-            self._logical_route_operations.define_logical_routes(cs_resource)
-            actions_container_list.append(self._define_connection_actions(backup_resource, cs_resource, override))
-        return actions_container_list
+            # self._logical_route_operations.get_logical_routes_table(cs_resource)
+            actions_container.update(self._connection_actions_for_resource(backup_resource, cs_resource, override))
+        return actions_container
 
-    def _define_operations(self):
-        pass
-
-    def _define_route_actions(self, backup_resource, cs_resource, override):
+    def _route_actions_for_resource(self, backup_resource, override):
         """
         :type backup_resource: cloudshell.layer_one.migration_tool.entities.Resource
-        :type cs_resource: cloudshell.layer_one.migration_tool.entities.Resource
         :type override: bool
         """
-        actions_container = ActionsContainer(backup_resource)
-        for backup_port, cs_port in zip(sorted(backup_resource.ports), sorted(cs_resource.ports)):
-            if backup_port.associated_logical_route and not cs_port.associated_logical_route:
-                actions_container.create_routes.append(
-                    CreateRouteAction(backup_port.associated_logical_route, self._logical_route_operations,
-                                      self._logger))
-            if override and (
-                    backup_port.associated_logical_route and cs_port.associated_logical_route and backup_port.associated_logical_route != cs_port.associated_logical_route):
-                actions_container.remove_routes.append(
-                    RemoveRouteAction(cs_port.associated_logical_route, self._logical_route_operations, self._logger))
-                actions_container.create_routes.append(
-                    CreateRouteAction(backup_port.associated_logical_route, self._logical_route_operations,
-                                      self._logger))
+        create_route_actions = set()
+        remove_route_actions = set()
+        for route in backup_resource.associated_logical_routes:
+            src_related_route = self._logical_route_operations.logical_routes_by_segment.get(route.source)
+            dst_related_route = self._logical_route_operations.logical_routes_by_segment.get(route.target)
+            if not src_related_route and not dst_related_route:
+                create_route_actions.add(CreateRouteAction(route, self._logical_route_operations, self._logger))
+            elif override:
+                if src_related_route:
+                    remove_route_actions.add(
+                        RemoveRouteAction(src_related_route[0], self._logical_route_operations, self._logger))
+                if dst_related_route:
+                    remove_route_actions.add(
+                        RemoveRouteAction(dst_related_route[0], self._logical_route_operations, self._logger))
+                create_route_actions.add(CreateRouteAction(route, self._logical_route_operations, self._logger))
+        return ActionsContainer(remove_route_actions, None, create_route_actions)
 
-    def _define_connection_actions(self, backup_resource, cs_resource, override):
+    def _connection_actions_for_resource(self, backup_resource, cs_resource, override):
         """
         :type backup_resource: cloudshell.layer_one.migration_tool.entities.Resource
         :type cs_resource: cloudshell.layer_one.migration_tool.entities.Resource
@@ -105,13 +114,14 @@ class RestoreCommands(object):
                 update_connections_actions.add(
                     UpdateConnectionAction(backup_port, self._resource_operations, self._logger))
             if override and backup_port.connected_to != cs_port.connected_to:
-                if cs_port.associated_logical_route:
+                update_connections_actions.add(
+                    UpdateConnectionAction(backup_port, self._resource_operations, self._logger))
+                logical_route = self._logical_route_operations.logical_routes_by_segment.get(cs_port.name)
+                if logical_route:
                     remove_route_actions.add(
-                        RemoveRouteAction(cs_port.associated_logical_route, self._logical_route_operations,
-                                          self._logger))
+                        RemoveRouteAction(logical_route[0], self._logical_route_operations, self._logger))
                     create_route_actions.add(
-                        CreateRouteAction(cs_port.associated_logical_route, self._logical_route_operations,
-                                          self._logger))
+                        CreateRouteAction(logical_route[0], self._logical_route_operations, self._logger))
         return ActionsContainer(remove_route_actions, update_connections_actions, create_route_actions)
 
     def _parse_arguments(self, resources_arguments):

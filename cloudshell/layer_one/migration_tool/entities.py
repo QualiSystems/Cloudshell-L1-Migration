@@ -45,11 +45,11 @@ class Port(object):
         self.address = address
         self.connected_to = connected_to
         self.connection_weight = connection_weight
-        self.associated_logical_route = associated_logical_route
+        # self.associated_logical_route = associated_logical_route
 
     def to_string(self):
-        # return 'Port: {}=>{}'.format(self.name, self.connected_to)
-        return 'Port: {}'.format(self.name)
+        return 'Port: {}=>{}'.format(self.name, self.connected_to)
+        # return 'Port: {}'.format(self.name)
 
     def __str__(self):
         return self.to_string()
@@ -74,7 +74,6 @@ class LogicalRoute(object):
         self.reservation_id = reservation_id
         self.route_type = route_type
         self.route_alias = route_alias
-        # self.connections = []
         self.active = active
         self.shared = shared
 
