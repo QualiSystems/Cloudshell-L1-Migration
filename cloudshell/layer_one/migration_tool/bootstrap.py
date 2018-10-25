@@ -117,7 +117,7 @@ def backup(config_path, backup_file, dry_run, resources, connections, routes):
 @click.option(u'--config', 'config_path', default=None, help="Configuration file.")
 @click.option(u'--dry-run/--run', 'dry_run', default=False, help="Dry run.")
 @click.option(u'--file', 'backup_file', default=None, help="Backup file path.")
-@click.option(u'--override', 'override', default=False, help="Override existing routes.")
+@click.option(u'--override/--append', 'override', default=False, help="Append or override routes/connections.")
 @click.option(u'--connections', 'connections', default=False, help="Restore connections only.")
 @click.option(u'--routes', 'routes', default=False, help="Restore routes only.")
 @click.argument(u'resources', type=str, default=None, required=True)
@@ -127,26 +127,17 @@ def restore(config_path, backup_file, dry_run, resources, connections, routes, o
     api = _initialize_api(config_helper.configuration)
     logger = _initialize_logger(config_helper.configuration)
     restore_commands = RestoreCommands(api, logger, config_helper.configuration, backup_file)
-    actions_container_list = restore_commands.initialize_actions(resources, connections, routes, override)
-    for action_container in actions_container_list:
-        map(click.echo, action_container.sequence())
+    resources = restore_commands.initialize_resources(resources)
+    actions_container = restore_commands.define_actions(resources, connections, routes, override)
 
-
-    # resources = backup_commands.define_resources(resources)
-    # data=backup_commands.backup_resources(resources)
-    # connections = backup_commands.get_physical_connections(resources)
-    # logical_route_helper = LogicalRouteHelper(api, logger, False)
-    # routes = logical_route_helper.logical_routes_by_resource_name.get(resources)
-    # data = yaml.dump(connections, default_flow_style=False, allow_unicode=True, encoding=None)
-    # out = api.GetResourceList()
-    # restore_resources = restore_commands.prepare_resources(resources, connections, routes, override)
-    # click.echo('Following resources will be restored:')
-    # click.echo(OutputFormatter.format_resources(restore_resources))
+    if actions_container.is_empty():
+        click.echo('Actions:')
+        click.echo('Nothing to do')
+        sys.exit(0)
+    click.echo(actions_container.to_string())
     if not click.confirm('Do you want to continue?'):
         click.echo('Aborted')
         sys.exit(1)
-    #
-    # restore_commands.restore(restore_resources)
     actions_container.execute_actions()
 
 

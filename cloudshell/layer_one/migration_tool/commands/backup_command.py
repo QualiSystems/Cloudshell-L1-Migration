@@ -8,6 +8,8 @@ from cloudshell.layer_one.migration_tool.operations.resource_operations import R
 
 class BackupCommands(object):
     SEPARATOR = ','
+    RESOURCES_KEY = 'RESOURCES'
+    LOGICAL_ROUTES_KEY = 'LOGICAL_ROUTES'
 
     def __init__(self, api, logger, configuration, backup_file):
         self._api = api
@@ -45,6 +47,7 @@ class BackupCommands(object):
         if not connections and not routes:
             connections = routes = True
 
+        logical_routes = set()
         for resource in resources:
             if connections:
                 self._resource_operations.update_details(resource)
@@ -52,8 +55,13 @@ class BackupCommands(object):
                 # resource.associated_logical_routes = list(
                 #     self._logical_route_operations.logical_routes_by_resource_name.get(resource.name, []))
 
-                self._logical_route_operations.define_logical_routes(resource)
-        self._resource_operations.define_port_connections(*resources)
+                self._logical_route_operations.define_associated_logical_routes(resource)
+                logical_routes.update(resource.associated_logical_routes)
+
+        # backup_dict = {self.RESOURCES_KEY: resources,
+        #                self.LOGICAL_ROUTES_KEY: list(logical_routes)}
+
+        # self._resource_operations.define_port_connections(*resources)
 
         data = yaml.dump(resources, default_flow_style=False, allow_unicode=True, encoding=None)
         self._write_to_file(data)
