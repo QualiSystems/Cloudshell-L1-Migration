@@ -111,8 +111,10 @@ class RestoreCommands(object):
         create_route_actions = set()
         for backup_port, cs_port in zip(sorted(backup_resource.ports), sorted(cs_resource.ports)):
             if backup_port.connected_to and not cs_port.connected_to:
-                update_connections_actions.add(
-                    UpdateConnectionAction(backup_port, self._resource_operations, self._logger))
+                connected_port_details = self._api.GetResourceDetails(backup_port.connected_to)
+                if connected_port_details and not connected_port_details.Connections:
+                    update_connections_actions.add(
+                        UpdateConnectionAction(backup_port, self._resource_operations, self._logger))
             if override and backup_port.connected_to != cs_port.connected_to:
                 update_connections_actions.add(
                     UpdateConnectionAction(backup_port, self._resource_operations, self._logger))

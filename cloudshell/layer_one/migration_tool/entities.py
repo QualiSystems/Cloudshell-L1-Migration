@@ -40,12 +40,11 @@ class Resource(object):
 
 
 class Port(object):
-    def __init__(self, name, address=None, connected_to=None, connection_weight=None, associated_logical_route=None):
+    def __init__(self, name, address=None, connected_to=None, connection_weight=None):
         self.name = name
         self.address = address
-        self.connected_to = connected_to
+        self.connected_to = connected_to or ''
         self.connection_weight = connection_weight
-        # self.associated_logical_route = associated_logical_route
 
     def to_string(self):
         return 'Port: {}=>{}'.format(self.name, self.connected_to)
