@@ -123,7 +123,7 @@ class UpdateConnectionAction(Action):
         return 'Update Connection: {}'.format(self.port)
 
     def __hash__(self):
-        return hash(self.port)
+        return hash(''.join(sorted([self.port.name, self.port.connected_to])))
 
     def __eq__(self, other):
-        return self.port == other.port
+        return sorted([self.port.name, self.port.connected_to]) == sorted([other.port.name, other.port.connected_to])
