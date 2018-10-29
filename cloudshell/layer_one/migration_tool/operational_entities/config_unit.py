@@ -1,3 +1,6 @@
+from cloudshell.layer_one.migration_tool.entities import Resource
+
+
 class ConfigUnit(object):
     NAME_INDEX = 0
     FAMILY_INDEX = 1
@@ -44,3 +47,8 @@ class ConfigUnit(object):
     def _get_config_field(self, index):
         if len(self.config_list) > index and self.config_list[index] not in self.EMPTY_CHARS:
             return self.config_list[index]
+
+    def empty_resource(self):
+        return Resource(self.resource_name, family=self.resource_family, model=self.resource_model,
+                        driver=self.resource_driver,
+                        exist=False)

@@ -24,7 +24,7 @@ class ResourceOperations(object):
         return self._resource_details_container.get(resource.name)
 
     @property
-    def _installed_resources(self):
+    def installed_resources(self):
         """
         :rtype: dict
         """
@@ -36,30 +36,12 @@ class ResourceOperations(object):
         return self._resource_container
 
     @property
-    def _sorted_by_family_model_resources(self):
+    def sorted_by_family_model_resources(self):
         if not self._resources_by_family_model:
             self._resources_by_family_model = defaultdict(list)
-            for resource in self._installed_resources.values():
+            for resource in self.installed_resources.values():
                 self._resources_by_family_model[(resource.family, resource.model)].append(resource)
         return self._resources_by_family_model
-
-    def initialize(self, config_unit):
-        """
-        :type config_unit: cloudshell.layer_one.migration_tool.entities.config_unit.ConfigUnit
-        """
-        resource_list = []
-        if config_unit.is_multi_resource():
-            resource_list.extend(
-                self._sorted_by_family_model_resources.get((config_unit.resource_family, config_unit.resource_model),
-                                                           []))
-        else:
-            if config_unit.resource_name in self._installed_resources:
-                resource_list.append(self._installed_resources.get(config_unit.resource_name))
-            else:
-                resource_list.append(Resource(config_unit.resource_name, family=config_unit.resource_family,
-                                              model=config_unit.resource_model, driver=config_unit.resource_driver,
-                                              exist=False))
-        return resource_list
 
     def define_resource_attributes(self, resource):
         """
@@ -166,7 +148,7 @@ class ResourceOperations(object):
         """
         self._logger.debug('Updating Connection {}=>{}'.format(port.name, port.connected_to))
         if not self._dry_run:
-            self._api.UpdatePhysicalConnection(port.name, port.connected_to)
+            self._api.UpdatePhysicalConnection(port.name, port.connected_to or '')
             if port.connected_to and port.connection_weight:
                 self._api.UpdateConnectionWeight(port.name, port.connected_to, port.connection_weight)
 

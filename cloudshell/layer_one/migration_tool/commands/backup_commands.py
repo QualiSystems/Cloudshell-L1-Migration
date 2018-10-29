@@ -1,4 +1,6 @@
 import os
+from datetime import datetime
+
 import yaml
 from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
 from cloudshell.layer_one.migration_tool.operations.logical_route_operations import LogicalRouteOperations
@@ -24,24 +26,23 @@ class BackupCommands(object):
         backup_path = self._configuration.get(ConfigHelper.BACKUP_LOCATION_KEY)
         if not backup_path:
             raise Exception(self.__class__.__name__, 'Backup location was not specified')
-        filename = 'backup.yaml'
+        filename = datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + '.yaml'
         return os.path.join(backup_path, filename)
 
     def _write_to_file(self, data):
-        if not os.path.exists(self._backup_file):
-            os.makedirs(os.path.dirname(self._backup_file))
+        dir_path = os.path.dirname(self._backup_file)
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
         with open(self._backup_file, 'w') as backup_file:
             backup_file.write(data)
 
-    def define_resources(self, resources_argument):
+    def initialize_resources(self, resources_arguments):
         """
-        :type resources_argument: str
+        :type resources_arguments: str
         :rtype:list
         """
-        resources = []
-        for config_unit in ArgumentParser(self._logger).parse_argument_string(resources_argument):
-            resources.extend(self._resource_operations.initialize(config_unit))
-        return resources
+        return ArgumentParser(self._logger, self._resource_operations).initialize_resources_for_argument_string(
+                    resources_arguments, existing_only=True)
 
     def backup_resources(self, resources, connections, routes):
         if not connections and not routes:

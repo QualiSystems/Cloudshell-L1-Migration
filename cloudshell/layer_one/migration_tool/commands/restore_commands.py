@@ -22,24 +22,19 @@ class RestoreCommands(object):
         self._logical_route_operations = LogicalRouteOperations(api, logger, dry_run=False)
         self._resource_operations = ResourceOperations(api, logger)
 
-        self.__logical_routes = []
-
-    # @property
-    # def _active_routes(self):
-    #     if not self.__logical_routes:
-    #         logical_routes = set()
-    #         for routes_list in self._logical_route_operations.logical_routes_by_resource_name.values():
-    #             logical_routes.update(routes_list)
-    #         self.__logical_routes = list(logical_routes)
-    #     return self.__logical_routes
-
     def _load_backup(self):
         with open(self._backup_file, 'r') as backup_file:
             data = yaml.load(backup_file)
             return data
 
     def initialize_resources(self, resources_arguments):
-        requested_resources = self._parse_arguments(resources_arguments)
+        """
+        :type resources_arguments: str
+        :rtype: list
+        """
+        requested_resources = ArgumentParser(self._logger,
+                                             self._resource_operations).initialize_resources_for_argument_string(
+            resources_arguments, existing_only=True)
         backup_resources = self._load_backup()
         requested_backup_resources = []
         if requested_resources:
@@ -125,12 +120,3 @@ class RestoreCommands(object):
                     create_route_actions.add(
                         CreateRouteAction(logical_route[0], self._logical_route_operations, self._logger))
         return ActionsContainer(remove_route_actions, update_connections_actions, create_route_actions)
-
-    def _parse_arguments(self, resources_arguments):
-        """
-        :type resources_arguments: str
-        """
-        config_resources = []
-        for config_unit in ArgumentParser(self._logger).parse_argument_string(resources_arguments):
-            config_resources.extend(self._resource_operations.initialize(config_unit))
-        return config_resources
