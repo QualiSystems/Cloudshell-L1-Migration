@@ -4,7 +4,6 @@ from abc import ABCMeta, abstractmethod
 
 class ActionsContainer(object):
     def __init__(self, remove_routes=None, update_connections=None, create_routes=None):
-        # self.resource = resource
         self.remove_routes = remove_routes or []
         self.update_connections = update_connections or []
         self.create_routes = create_routes or []

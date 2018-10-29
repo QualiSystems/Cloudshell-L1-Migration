@@ -1,5 +1,5 @@
 class Resource(object):
-    SEPARATOR = '/'
+    # SEPARATOR = '/'
     USERNAME_ATTRIBUTE = 'User'
     PASSWORD_ATTRIBUTE = 'Password'
 
@@ -17,7 +17,7 @@ class Resource(object):
 
     def to_string(self):
         ent_list = [self.name, self.family, self.model, self.driver]
-        return self.SEPARATOR.join([ent for ent in ent_list if ent])
+        return '/'.join([ent for ent in ent_list if ent])
 
     def __str__(self):
         return self.to_string()
@@ -31,19 +31,19 @@ class Resource(object):
     def __copy__(self):
         return Resource(self.name, self.address, self.family, self.model, self.driver, self.exist)
 
-    @classmethod
-    def from_string(cls, resource_string):
-        """
-        :type resource_string: str
-        """
-        return cls(*resource_string.split(cls.SEPARATOR))
+    # @classmethod
+    # def from_string(cls, resource_string):
+    #     """
+    #     :type resource_string: str
+    #     """
+    #     return cls(*resource_string.split(cls.SEPARATOR))
 
 
 class Port(object):
     def __init__(self, name, address=None, connected_to=None, connection_weight=None):
         self.name = name
         self.address = address
-        self.connected_to = connected_to or ''
+        self.connected_to = connected_to
         self.connection_weight = connection_weight
 
     def to_string(self):

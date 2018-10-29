@@ -1,9 +1,10 @@
+import os
 import sys
 
 import click
 
 from cloudshell.api.cloudshell_api import CloudShellAPISession
-from cloudshell.layer_one.migration_tool.commands.backup_command import BackupCommands
+from cloudshell.layer_one.migration_tool.commands.backup_commands import BackupCommands
 from cloudshell.layer_one.migration_tool.commands.config_commands import ConfigCommands
 from cloudshell.layer_one.migration_tool.commands.resources_commands import ResourcesCommands
 from cloudshell.layer_one.migration_tool.commands.restore_commands import RestoreCommands
@@ -89,6 +90,20 @@ def show_resources(config_path, family):
 #     logger.debug('Connecting logical routes:')
 #     logical_routes_handler.create_logical_routes(logical_routes)
 
+@cli.command()
+@click.option(u'--config', 'config_path', default=None, help="Configuration file.")
+@click.option(u'--dry-run/--run', 'dry_run', default=False, help="Dry run.")
+@click.option(u'--yes', is_flag=True, default=False, help='Assume "yes" to all questions.')
+@click.argument(u'src_resources', type=str, default=None, required=True)
+@click.argument(u'dst_resources', type=str, default=None, required=True)
+def migrate(config_path, dry_run, src_resources, dst_resources, yes):
+    config_helper = ConfigHelper(config_path)
+    api = _initialize_api(config_helper.configuration)
+    logger = _initialize_logger(config_helper.configuration)
+
+
+
+
 
 @cli.command()
 @click.option(u'--config', 'config_path', default=None, help="Configuration file.")
@@ -96,34 +111,38 @@ def show_resources(config_path, family):
 @click.option(u'--file', 'backup_file', default=None, help="Backup file path.")
 @click.option(u'--connections', 'connections', default=False, help="Restore connections only.")
 @click.option(u'--routes', 'routes', default=False, help="Restore routes only.")
+@click.option(u'--yes', is_flag=True, default=False, help='Assume "yes" to all questions.')
 @click.argument(u'resources', type=str, default=None, required=True)
-def backup(config_path, backup_file, dry_run, resources, connections, routes):
+def backup(config_path, backup_file, dry_run, resources, connections, routes, yes):
     config_helper = ConfigHelper(config_path)
 
     api = _initialize_api(config_helper.configuration)
     logger = _initialize_logger(config_helper.configuration)
     backup_commands = BackupCommands(api, logger, config_helper.configuration, backup_file)
-    resources = backup_commands.define_resources(resources)
-    data = backup_commands.backup_resources(resources, connections, routes)
-    # connections = backup_commands.get_physical_connections(resources)
-    # logical_route_helper = LogicalRouteHelper(api, logger, False)
-    # routes = logical_route_helper.logical_routes_by_resource_name.get(resources)
-    # data = yaml.dump(connections, default_flow_style=False, allow_unicode=True, encoding=None)
-    # out = api.GetResourceList()
-    print(data)
+    resources = backup_commands.initialize_resources(resources)
+
+    click.echo('Resources to backup:')
+    for resource in resources:
+        click.echo(resource.to_string())
+    if not yes and not click.confirm('Do you want to continue?'):
+        click.echo('Aborted')
+        sys.exit(1)
+
+    backup_commands.backup_resources(resources, connections, routes)
+    click.echo('Backup done')
 
 
 @cli.command()
 @click.option(u'--config', 'config_path', default=None, help="Configuration file.")
 @click.option(u'--dry-run/--run', 'dry_run', default=False, help="Dry run.")
 @click.option(u'--file', 'backup_file', default=None, help="Backup file path.")
-@click.option(u'--override/--append', 'override', default=False, help="Append or override routes/connections.")
+@click.option(u'--override', is_flag=True, default=False, help="Append or override routes/connections.")
+@click.option(u'--yes', is_flag=True, default=False, help='Assume "yes" to all questions.')
 @click.option(u'--connections', 'connections', default=False, help="Restore connections only.")
 @click.option(u'--routes', 'routes', default=False, help="Restore routes only.")
 @click.argument(u'resources', type=str, default=None, required=True)
-def restore(config_path, backup_file, dry_run, resources, connections, routes, override):
+def restore(config_path, backup_file, dry_run, resources, connections, routes, override, yes):
     config_helper = ConfigHelper(config_path)
-
     api = _initialize_api(config_helper.configuration)
     logger = _initialize_logger(config_helper.configuration)
     restore_commands = RestoreCommands(api, logger, config_helper.configuration, backup_file)
@@ -131,11 +150,11 @@ def restore(config_path, backup_file, dry_run, resources, connections, routes, o
     actions_container = restore_commands.define_actions(resources, connections, routes, override)
 
     if actions_container.is_empty():
-        click.echo('Actions:')
         click.echo('Nothing to do')
         sys.exit(0)
+    click.echo('Actions:')
     click.echo(actions_container.to_string())
-    if not click.confirm('Do you want to continue?'):
+    if not yes and not click.confirm('Do you want to continue?'):
         click.echo('Aborted')
         sys.exit(1)
     actions_container.execute_actions()
