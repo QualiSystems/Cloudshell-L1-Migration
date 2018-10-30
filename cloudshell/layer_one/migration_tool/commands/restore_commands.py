@@ -33,8 +33,8 @@ class RestoreCommands(object):
         :rtype: list
         """
         requested_resources = ArgumentParser(self._logger,
-                                             self._resource_operations).initialize_resources_for_argument_string(
-            resources_arguments, existing_only=True)
+                                             self._resource_operations).initialize_existing_resources(
+            resources_arguments)
         backup_resources = self._load_backup()
         requested_backup_resources = []
         if requested_resources:

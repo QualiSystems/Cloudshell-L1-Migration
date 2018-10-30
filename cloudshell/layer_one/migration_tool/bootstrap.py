@@ -6,6 +6,7 @@ import click
 from cloudshell.api.cloudshell_api import CloudShellAPISession
 from cloudshell.layer_one.migration_tool.commands.backup_commands import BackupCommands
 from cloudshell.layer_one.migration_tool.commands.config_commands import ConfigCommands
+from cloudshell.layer_one.migration_tool.commands.migration_commands import MigrationCommands
 from cloudshell.layer_one.migration_tool.commands.resources_commands import ResourcesCommands
 from cloudshell.layer_one.migration_tool.commands.restore_commands import RestoreCommands
 from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
@@ -100,8 +101,23 @@ def migrate(config_path, dry_run, src_resources, dst_resources, yes):
     config_helper = ConfigHelper(config_path)
     api = _initialize_api(config_helper.configuration)
     logger = _initialize_logger(config_helper.configuration)
+    migrate_commands = MigrationCommands(api, logger, config_helper.configuration, dry_run)
+    resources_pairs = migrate_commands.define_resources_pairs(src_resources, dst_resources)
+    # print(resources_pairs)
 
+    click.echo('Resources to migrate:')
+    for pair in resources_pairs:
+        click.echo('{0}=>{1}'.format(*pair))
 
+    if dry_run:
+        click.echo('*' * 10 + ' DRY RUN: Logical routes and connections will not be changed ' + '*' * 10)
+
+    if not yes and not click.confirm('Do you want to continue?'):
+        click.echo('Aborted')
+        sys.exit(1)
+
+    actions = migrate_commands.initialize_actions(resources_pairs)
+    print(actions)
 
 
 

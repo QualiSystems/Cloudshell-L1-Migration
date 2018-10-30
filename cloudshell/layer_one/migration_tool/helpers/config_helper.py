@@ -23,6 +23,11 @@ class ConfigHelper(object):
     NEW_PORT_PATTERN_KEY = 'new_port_pattern'
     NEW_RESOURCE_NAME_PREFIX_KEY = 'name_prefix'
     BACKUP_LOCATION_KEY = 'backup_location'
+    DEFAULT_PATTERN_KEY = 'default_pattern'
+
+    MIGRATION_PATTERNS = {
+        DEFAULT_PATTERN_KEY: '(.*)/(.*)'
+    }
 
     DEFAULT_CONFIGURATION = {
         USERNAME_KEY: 'admin',

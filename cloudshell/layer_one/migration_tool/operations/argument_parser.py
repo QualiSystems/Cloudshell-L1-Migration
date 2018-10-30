@@ -24,28 +24,35 @@ class ArgumentParser(object):
     def _validate_argument(self, single_argument):
         pass
 
-    def initialize_resources_for_argument_string(self, resources_argument, existing_only=False):
+    def initialize_existing_resources(self, resources_argument):
         """
         :type resources_argument: str
-        :type existing_only: bool
         :rtype:list
         """
         resources = []
         for config_unit in self.parse_argument_string(resources_argument):
-            resources.extend(self.initialize_resources_for_config_unit(config_unit))
-        if existing_only:
-            return [resource for resource in resources if resource.exist]
+            if config_unit.is_multi_resource():
+                resources_list = self._resource_operations.sorted_by_family_model_resources.get(
+                    (config_unit.resource_family, config_unit.resource_model))
+
+            else:
+                resources_list = [self._resource_operations.installed_resources.get(config_unit.resource_name)]
+            if resources_list:
+                resources.extend(resources_list)
+            else:
+                raise Exception(self.__class__.__name__, 'Cannot find resources for {}'.format(config_unit.config_str))
         return resources
 
-    def initialize_resources_for_config_unit(self, config_unit):
+    def initialize_resources_with_stubs(self, resources_argument):
         """
-        :type config_unit: cloudshell.layer_one.migration_tool.operational_entities.config_unit.ConfigUnit
+        :type resources_argument: str
+        :rtype:list
         """
-        if config_unit.is_multi_resource():
-            resources = self._resource_operations.sorted_by_family_model_resources.get((config_unit.resource_family,
-                                                                                        config_unit.resource_model),
-                                                                                       [config_unit.empty_resource()])
-        else:
-            resources = [self._resource_operations.installed_resources.get(config_unit.resource_name,
-                                                                           config_unit.empty_resource())]
+        resources = []
+        for config_unit in self.parse_argument_string(resources_argument):
+            if config_unit.is_multi_resource():
+                resources.append(config_unit.stub_resource())
+            else:
+                resources.append(self._resource_operations.installed_resources.get(
+                    config_unit.resource_name) or config_unit.stub_resource())
         return resources

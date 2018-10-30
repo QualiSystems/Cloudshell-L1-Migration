@@ -41,8 +41,8 @@ class BackupCommands(object):
         :type resources_arguments: str
         :rtype:list
         """
-        return ArgumentParser(self._logger, self._resource_operations).initialize_resources_for_argument_string(
-                    resources_arguments, existing_only=True)
+        return ArgumentParser(self._logger, self._resource_operations).initialize_existing_resources(
+            resources_arguments)
 
     def backup_resources(self, resources, connections, routes):
         if not connections and not routes:
@@ -56,7 +56,7 @@ class BackupCommands(object):
                 # resource.associated_logical_routes = list(
                 #     self._logical_route_operations.logical_routes_by_resource_name.get(resource.name, []))
 
-                self._logical_route_operations.define_associated_logical_routes(resource)
+                self._logical_route_operations.define_endpoint_logical_routes(resource)
                 logical_routes.update(resource.associated_logical_routes)
 
         # backup_dict = {self.RESOURCES_KEY: resources,
