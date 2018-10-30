@@ -97,12 +97,20 @@ class LogicalRouteOperations(object):
             #     resource.associated_logical_routes.append(logical_route)
         return logical_routes_table
 
-    def define_associated_logical_routes(self, resource):
+    def define_endpoint_logical_routes(self, resource):
         """
         :type resource: cloudshell.layer_one.migration_tool.entities.Resource
         """
         logical_routes_table = self.get_logical_routes_table(resource)
         resource.associated_logical_routes = [route for route, endpoint in logical_routes_table if endpoint]
+        return resource
+
+    def define_logical_routes(self, resource):
+        """
+        :type resource: cloudshell.layer_one.migration_tool.entities.Resource
+        """
+        logical_routes_table = self.get_logical_routes_table(resource)
+        resource.associated_logical_routes = [route for route, endpoint in logical_routes_table]
         return resource
 
     def remove_route(self, logical_route):

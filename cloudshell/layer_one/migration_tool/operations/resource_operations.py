@@ -56,7 +56,7 @@ class ResourceOperations(object):
         :type resource: cloudshell.layer_one.migration_tool.entities.Resource
         """
         resource_details = self._get_resource_details(resource)
-        # resource.address = resource_details.RootAddress
+        resource.address = resource_details.RootAddress
         resource.driver = resource_details.DriverName
         self.define_resource_ports(resource)
         self.define_resource_attributes(resource)
@@ -120,6 +120,7 @@ class ResourceOperations(object):
                 if attribute == resource.PASSWORD_ATTRIBUTE:
                     value = self._api.DecryptPassword(value).Value
                 self._api.SetAttributeValue(resource.name, attribute, value)
+        return resource
 
     def autoload_resource(self, resource):
         """
@@ -132,6 +133,7 @@ class ResourceOperations(object):
         self._api.AutoLoad(resource.name)
         # self.is_loaded = True
         self._api.IncludeResource(resource.name)
+        return resource
 
     def sync_from_device(self, resource):
         """
@@ -141,6 +143,7 @@ class ResourceOperations(object):
         self._api.ExcludeResource(resource.name)
         self._api.SyncResourceFromDevice(resource.name)
         self._api.IncludeResource(resource.name)
+        return resource
 
     def update_connection(self, port):
         """

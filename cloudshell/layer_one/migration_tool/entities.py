@@ -16,8 +16,7 @@ class Resource(object):
         self.exist = exist
 
     def to_string(self):
-        ent_list = [self.name, self.family, self.model, self.driver]
-        return '/'.join([ent for ent in ent_list if ent])
+        return '/'.join(resource or '*' for resource in [self.name, self.family, self.model, self.driver])
 
     def __str__(self):
         return self.to_string()

@@ -48,7 +48,10 @@ class ConfigUnit(object):
         if len(self.config_list) > index and self.config_list[index] not in self.EMPTY_CHARS:
             return self.config_list[index]
 
-    def empty_resource(self):
+    def stub_resource(self):
+        if not self.resource_family or not self.resource_model:
+            raise Exception(self.__class__.__name__, 'Cannot initialize resource stub, Family or Model is empty')
+
         return Resource(self.resource_name, family=self.resource_family, model=self.resource_model,
                         driver=self.resource_driver,
                         exist=False)
