@@ -103,26 +103,41 @@ class CreateRouteAction(LogicalRouteAction):
 
 
 class UpdateConnectionAction(Action):
-    def __init__(self, port, resource_operations, logger):
+    def __init__(self, src_port, dst_port, resource_operations, updated_connections, logger):
         """
-        :type port: cloudshell.layer_one.migration_tool.entities.Port
+        :type src_port: cloudshell.layer_one.migration_tool.entities.Port
+        :type dst_port: cloudshell.layer_one.migration_tool.entities.Port
         :type resource_operations: cloudshell.layer_one.migration_tool.operations.resource_operations.ResourceOperations
+        :type updated_connections: dict
+        :type logger: cloudshell.layer_one.migration_tool.helpers.logger.Logger
         """
         super(UpdateConnectionAction, self).__init__(logger)
-        self.port = port
+        self.src_port = src_port
+        self.dst_port = dst_port
         self.resource_operations = resource_operations
+        self.updated_connections = updated_connections
 
     def execute(self):
         try:
-            self.resource_operations.update_connection(self.port)
+            self.dst_port.connected_to = self.updated_connections.get(self.src_port.connected_to,
+                                                                      self.src_port.connected_to)
+            self.resource_operations.update_connection(self.dst_port)
+            self.updated_connections[self.src_port.name] = self.dst_port.name
         except Exception as e:
-            self.logger.error('Cannot update port {}, reason {}'.format(self.port, str(e)))
+            self.logger.error('Cannot update port {}, reason {}'.format(self.dst_port, str(e)))
 
     def to_string(self):
-        return 'Update Connection: {}'.format(self.port)
+        return 'Update Connection: {}=>{}'.format(self.dst_port.name, self.src_port.connected_to)
+
+    @property
+    def _comparable_unit(self):
+        return ''.join(sorted([self.src_port.name, self.src_port.connected_to]))
 
     def __hash__(self):
-        return hash(''.join(sorted([self.port.name, self.port.connected_to])))
+        return hash(self._comparable_unit)
 
     def __eq__(self, other):
-        return sorted([self.port.name, self.port.connected_to]) == sorted([other.port.name, other.port.connected_to])
+        """
+        :type other: UpdateConnectionAction
+        """
+        return self._comparable_unit == other._comparable_unit

@@ -1,7 +1,9 @@
 from copy import copy
 
-from cloudshell.layer_one.migration_tool.actions import ActionsContainer, RemoveRouteAction, CreateRouteAction
+from cloudshell.layer_one.migration_tool.actions import ActionsContainer, RemoveRouteAction, CreateRouteAction, \
+    UpdateConnectionAction
 from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
+from cloudshell.layer_one.migration_tool.helpers.port_associator import PortAssociator
 from cloudshell.layer_one.migration_tool.operations.argument_parser import ArgumentParser
 from cloudshell.layer_one.migration_tool.operations.logical_route_operations import LogicalRouteOperations
 from cloudshell.layer_one.migration_tool.operations.resource_operations import ResourceOperations
@@ -18,9 +20,11 @@ class MigrationCommands(object):
         self._api = api
         self._logger = logger
         self._configuration = configuration
+        self._patterns_table = self._configuration.get(ConfigHelper.PATTERNS_TABLE_KEY)
         self._dri_run = dry_run
         self._resource_operations = ResourceOperations(api, logger, dry_run)
         self._logical_route_operations = LogicalRouteOperations(api, logger, dry_run)
+        self._updated_connections = {}
 
     def define_resources_pairs(self, src_resources_arguments, dst_resources_arguments):
         argument_parser = ArgumentParser(self._logger, self._resource_operations)
@@ -69,7 +73,7 @@ class MigrationCommands(object):
         for pair in resources_pairs:
             self._load_resources(pair)
             actions_container.update(self._initialize_logical_route_actions(pair))
-            actions_container.update(self._initialize_connection_actions())
+            actions_container.update(self._initialize_connection_actions(pair))
         return actions_container
 
     def _load_resources(self, resource_pair):
@@ -92,11 +96,26 @@ class MigrationCommands(object):
             create_route_actions = map(
                 lambda logical_route: CreateRouteAction(logical_route, self._logical_route_operations, self._logger),
                 resource.associated_logical_routes)
-            actions_container.update(ActionsContainer(remove_route_actions, None, create_route_actions))
+            actions_container.update(
+                ActionsContainer(remove_routes=remove_route_actions, create_routes=create_route_actions))
         return actions_container
 
-    def _initialize_connection_actions(self):
-        return ActionsContainer()
+    def _initialize_connection_actions(self, resource_pair):
+        src_resource, dst_resource = resource_pair
+        src_port_pattern = self._patterns_table.get('{}/{}'.format(src_resource.family, src_resource.model),
+                                                    self._patterns_table.get(ConfigHelper.DEFAULT_PATTERN_KEY))
+        dst_port_pattern = self._patterns_table.get('{}/{}'.format(dst_resource.family, dst_resource.model),
+                                                    self._patterns_table.get(ConfigHelper.DEFAULT_PATTERN_KEY))
+        port_associator = PortAssociator(dst_resource.ports, src_port_pattern, dst_port_pattern, self._logger)
+
+        connection_actions = []
+        for src_port in src_resource.ports:
+            if src_port.connected_to:
+                associated_dst_port = port_associator.associated_port(src_port)
+                connection_actions.append(
+                    UpdateConnectionAction(src_port, associated_dst_port, self._resource_operations,
+                                           self._updated_connections, self._logger))
+        return ActionsContainer(update_connections=connection_actions)
 
     # def prepare_operations(self, migration_configs):
     #     """
