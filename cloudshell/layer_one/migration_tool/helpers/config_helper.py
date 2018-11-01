@@ -94,8 +94,8 @@ class ConfigHelper(object):
 
     def update_migration_table(self, configuration):
         updated = False
-        migration_table = configuration.get(self.MIGRATION_TABLE_KEY)
-        for key, value in self.DEFAULT_CONFIGURATION.get(self.MIGRATION_TABLE_KEY).iteritems():
+        migration_table = configuration.get(self.PATTERNS_TABLE_KEY)
+        for key, value in self.DEFAULT_CONFIGURATION.get(self.PATTERNS_TABLE_KEY).iteritems():
             if key not in migration_table:
                 migration_table[key] = value
                 updated = True
