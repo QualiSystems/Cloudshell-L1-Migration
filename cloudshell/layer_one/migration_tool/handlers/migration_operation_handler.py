@@ -1,5 +1,5 @@
 from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
-from cloudshell.layer_one.migration_tool.helpers.connection_associator import ConnectionAssociator
+from cloudshell.layer_one.migration_tool.helpers.port_associator import ConnectionAssociator
 from cloudshell.layer_one.migration_tool.operations.resource_operations import ResourceOperationHelper
 from cloudshell.layer_one.migration_tool.validators.migration_operation_validator import MigrationOperationValidator
 

@@ -23,10 +23,14 @@ class ConfigHelper(object):
     NEW_PORT_PATTERN_KEY = 'new_port_pattern'
     NEW_RESOURCE_NAME_PREFIX_KEY = 'name_prefix'
     BACKUP_LOCATION_KEY = 'backup_location'
+    PATTERNS_TABLE_KEY = 'patterns_table'
     DEFAULT_PATTERN_KEY = 'default_pattern'
+    DEFAULT_PATTERN = '.*/(.*)/(.*)'
 
-    MIGRATION_PATTERNS = {
-        DEFAULT_PATTERN_KEY: '(.*)/(.*)'
+    MIGRATION_PATTERNS_TABLE = {
+        DEFAULT_PATTERN_KEY: DEFAULT_PATTERN,
+        'L1 Switch/OS-192': '.*/.*/(.*)/(.*)',
+        'L1 Switch/Test Switch Chassis': DEFAULT_PATTERN
     }
 
     DEFAULT_CONFIGURATION = {
@@ -36,10 +40,9 @@ class ConfigHelper(object):
         HOST_KEY: 'localhost',
         PORT_KEY: 8029,
         LOGGING_LEVEL_KEY: 'DEBUG',
-        OLD_PORT_PATTERN_KEY: '(.*)',
-        NEW_PORT_PATTERN_KEY: '(.*)',
         NEW_RESOURCE_NAME_PREFIX_KEY: 'new_',
-        BACKUP_LOCATION_KEY: BACKUP_LOCATION
+        BACKUP_LOCATION_KEY: BACKUP_LOCATION,
+        PATTERNS_TABLE_KEY: MIGRATION_PATTERNS_TABLE
     }
 
     def __init__(self, config_path):
@@ -52,8 +55,12 @@ class ConfigHelper(object):
             self._configuration = self._read_configuration()
         return self._configuration
 
+    @property
+    def patterns_table(self):
+        return self.configuration.get(self.PATTERNS_TABLE_KEY)
+
     def save(self):
-        self._write_configuration()
+        self._write_configuration(self.configuration)
 
     @staticmethod
     def _config_path_is_ok(config_path):
@@ -65,19 +72,43 @@ class ConfigHelper(object):
         """Read configuration from file if exists or use default"""
         if ConfigHelper._config_path_is_ok(self._config_path):
             with open(self._config_path, 'r') as config:
-                return PasswordModification.decrypt_password(yaml.load(config))
+                configuration = yaml.load(config)
+                if configuration:
+                    configuration = PasswordModification.decrypt_password(configuration)
+                    if self.update_configuration(configuration) | self.update_migration_table(configuration):
+                        self._write_configuration(configuration)
+                else:
+                    configuration = self.DEFAULT_CONFIGURATION
 
         else:
-            return self.DEFAULT_CONFIGURATION
+            configuration = self.DEFAULT_CONFIGURATION
+        return configuration
 
-    def _write_configuration(self):
+    def update_configuration(self, configuration):
+        updated = False
+        for key, value in self.DEFAULT_CONFIGURATION.iteritems():
+            if key not in configuration:
+                configuration[key] = value
+                updated = True
+        return updated
+
+    def update_migration_table(self, configuration):
+        updated = False
+        migration_table = configuration.get(self.MIGRATION_TABLE_KEY)
+        for key, value in self.DEFAULT_CONFIGURATION.get(self.MIGRATION_TABLE_KEY).iteritems():
+            if key not in migration_table:
+                migration_table[key] = value
+                updated = True
+        return updated
+
+    def _write_configuration(self, configuration):
         if not ConfigHelper._config_path_is_ok(self._config_path):
             try:
                 os.makedirs(os.path.dirname(self._config_path))
             except OSError:
                 pass
         with open(self._config_path, 'w') as config_file:
-            configuration = PasswordModification.encrypt_password(deepcopy(self.configuration))
+            configuration = PasswordModification.encrypt_password(deepcopy(configuration))
             yaml.dump(configuration, config_file, default_flow_style=False)
 
     def read_key(self, complex_key, default_value=None):

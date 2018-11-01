@@ -27,7 +27,8 @@ def cli():
 @click.argument(u'key', type=str, default=None, required=False)
 @click.argument(u'value', type=str, default=None, required=False)
 @click.option(u'--config', 'config_path', default=None, help="Configuration file.")
-def config(key, value, config_path):
+@click.option(u'--patterns_table', is_flag=True, default=False, help='Add key:value to patterns table')
+def config(key, value, config_path, patterns_table):
     """
     Configuration
     """
@@ -94,10 +95,11 @@ def show_resources(config_path, family):
 @cli.command()
 @click.option(u'--config', 'config_path', default=None, help="Configuration file.")
 @click.option(u'--dry-run/--run', 'dry_run', default=False, help="Dry run.")
+@click.option(u'--backup_file', default=None, help="Backup file path.")
 @click.option(u'--yes', is_flag=True, default=False, help='Assume "yes" to all questions.')
 @click.argument(u'src_resources', type=str, default=None, required=True)
 @click.argument(u'dst_resources', type=str, default=None, required=True)
-def migrate(config_path, dry_run, src_resources, dst_resources, yes):
+def migrate(config_path, dry_run, src_resources, dst_resources, yes, backup_file):
     config_helper = ConfigHelper(config_path)
     api = _initialize_api(config_helper.configuration)
     logger = _initialize_logger(config_helper.configuration)
@@ -120,11 +122,10 @@ def migrate(config_path, dry_run, src_resources, dst_resources, yes):
     print(actions)
 
 
-
 @cli.command()
 @click.option(u'--config', 'config_path', default=None, help="Configuration file.")
 @click.option(u'--dry-run/--run', 'dry_run', default=False, help="Dry run.")
-@click.option(u'--file', 'backup_file', default=None, help="Backup file path.")
+@click.option(u'--backup_file', 'backup_file', default=None, help="Backup file path.")
 @click.option(u'--connections', 'connections', default=False, help="Restore connections only.")
 @click.option(u'--routes', 'routes', default=False, help="Restore routes only.")
 @click.option(u'--yes', is_flag=True, default=False, help='Assume "yes" to all questions.')
