@@ -10,13 +10,13 @@ class ConfigCommands(object):
 
     def __init__(self, config_helper):
         """
-        :type config_helper: cloudshell.layer_one.migration.helpers.config_helper.ConfigHelper
+        :type config_helper: cloudshell.layer_one.migration_tool.helpers.config_helper.ConfigHelper
         """
         self._config_helper = config_helper
 
     def get_key_value(self, key):
         value = self._config_helper.configuration.get(key)
-        return self._format_output(key, value)
+        return self._format_key(key, value)
 
     def set_key_value(self, key, value):
         if key in ConfigHelper.DEFAULT_CONFIGURATION:
@@ -26,16 +26,20 @@ class ConfigCommands(object):
             raise click.UsageError('Configuration key {} does not exist'.format(key))
 
     def get_patterns_table_value(self, key):
-        return self._format_table(self._config_helper.configuration.)
+        return self._format_key(key, self._config_helper.patterns_table.get(key))
+
+    def set_patterns_table_value(self, key, value):
+        self._config_helper.patterns_table[key] = value
+        self._config_helper.save()
 
     def get_config_description(self):
         return self._format_table(self._config_helper.configuration)
 
-    def get_patterns_table(self):
-        return self._format_table(self._config_helper.pa)
+    def get_patterns_table_description(self):
+        return self._format_table(self._config_helper.patterns_table)
 
     @staticmethod
-    def _format_output(key, value):
+    def _format_key(key, value):
         if key == ConfigHelper.PASSWORD_KEY:
             value = '*' * len(value)
         elif key == ConfigHelper.PATTERNS_TABLE_KEY:
@@ -48,6 +52,6 @@ class ConfigCommands(object):
         """
         output = ''
         for key, value in table.iteritems():
-            output += self._format_output(key, value)
+            output += self._format_key(key, value)
             output += self.NEW_LINE
         return output

@@ -33,12 +33,22 @@ def config(key, value, config_path, patterns_table):
     Configuration
     """
     config_operations = ConfigCommands(ConfigHelper(config_path))
-    if key and value:
-        config_operations.set_key_value(key, value)
-    elif key:
-        click.echo(config_operations.get_key_value(key))
+
+    if patterns_table:
+        if key and value:
+            config_operations.set_patterns_table_value(key, value)
+        elif key:
+            click.echo(config_operations.get_patterns_table_value(key))
+        else:
+            click.echo('Patterns Table:')
+            click.echo(config_operations.get_patterns_table_description())
     else:
-        click.echo(config_operations.get_config_description())
+        if key and value:
+            config_operations.set_key_value(key, value)
+        elif key:
+            click.echo(config_operations.get_key_value(key))
+        else:
+            click.echo(config_operations.get_config_description())
 
 
 @cli.command()
