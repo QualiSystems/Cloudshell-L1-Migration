@@ -119,6 +119,8 @@ class UpdateConnectionAction(Action):
 
     def execute(self):
         try:
+            self.logger.debug('**** Execute action update connection:')
+            self.logger.debug('**** {} -> {}'.format(self.src_port.name, self.dst_port.name))
             self.dst_port.connected_to = self.updated_connections.get(self.src_port.connected_to,
                                                                       self.src_port.connected_to)
             self.resource_operations.update_connection(self.dst_port)
@@ -131,7 +133,7 @@ class UpdateConnectionAction(Action):
 
     @property
     def _comparable_unit(self):
-        return ''.join(sorted([self.src_port.name, self.src_port.connected_to]))
+        return ''.join([self.src_port.name, self.src_port.connected_to or ''])
 
     def __hash__(self):
         return hash(self._comparable_unit)

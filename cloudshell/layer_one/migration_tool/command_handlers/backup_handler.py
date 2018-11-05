@@ -8,7 +8,7 @@ from cloudshell.layer_one.migration_tool.operations.argument_parser import Argum
 from cloudshell.layer_one.migration_tool.operations.resource_operations import ResourceOperations
 
 
-class BackupCommands(object):
+class BackupHandler(object):
     SEPARATOR = ','
     RESOURCES_KEY = 'RESOURCES'
     LOGICAL_ROUTES_KEY = 'LOGICAL_ROUTES'
@@ -44,7 +44,8 @@ class BackupCommands(object):
         return ArgumentParser(self._logger, self._resource_operations).initialize_existing_resources(
             resources_arguments)
 
-    def backup_resources(self, resources, connections, routes):
+    def backup_resources(self, resources, connections=True, routes=True):
+        self._logger.info('Backup resources')
         if not connections and not routes:
             connections = routes = True
 
@@ -56,7 +57,7 @@ class BackupCommands(object):
                 # resource.associated_logical_routes = list(
                 #     self._logical_route_operations.logical_routes_by_resource_name.get(resource.name, []))
 
-                self._logical_route_operations.define_endpoint_logical_routes(resource)
+                self._logical_route_operations.define_logical_routes(resource)
                 logical_routes.update(resource.associated_logical_routes)
 
         # backup_dict = {self.RESOURCES_KEY: resources,

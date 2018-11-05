@@ -1,3 +1,0 @@
-class ResourceValidator(object):
-    pass
-

@@ -1,6 +1,7 @@
 from copy import copy
 
-from cloudshell.layer_one.migration_tool.actions import ActionsContainer, RemoveRouteAction, CreateRouteAction, \
+from cloudshell.layer_one.migration_tool.operational_entities.actions import ActionsContainer, RemoveRouteAction, \
+    CreateRouteAction, \
     UpdateConnectionAction
 from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
 from cloudshell.layer_one.migration_tool.helpers.port_associator import PortAssociator
@@ -9,7 +10,7 @@ from cloudshell.layer_one.migration_tool.operations.logical_route_operations imp
 from cloudshell.layer_one.migration_tool.operations.resource_operations import ResourceOperations
 
 
-class MigrationCommands(object):
+class MigrationHandler(object):
 
     def __init__(self, api, logger, configuration, dry_run):
         """
@@ -52,7 +53,7 @@ class MigrationCommands(object):
                 dst_resources.append(dst)
             pair = src, dst
             resources_pairs.append(pair)
-        return map(self._synchronize_resources_pair, resources_pairs)
+        return map(self._validate_resources_pair, map(self._synchronize_resources_pair, resources_pairs))
 
     def _synchronize_resources_pair(self, resources_pair):
         src, dst = resources_pair
@@ -62,10 +63,28 @@ class MigrationCommands(object):
             dst.address = src.address
             dst.attributes = src.attributes
 
+        return resources_pair
+
+    def _validate_resources_pair(self, resources_pair, handled_resources=[]):
+        src, dst = resources_pair
+
         if src.name == dst.name:
             raise Exception(self.__class__.__name__,
                             'SRC and DST resources cannot have the same name {}'.format(src.name))
+        if not src.exist:
+            raise Exception(self.__class__.__name__, 'SRC resource {} does not exist'.format(src.name))
 
+        if not dst.exist:
+            if dst.name in [resource.name for resource in
+                            self._resource_operations.sorted_by_family_model_resources.get((dst.family, dst.model),
+                                                                                           [])]:
+                raise Exception(self.__class__.__name__, 'Resource with name {} already exist'.format(dst.name))
+        for resource in resources_pair:
+            if resource.name in handled_resources:
+                raise Exception(self.__class__.__name__,
+                                'Resource with name {} already used in another migration pair'.format(resource.name))
+            else:
+                handled_resources.append(resource.name)
         return resources_pair
 
     def initialize_actions(self, resources_pairs):
@@ -80,12 +99,17 @@ class MigrationCommands(object):
         """
         :type resource_pair: tuple
         """
+        src, dst = resource_pair
+
+        if not dst.exist:
+            self._resource_operations.create_resource(dst)
+
+        self._resource_operations.autoload_resource(dst)
+
         for resource in resource_pair:
-            if not resource.exist:
-                self._resource_operations.create_resource(resource)
-                self._resource_operations.autoload_resource(resource)
-            self._resource_operations.update_details(resource)
-            self._logical_route_operations.define_logical_routes(resource)
+            if not resource.ports:
+                self._resource_operations.update_details(resource)
+                self._logical_route_operations.define_logical_routes(resource)
 
     def _initialize_logical_route_actions(self, resource_pair):
         actions_container = ActionsContainer()

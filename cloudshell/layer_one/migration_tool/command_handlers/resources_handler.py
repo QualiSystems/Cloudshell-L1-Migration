@@ -2,7 +2,7 @@ from cloudshell.layer_one.migration_tool.operational_entities.config_unit import
 from cloudshell.layer_one.migration_tool.entities import Resource
 
 
-class ResourcesCommands(object):
+class ResourcesHandler(object):
 
     def __init__(self, api):
         self._api = api

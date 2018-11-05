@@ -12,6 +12,7 @@ class ArgumentParser(object):
         """
         :type single_argument: str
         """
+        single_argument=single_argument.strip()
         self._validate_argument(single_argument)
         return ConfigUnit(single_argument)
 
