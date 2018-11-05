@@ -2,7 +2,8 @@ from copy import copy
 
 import yaml
 
-from cloudshell.layer_one.migration_tool.actions import RemoveRouteAction, CreateRouteAction, UpdateConnectionAction, \
+from cloudshell.layer_one.migration_tool.operational_entities.actions import RemoveRouteAction, CreateRouteAction, \
+    UpdateConnectionAction, \
     ActionsContainer
 from cloudshell.layer_one.migration_tool.exceptions import MigrationToolException
 from cloudshell.layer_one.migration_tool.operations.argument_parser import ArgumentParser
@@ -10,10 +11,10 @@ from cloudshell.layer_one.migration_tool.operations.logical_route_operations imp
 from cloudshell.layer_one.migration_tool.operations.resource_operations import ResourceOperations
 
 
-class RestoreCommands(object):
+class RestoreHandler(object):
     SEPARATOR = ','
 
-    def __init__(self, api, logger, configuration, backup_file):
+    def __init__(self, api, logger, configuration, backup_file, dry_run):
         self._api = api
         self._logger = logger
         self._configuration = configuration
@@ -21,6 +22,7 @@ class RestoreCommands(object):
 
         self._logical_route_operations = LogicalRouteOperations(api, logger, dry_run=False)
         self._resource_operations = ResourceOperations(api, logger)
+        self._updated_connections = {}
 
     def _load_backup(self):
         with open(self._backup_file, 'r') as backup_file:
@@ -101,22 +103,31 @@ class RestoreCommands(object):
         """
         if len(backup_resource.ports) != len(cs_resource.ports):
             raise MigrationToolException('Resource  {} does not match'.format(backup_resource))
-        remove_route_actions = set()
-        update_connections_actions = set()
-        create_route_actions = set()
+        remove_route_actions = []
+        update_connection_actions = []
+        create_route_actions = []
         for backup_port, cs_port in zip(sorted(backup_resource.ports), sorted(cs_resource.ports)):
-            if backup_port.connected_to and not cs_port.connected_to:
+            if not override and backup_port.connected_to and not cs_port.connected_to:
                 connected_port_details = self._api.GetResourceDetails(backup_port.connected_to)
                 if connected_port_details and not connected_port_details.Connections:
-                    update_connections_actions.add(
-                        UpdateConnectionAction(backup_port, self._resource_operations, self._logger))
+                    update_connection_actions.append(
+                        UpdateConnectionAction(backup_port, cs_port, self._resource_operations,
+                                               self._updated_connections, self._logger))
             if override and backup_port.connected_to != cs_port.connected_to:
-                update_connections_actions.add(
-                    UpdateConnectionAction(backup_port, self._resource_operations, self._logger))
+                update_connection_actions.append(
+                    UpdateConnectionAction(backup_port, cs_port, self._resource_operations, self._updated_connections,
+                                           self._logger))
                 logical_route = self._logical_route_operations.logical_routes_by_segment.get(cs_port.name)
                 if logical_route:
-                    remove_route_actions.add(
+                    remove_route_actions.append(
                         RemoveRouteAction(logical_route[0], self._logical_route_operations, self._logger))
-                    create_route_actions.add(
+                    create_route_actions.append(
                         CreateRouteAction(logical_route[0], self._logical_route_operations, self._logger))
-        return ActionsContainer(remove_route_actions, update_connections_actions, create_route_actions)
+                # connected_to_logical_route = self._logical_route_operations.logical_routes_by_segment.get(backup_port.connected_to)
+                # if connected_to_logical_route:
+                #     remove_route_actions.append(
+                #         RemoveRouteAction(connected_to_logical_route[0], self._logical_route_operations, self._logger))
+                #     create_route_actions.append(
+                #         CreateRouteAction(connected_to_logical_route[0], self._logical_route_operations, self._logger))
+
+        return ActionsContainer(remove_route_actions, update_connection_actions, create_route_actions)

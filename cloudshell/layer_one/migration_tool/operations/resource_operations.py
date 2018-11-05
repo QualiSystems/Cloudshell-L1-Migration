@@ -15,7 +15,7 @@ class ResourceOperations(object):
         self._logger = logger
         self._dry_run = dry_run
         self._resource_details_container = {}
-        self._resource_container = {}
+        self._installed_resources = {}
         self._resources_by_family_model = {}
 
     def _get_resource_details(self, resource):
@@ -28,12 +28,12 @@ class ResourceOperations(object):
         """
         :rtype: dict
         """
-        if not self._resource_container:
+        if not self._installed_resources:
             for resource_info in self._api.GetResourceList().Resources:
                 resource = Resource(resource_info.Name, resource_info.Address, resource_info.ResourceFamilyName,
                                     resource_info.ResourceModelName, exist=True)
-                self._resource_container[resource.name] = resource
-        return self._resource_container
+                self._installed_resources[resource.name] = resource
+        return self._installed_resources
 
     @property
     def sorted_by_family_model_resources(self):
@@ -149,7 +149,7 @@ class ResourceOperations(object):
         """
         :type port: cloudshell.layer_one.migration_tool.entities.Port
         """
-        self._logger.debug('Updating Connection {}=>{}'.format(port.name, port.connected_to))
+        self._logger.info('---- Updating Connection {}=>{}'.format(port.name, port.connected_to))
         if not self._dry_run:
             self._api.UpdatePhysicalConnection(port.name, port.connected_to or '')
             if port.connected_to and port.connection_weight:

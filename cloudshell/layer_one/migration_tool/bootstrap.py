@@ -1,17 +1,15 @@
-import os
 import sys
 
 import click
 
 from cloudshell.api.cloudshell_api import CloudShellAPISession
-from cloudshell.layer_one.migration_tool.commands.backup_commands import BackupCommands
-from cloudshell.layer_one.migration_tool.commands.config_commands import ConfigCommands
-from cloudshell.layer_one.migration_tool.commands.migration_commands import MigrationCommands
-from cloudshell.layer_one.migration_tool.commands.resources_commands import ResourcesCommands
-from cloudshell.layer_one.migration_tool.commands.restore_commands import RestoreCommands
+from cloudshell.layer_one.migration_tool.command_handlers.backup_handler import BackupHandler
+from cloudshell.layer_one.migration_tool.command_handlers.configuration_handler import ConfigurationHandler
+from cloudshell.layer_one.migration_tool.command_handlers.migration_handler import MigrationHandler
+from cloudshell.layer_one.migration_tool.command_handlers.resources_handler import ResourcesHandler
+from cloudshell.layer_one.migration_tool.command_handlers.restore_handler import RestoreHandler
 from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
 from cloudshell.layer_one.migration_tool.helpers.logger import Logger
-from cloudshell.layer_one.migration_tool.helpers.output_formater import OutputFormatter
 
 L1_FAMILY = 'L1 Switch'
 
@@ -32,23 +30,23 @@ def config(key, value, config_path, patterns_table):
     """
     Configuration
     """
-    config_operations = ConfigCommands(ConfigHelper(config_path))
+    configuration_handler = ConfigurationHandler(ConfigHelper(config_path))
 
     if patterns_table:
         if key and value:
-            config_operations.set_patterns_table_value(key, value)
+            configuration_handler.set_patterns_table_value(key, value)
         elif key:
-            click.echo(config_operations.get_patterns_table_value(key))
+            click.echo(configuration_handler.get_patterns_table_value(key))
         else:
-            click.echo('Patterns Table:')
-            click.echo(config_operations.get_patterns_table_description())
+            click.echo('Patterns Table(Family/Model: Pattern)')
+            click.echo(configuration_handler.get_patterns_table_description())
     else:
         if key and value:
-            config_operations.set_key_value(key, value)
+            configuration_handler.set_key_value(key, value)
         elif key:
-            click.echo(config_operations.get_key_value(key))
+            click.echo(configuration_handler.get_key_value(key))
         else:
-            click.echo(config_operations.get_config_description())
+            click.echo(configuration_handler.get_config_description())
 
 
 @cli.command()
@@ -57,8 +55,8 @@ def config(key, value, config_path, patterns_table):
 def show_resources(config_path, family):
     config_helper = ConfigHelper(config_path)
     api = _initialize_api(config_helper.configuration)
-    resources_operations = ResourcesCommands(api)
-    click.echo(resources_operations.show_resources(family))
+    resources_handler = ResourcesHandler(api)
+    click.echo(resources_handler.show_resources(family))
 
 
 # @cli.command()
@@ -105,21 +103,25 @@ def show_resources(config_path, family):
 @cli.command()
 @click.option(u'--config', 'config_path', default=None, help="Configuration file.")
 @click.option(u'--dry-run/--run', 'dry_run', default=False, help="Dry run.")
-@click.option(u'--backup_file', default=None, help="Backup file path.")
+@click.option(u'--backup-file', default=None, help="Backup file path.")
 @click.option(u'--yes', is_flag=True, default=False, help='Assume "yes" to all questions.')
+@click.option(u'--no-backup', is_flag=True, default=False, help='Do not do backup before migration.')
 @click.argument(u'src_resources', type=str, default=None, required=True)
 @click.argument(u'dst_resources', type=str, default=None, required=True)
-def migrate(config_path, dry_run, src_resources, dst_resources, yes, backup_file):
+def migrate(config_path, dry_run, src_resources, dst_resources, yes, backup_file, no_backup):
     config_helper = ConfigHelper(config_path)
     api = _initialize_api(config_helper.configuration)
     logger = _initialize_logger(config_helper.configuration)
-    migrate_commands = MigrationCommands(api, logger, config_helper.configuration, dry_run)
-    resources_pairs = migrate_commands.define_resources_pairs(src_resources, dst_resources)
+    migration_handler = MigrationHandler(api, logger, config_helper.configuration, dry_run)
+    resources_pairs = migration_handler.define_resources_pairs(src_resources, dst_resources)
     # print(resources_pairs)
 
     click.echo('Resources to migrate:')
     for pair in resources_pairs:
         click.echo('{0}=>{1}'.format(*pair))
+
+    if no_backup:
+        click.echo('---- Backup will be skipped! ----')
 
     if dry_run:
         click.echo('*' * 10 + ' DRY RUN: Logical routes and connections will not be changed ' + '*' * 10)
@@ -128,25 +130,28 @@ def migrate(config_path, dry_run, src_resources, dst_resources, yes, backup_file
         click.echo('Aborted')
         sys.exit(1)
 
-    actions = migrate_commands.initialize_actions(resources_pairs)
-    print(actions)
+    if not no_backup and not dry_run:
+        backup_handler = BackupHandler(api, logger, config_helper.configuration, backup_file)
+        backup_handler.backup_resources([src for src, dst in resources_pairs])
+
+    actions_container = migration_handler.initialize_actions(resources_pairs)
+    actions_container.execute_actions()
 
 
 @cli.command()
 @click.option(u'--config', 'config_path', default=None, help="Configuration file.")
-@click.option(u'--dry-run/--run', 'dry_run', default=False, help="Dry run.")
-@click.option(u'--backup_file', 'backup_file', default=None, help="Backup file path.")
+@click.option(u'--backup-file', default=None, help="Backup file path.")
 @click.option(u'--connections', 'connections', default=False, help="Restore connections only.")
 @click.option(u'--routes', 'routes', default=False, help="Restore routes only.")
 @click.option(u'--yes', is_flag=True, default=False, help='Assume "yes" to all questions.')
 @click.argument(u'resources', type=str, default=None, required=True)
-def backup(config_path, backup_file, dry_run, resources, connections, routes, yes):
+def backup(config_path, backup_file, resources, connections, routes, yes):
     config_helper = ConfigHelper(config_path)
 
     api = _initialize_api(config_helper.configuration)
     logger = _initialize_logger(config_helper.configuration)
-    backup_commands = BackupCommands(api, logger, config_helper.configuration, backup_file)
-    resources = backup_commands.initialize_resources(resources)
+    backup_handler = BackupHandler(api, logger, config_helper.configuration, backup_file)
+    resources = backup_handler.initialize_resources(resources)
 
     click.echo('Resources to backup:')
     for resource in resources:
@@ -155,14 +160,14 @@ def backup(config_path, backup_file, dry_run, resources, connections, routes, ye
         click.echo('Aborted')
         sys.exit(1)
 
-    backup_commands.backup_resources(resources, connections, routes)
+    backup_handler.backup_resources(resources, connections, routes)
     click.echo('Backup done')
 
 
 @cli.command()
 @click.option(u'--config', 'config_path', default=None, help="Configuration file.")
 @click.option(u'--dry-run/--run', 'dry_run', default=False, help="Dry run.")
-@click.option(u'--file', 'backup_file', default=None, help="Backup file path.")
+@click.option(u'--backup-file', default=None, help="Backup file path.")
 @click.option(u'--override', is_flag=True, default=False, help="Append or override routes/connections.")
 @click.option(u'--yes', is_flag=True, default=False, help='Assume "yes" to all questions.')
 @click.option(u'--connections', 'connections', default=False, help="Restore connections only.")
@@ -172,9 +177,9 @@ def restore(config_path, backup_file, dry_run, resources, connections, routes, o
     config_helper = ConfigHelper(config_path)
     api = _initialize_api(config_helper.configuration)
     logger = _initialize_logger(config_helper.configuration)
-    restore_commands = RestoreCommands(api, logger, config_helper.configuration, backup_file)
-    resources = restore_commands.initialize_resources(resources)
-    actions_container = restore_commands.define_actions(resources, connections, routes, override)
+    restore_handler = RestoreHandler(api, logger, config_helper.configuration, backup_file, dry_run)
+    resources = restore_handler.initialize_resources(resources)
+    actions_container = restore_handler.define_actions(resources, connections, routes, override)
 
     if actions_container.is_empty():
         click.echo('Nothing to do')

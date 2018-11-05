@@ -5,7 +5,7 @@ import click
 from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
 
 
-class ConfigCommands(object):
+class ConfigurationHandler(object):
     NEW_LINE = os.linesep
 
     def __init__(self, config_helper):
@@ -52,6 +52,8 @@ class ConfigCommands(object):
         """
         output = ''
         for key, value in table.iteritems():
-            output += self._format_key(key, value)
-            output += self.NEW_LINE
+            line = self._format_key(key, value)
+            if line:
+                output += line
+                output += self.NEW_LINE
         return output
