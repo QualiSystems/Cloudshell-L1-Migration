@@ -1,5 +1,4 @@
 class Resource(object):
-    # SEPARATOR = '/'
     USERNAME_ATTRIBUTE = 'User'
     PASSWORD_ATTRIBUTE = 'Password'
 
@@ -29,13 +28,6 @@ class Resource(object):
 
     def __copy__(self):
         return Resource(self.name, self.address, self.family, self.model, self.driver, self.exist)
-
-    # @classmethod
-    # def from_string(cls, resource_string):
-    #     """
-    #     :type resource_string: str
-    #     """
-    #     return cls(*resource_string.split(cls.SEPARATOR))
 
 
 class Port(object):

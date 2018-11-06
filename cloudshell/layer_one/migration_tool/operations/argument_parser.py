@@ -1,3 +1,4 @@
+from cloudshell.layer_one.migration_tool.exceptions import MigrationToolException
 from cloudshell.layer_one.migration_tool.operational_entities.config_unit import ConfigUnit
 
 
@@ -12,7 +13,7 @@ class ArgumentParser(object):
         """
         :type single_argument: str
         """
-        single_argument=single_argument.strip()
+        single_argument = single_argument.strip()
         self._validate_argument(single_argument)
         return ConfigUnit(single_argument)
 
@@ -20,7 +21,8 @@ class ArgumentParser(object):
         """
         :type argument_str: str
         """
-        return map(self.build_config_unit, argument_str.split(self.RESOURCE_SEPARATOR))
+        argument_list = argument_str.split(self.RESOURCE_SEPARATOR) if argument_str else []
+        return map(self.build_config_unit, argument_list)
 
     def _validate_argument(self, single_argument):
         pass
@@ -41,7 +43,7 @@ class ArgumentParser(object):
             if resources_list:
                 resources.extend(resources_list)
             else:
-                raise Exception(self.__class__.__name__, 'Cannot find resources for {}'.format(config_unit.config_str))
+                raise MigrationToolException('Cannot find resources for {}'.format(config_unit.config_str))
         return resources
 
     def initialize_resources_with_stubs(self, resources_argument):

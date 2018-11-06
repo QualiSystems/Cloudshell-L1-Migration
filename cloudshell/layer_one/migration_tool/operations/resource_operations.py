@@ -4,6 +4,7 @@ from cloudshell.layer_one.migration_tool.entities import Port, Resource
 
 
 class ResourceOperations(object):
+    L1_FAMILY = 'L1 Switch'
     PORT_MARKERS = ['port']
 
     def __init__(self, api, logger, dry_run=False):
@@ -42,6 +43,10 @@ class ResourceOperations(object):
             for resource in self.installed_resources.values():
                 self._resources_by_family_model[(resource.family, resource.model)].append(resource)
         return self._resources_by_family_model
+
+    @property
+    def l1_resources(self):
+        return [resource for resource in self.installed_resources if resource.family == self.L1_FAMILY]
 
     def define_resource_attributes(self, resource):
         """
