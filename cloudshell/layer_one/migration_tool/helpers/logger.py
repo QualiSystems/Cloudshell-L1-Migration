@@ -1,4 +1,8 @@
+import sys
+
 import click
+
+from cloudshell.layer_one.migration_tool.exceptions import MigrationToolException
 
 
 class Logger(object):
@@ -26,3 +30,18 @@ class Logger(object):
         :type message: str
         """
         click.echo('ERROR: ' + str(message), err=True)
+
+
+class ExceptionLogger(object):
+    def __init__(self, logger):
+        self._logger = logger
+
+    def __enter__(self):
+        return self._logger
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type == MigrationToolException:
+            self._logger.error(exc_val.message)
+            sys.exit(1)
+        else:
+            return False

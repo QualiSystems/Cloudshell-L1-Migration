@@ -15,6 +15,7 @@ class LogicalRouteOperations(object):
         # self._logical_routes = {}
         self._logical_routes_by_resource_name = defaultdict(set)
         self._logical_routes_by_segment = {}
+        self._handled_logical_routes = []
 
     @property
     def logical_routes_by_resource_name(self):
@@ -57,7 +58,7 @@ class LogicalRouteOperations(object):
             self._logical_routes_by_resource_name[segment.Source.split('/')[0]].add(logical_route)
             self._logical_routes_by_resource_name[segment.Target.split('/')[0]].add(logical_route)
 
-    def _define_logical_route_by_segment(self, reservation_id, route_info, active=True, handled_logical_routes=[]):
+    def _define_logical_route_by_segment(self, reservation_id, route_info, active=True):
         source = route_info.Source
         target = route_info.Target
         route_type = route_info.RouteType
@@ -65,8 +66,8 @@ class LogicalRouteOperations(object):
         shared = route_info.Shared
         if source and target:
             logical_route = LogicalRoute(source, target, reservation_id, route_type, route_alias, active, shared)
-            if route_info.Segments and logical_route not in handled_logical_routes:
-                handled_logical_routes.append(logical_route)
+            if route_info.Segments and logical_route not in self._handled_logical_routes:
+                self._handled_logical_routes.append(logical_route)
                 self._add_segment(logical_route, route_info.Segments[0], True)
                 self._add_segment(logical_route, route_info.Segments[-1], True)
 
@@ -110,7 +111,7 @@ class LogicalRouteOperations(object):
         :type resource: cloudshell.layer_one.migration_tool.entities.Resource
         """
         logical_routes_table = self.get_logical_routes_table(resource)
-        resource.associated_logical_routes = [route for route, endpoint in logical_routes_table]
+        resource.associated_logical_routes = list(set([route for route, endpoint in logical_routes_table]))
         return resource
 
     def remove_route(self, logical_route):

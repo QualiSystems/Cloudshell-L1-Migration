@@ -2,26 +2,32 @@ from copy import copy
 
 import yaml
 
+from cloudshell.layer_one.migration_tool.exceptions import MigrationToolException
 from cloudshell.layer_one.migration_tool.operational_entities.actions import RemoveRouteAction, CreateRouteAction, \
     UpdateConnectionAction, \
     ActionsContainer
-from cloudshell.layer_one.migration_tool.exceptions import MigrationToolException
 from cloudshell.layer_one.migration_tool.operations.argument_parser import ArgumentParser
-from cloudshell.layer_one.migration_tool.operations.logical_route_operations import LogicalRouteOperations
-from cloudshell.layer_one.migration_tool.operations.resource_operations import ResourceOperations
 
 
 class RestoreHandler(object):
     SEPARATOR = ','
 
-    def __init__(self, api, logger, configuration, backup_file, dry_run):
+    def __init__(self, api, logger, configuration, backup_file, resource_operations, logical_route_operations):
+        """
+        :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
+        :type logger: cloudshell.layer_one.migration_tool.helpers.logger.Logger
+        :type configuration: dict
+        :type backup_file: str
+        :type resource_operations: cloudshell.layer_one.migration_tool.operations.resource_operations.ResourceOperations
+        :type logical_route_operations: cloudshell.layer_one.migration_tool.operations.logical_route_operations.LogicalRouteOperations
+        """
         self._api = api
         self._logger = logger
         self._configuration = configuration
         self._backup_file = backup_file
 
-        self._logical_route_operations = LogicalRouteOperations(api, logger, dry_run=False)
-        self._resource_operations = ResourceOperations(api, logger)
+        self._logical_route_operations = logical_route_operations
+        self._resource_operations = resource_operations
         self._updated_connections = {}
 
     def _load_backup(self):

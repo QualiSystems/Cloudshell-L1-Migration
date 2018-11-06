@@ -9,7 +9,9 @@ from cloudshell.layer_one.migration_tool.command_handlers.migration_handler impo
 from cloudshell.layer_one.migration_tool.command_handlers.resources_handler import ResourcesHandler
 from cloudshell.layer_one.migration_tool.command_handlers.restore_handler import RestoreHandler
 from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
-from cloudshell.layer_one.migration_tool.helpers.logger import Logger
+from cloudshell.layer_one.migration_tool.helpers.logger import Logger, ExceptionLogger
+from cloudshell.layer_one.migration_tool.operations.logical_route_operations import LogicalRouteOperations
+from cloudshell.layer_one.migration_tool.operations.resource_operations import ResourceOperations
 
 L1_FAMILY = 'L1 Switch'
 
@@ -28,7 +30,7 @@ def cli():
 @click.option(u'--patterns_table', is_flag=True, default=False, help='Add key:value to patterns table')
 def config(key, value, config_path, patterns_table):
     """
-    Configuration
+    Configuration settings
     """
     configuration_handler = ConfigurationHandler(ConfigHelper(config_path))
 
@@ -52,73 +54,47 @@ def config(key, value, config_path, patterns_table):
 @cli.command()
 @click.option(u'--config', 'config_path', default=None, help="Configuration file.")
 @click.option(u'--family', 'family', default=L1_FAMILY, help="Resource Family.")
-def show_resources(config_path, family):
+def show(config_path, family):
+    """
+    Show list of resources
+    """
     config_helper = ConfigHelper(config_path)
     api = _initialize_api(config_helper.configuration)
     resources_handler = ResourcesHandler(api)
     click.echo(resources_handler.show_resources(family))
 
 
-# @cli.command()
-# @click.option(u'--config', 'config_path', default=None, help="Configuration file.")
-# @click.option(u'--dry-run/--run', 'dry_run', default=False, help="Dry run.")
-# @click.argument(u'src_resources', type=str, default=None, required=True)
-# @click.argument(u'dst_resources', type=str, default=None, required=True)
-# def migrate(config_path, dry_run, src_resources, dst_resources):
-#     config_helper = ConfigHelper(config_path)
-#     api = _initialize_api(config_helper.configuration)
-#     logger = _initialize_logger(config_helper.configuration)
-#     migration_commands = MigrationCommands(api, logger, config_helper.configuration, dry_run)
-#     migration_configs = migration_commands.prepare_configs(src_resources, dst_resources)
-#     operations = migration_commands.prepare_operations(migration_configs)
-#     logical_routes_handler = LogicalRoutesHandler(api, logger, dry_run)
-#     logical_routes = logical_routes_handler.get_logical_routes(operations)
-#     operations_is_valid = len([operation for operation in operations if operation.valid]) > 0
-#     if not operations_is_valid:
-#         click.echo('No valid operations:')
-#         click.echo(OutputFormatter.format_prepared_invalid_operations(operations))
-#         sys.exit(1)
-#
-#     click.echo('Following operations will be performed:')
-#     click.echo(OutputFormatter.format_prepared_valid_operations(operations))
-#     click.echo('Following operations will be ignored:')
-#     click.echo(OutputFormatter.format_prepared_invalid_operations(operations))
-#     click.echo('Following routes will be reconnected:')
-#     click.echo(OutputFormatter.format_logical_routes(logical_routes))
-#
-#     if dry_run:
-#         click.echo('*' * 10 + ' DRY RUN: Logical routes and connections will not be changed ' + '*' * 10)
-#
-#     if not click.confirm('Do you want to continue?'):
-#         click.echo('Aborted')
-#         sys.exit(1)
-#
-#     logger.debug('Disconnecting logical routes:')
-#     logical_routes_handler.remove_logical_routes(logical_routes)
-#     logger.debug('Performing operations:')
-#     migration_commands.perform_operations(operations)
-#     logger.debug('Connecting logical routes:')
-#     logical_routes_handler.create_logical_routes(logical_routes)
-
 @cli.command()
 @click.option(u'--config', 'config_path', default=None, help="Configuration file.")
 @click.option(u'--dry-run/--run', 'dry_run', default=False, help="Dry run.")
 @click.option(u'--backup-file', default=None, help="Backup file path.")
 @click.option(u'--yes', is_flag=True, default=False, help='Assume "yes" to all questions.')
+@click.option(u'--override', is_flag=True, default=False, help="Override connections.")
 @click.option(u'--no-backup', is_flag=True, default=False, help='Do not do backup before migration.')
 @click.argument(u'src_resources', type=str, default=None, required=True)
 @click.argument(u'dst_resources', type=str, default=None, required=True)
-def migrate(config_path, dry_run, src_resources, dst_resources, yes, backup_file, no_backup):
+def migrate(config_path, dry_run, src_resources, dst_resources, yes, backup_file, no_backup, override):
+    """
+    Migrate connections from SRC to DST resource
+    """
     config_helper = ConfigHelper(config_path)
     api = _initialize_api(config_helper.configuration)
     logger = _initialize_logger(config_helper.configuration)
-    migration_handler = MigrationHandler(api, logger, config_helper.configuration, dry_run)
-    resources_pairs = migration_handler.define_resources_pairs(src_resources, dst_resources)
+    resource_operations = ResourceOperations(api, logger, dry_run)
+    logical_route_operations = LogicalRouteOperations(api, logger, dry_run)
+    migration_handler = MigrationHandler(api, logger, config_helper.configuration, resource_operations,
+                                         logical_route_operations)
+    with ExceptionLogger(logger):
+        resources_pairs = migration_handler.define_resources_pairs(src_resources, dst_resources)
+        actions_container = migration_handler.initialize_actions(resources_pairs, override)
     # print(resources_pairs)
 
-    click.echo('Resources to migrate:')
+    click.echo('Resources:')
     for pair in resources_pairs:
         click.echo('{0}=>{1}'.format(*pair))
+
+    click.echo('Actions:')
+    click.echo(actions_container.to_string())
 
     if no_backup:
         click.echo('---- Backup will be skipped! ----')
@@ -131,27 +107,36 @@ def migrate(config_path, dry_run, src_resources, dst_resources, yes, backup_file
         sys.exit(1)
 
     if not no_backup and not dry_run:
-        backup_handler = BackupHandler(api, logger, config_helper.configuration, backup_file)
-        backup_handler.backup_resources([src for src, dst in resources_pairs])
+        backup_handler = BackupHandler(api, logger, config_helper.configuration, backup_file, resource_operations,
+                                       logical_route_operations)
+        with ExceptionLogger(logger):
+            backup_handler.backup_resources([src for src, dst in resources_pairs])
 
-    actions_container = migration_handler.initialize_actions(resources_pairs)
-    actions_container.execute_actions()
+    with ExceptionLogger(logger):
+        actions_container.execute_actions()
 
 
 @cli.command()
 @click.option(u'--config', 'config_path', default=None, help="Configuration file.")
 @click.option(u'--backup-file', default=None, help="Backup file path.")
-@click.option(u'--connections', 'connections', default=False, help="Restore connections only.")
-@click.option(u'--routes', 'routes', default=False, help="Restore routes only.")
+@click.option(u'--connections', 'connections', default=False, help="Backup connections only.")
+@click.option(u'--routes', 'routes', default=False, help="Backup routes only.")
 @click.option(u'--yes', is_flag=True, default=False, help='Assume "yes" to all questions.')
-@click.argument(u'resources', type=str, default=None, required=True)
+@click.argument(u'resources', type=str, default=None, required=False)
 def backup(config_path, backup_file, resources, connections, routes, yes):
+    """
+    Backup connections and routes
+    """
     config_helper = ConfigHelper(config_path)
 
     api = _initialize_api(config_helper.configuration)
     logger = _initialize_logger(config_helper.configuration)
-    backup_handler = BackupHandler(api, logger, config_helper.configuration, backup_file)
-    resources = backup_handler.initialize_resources(resources)
+    resource_operations = ResourceOperations(api, logger)
+    logical_route_operations = LogicalRouteOperations(api, logger)
+    backup_handler = BackupHandler(api, logger, config_helper.configuration, backup_file, resource_operations,
+                                   logical_route_operations)
+    with ExceptionLogger(logger):
+        resources = backup_handler.initialize_resources(resources)
 
     click.echo('Resources to backup:')
     for resource in resources:
@@ -160,7 +145,8 @@ def backup(config_path, backup_file, resources, connections, routes, yes):
         click.echo('Aborted')
         sys.exit(1)
 
-    backup_handler.backup_resources(resources, connections, routes)
+    with ExceptionLogger(logger):
+        backup_handler.backup_resources(resources, connections, routes)
     click.echo('Backup done')
 
 
@@ -168,18 +154,25 @@ def backup(config_path, backup_file, resources, connections, routes, yes):
 @click.option(u'--config', 'config_path', default=None, help="Configuration file.")
 @click.option(u'--dry-run/--run', 'dry_run', default=False, help="Dry run.")
 @click.option(u'--backup-file', default=None, help="Backup file path.")
-@click.option(u'--override', is_flag=True, default=False, help="Append or override routes/connections.")
+@click.option(u'--override', is_flag=True, default=False, help="Override routes/connections.")
 @click.option(u'--yes', is_flag=True, default=False, help='Assume "yes" to all questions.')
 @click.option(u'--connections', 'connections', default=False, help="Restore connections only.")
 @click.option(u'--routes', 'routes', default=False, help="Restore routes only.")
-@click.argument(u'resources', type=str, default=None, required=True)
+@click.argument(u'resources', type=str, default=None, required=False)
 def restore(config_path, backup_file, dry_run, resources, connections, routes, override, yes):
+    """
+    Restore connections and routes
+    """
     config_helper = ConfigHelper(config_path)
     api = _initialize_api(config_helper.configuration)
     logger = _initialize_logger(config_helper.configuration)
-    restore_handler = RestoreHandler(api, logger, config_helper.configuration, backup_file, dry_run)
-    resources = restore_handler.initialize_resources(resources)
-    actions_container = restore_handler.define_actions(resources, connections, routes, override)
+    resource_operations = ResourceOperations(api, logger, dry_run)
+    logical_route_operations = LogicalRouteOperations(api, logger, dry_run)
+    restore_handler = RestoreHandler(api, logger, config_helper.configuration, backup_file, resource_operations,
+                                     logical_route_operations)
+    with ExceptionLogger(logger):
+        resources = restore_handler.initialize_resources(resources)
+        actions_container = restore_handler.define_actions(resources, connections, routes, override)
 
     if actions_container.is_empty():
         click.echo('Nothing to do')
@@ -189,7 +182,8 @@ def restore(config_path, backup_file, dry_run, resources, connections, routes, o
     if not yes and not click.confirm('Do you want to continue?'):
         click.echo('Aborted')
         sys.exit(1)
-    actions_container.execute_actions()
+    with ExceptionLogger(logger):
+        actions_container.execute_actions()
 
 
 def _initialize_api(configuration):

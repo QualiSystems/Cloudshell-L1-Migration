@@ -31,11 +31,11 @@ class PortAssociator(object):
             self._logger.error('Cannot find associated DST port, for {}'.format(src_port))
 
     def _format_dst_address(self, address):
-        self._logger.debug('Matching new address {} for pattern {}'.format(address, self._dst_port_pattern))
+        # self._logger.debug('Matching new address {} for pattern {}'.format(address, self._dst_port_pattern))
         return self._format_address(address, self._src_port_pattern)
 
     def _format_src_address(self, address):
-        self._logger.debug('Matching old address {} for pattern {}'.format(address, self._src_port_pattern))
+        # self._logger.debug('Matching old address {} for pattern {}'.format(address, self._src_port_pattern))
         return self._format_address(address, self._src_port_pattern)
 
     def _format_address(self, address, pattern):

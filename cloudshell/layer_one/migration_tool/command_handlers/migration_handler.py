@@ -1,30 +1,30 @@
 from copy import copy
 
+from cloudshell.layer_one.migration_tool.exceptions import MigrationToolException
+from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
+from cloudshell.layer_one.migration_tool.helpers.port_associator import PortAssociator
 from cloudshell.layer_one.migration_tool.operational_entities.actions import ActionsContainer, RemoveRouteAction, \
     CreateRouteAction, \
     UpdateConnectionAction
-from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
-from cloudshell.layer_one.migration_tool.helpers.port_associator import PortAssociator
 from cloudshell.layer_one.migration_tool.operations.argument_parser import ArgumentParser
-from cloudshell.layer_one.migration_tool.operations.logical_route_operations import LogicalRouteOperations
-from cloudshell.layer_one.migration_tool.operations.resource_operations import ResourceOperations
 
 
 class MigrationHandler(object):
 
-    def __init__(self, api, logger, configuration, dry_run):
+    def __init__(self, api, logger, configuration, resource_operations, logical_route_operations):
         """
         :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
         :type logger: cloudshell.layer_one.migration_tool.helpers.logger.Logger
         :type configuration: dict
+        :type resource_operations: cloudshell.layer_one.migration_tool.operations.resource_operations.ResourceOperations
+        :type logical_route_operations: cloudshell.layer_one.migration_tool.operations.logical_route_operations.LogicalRouteOperations
         """
         self._api = api
         self._logger = logger
         self._configuration = configuration
         self._patterns_table = self._configuration.get(ConfigHelper.PATTERNS_TABLE_KEY)
-        self._dri_run = dry_run
-        self._resource_operations = ResourceOperations(api, logger, dry_run)
-        self._logical_route_operations = LogicalRouteOperations(api, logger, dry_run)
+        self._resource_operations = resource_operations
+        self._logical_route_operations = logical_route_operations
         self._updated_connections = {}
 
     def define_resources_pairs(self, src_resources_arguments, dst_resources_arguments):
@@ -40,8 +40,7 @@ class MigrationHandler(object):
         """
 
         if len(src_resources) < len(dst_resources):
-            raise Exception(self.__class__.__name__,
-                            'Number of DST resources cannot be more then number of SRC resources')
+            raise MigrationToolException('Number of DST resources cannot be more then number of SRC resources')
 
         resources_pairs = []
         for index in xrange(len(src_resources)):
@@ -69,30 +68,29 @@ class MigrationHandler(object):
         src, dst = resources_pair
 
         if src.name == dst.name:
-            raise Exception(self.__class__.__name__,
-                            'SRC and DST resources cannot have the same name {}'.format(src.name))
+            raise MigrationToolException('SRC and DST resources cannot have the same name {}'.format(src.name))
         if not src.exist:
-            raise Exception(self.__class__.__name__, 'SRC resource {} does not exist'.format(src.name))
+            raise MigrationToolException('SRC resource {} does not exist'.format(src.name))
 
         if not dst.exist:
             if dst.name in [resource.name for resource in
                             self._resource_operations.sorted_by_family_model_resources.get((dst.family, dst.model),
                                                                                            [])]:
-                raise Exception(self.__class__.__name__, 'Resource with name {} already exist'.format(dst.name))
+                raise MigrationToolException('Resource with name {} already exist'.format(dst.name))
         for resource in resources_pair:
             if resource.name in handled_resources:
-                raise Exception(self.__class__.__name__,
-                                'Resource with name {} already used in another migration pair'.format(resource.name))
+                raise MigrationToolException(
+                    'Resource with name {} already used in another migration pair'.format(resource.name))
             else:
                 handled_resources.append(resource.name)
         return resources_pair
 
-    def initialize_actions(self, resources_pairs):
+    def initialize_actions(self, resources_pairs, override):
         actions_container = ActionsContainer()
         for pair in resources_pairs:
             self._load_resources(pair)
             actions_container.update(self._initialize_logical_route_actions(pair))
-            actions_container.update(self._initialize_connection_actions(pair))
+            actions_container.update(self._initialize_connection_actions(pair, override))
         return actions_container
 
     def _load_resources(self, resource_pair):
@@ -124,7 +122,7 @@ class MigrationHandler(object):
                 ActionsContainer(remove_routes=remove_route_actions, create_routes=create_route_actions))
         return actions_container
 
-    def _initialize_connection_actions(self, resource_pair):
+    def _initialize_connection_actions(self, resource_pair, override):
         src_resource, dst_resource = resource_pair
         src_port_pattern = self._patterns_table.get('{}/{}'.format(src_resource.family, src_resource.model),
                                                     self._patterns_table.get(ConfigHelper.DEFAULT_PATTERN_KEY))
@@ -136,31 +134,8 @@ class MigrationHandler(object):
         for src_port in src_resource.ports:
             if src_port.connected_to:
                 associated_dst_port = port_associator.associated_port(src_port)
-                connection_actions.append(
-                    UpdateConnectionAction(src_port, associated_dst_port, self._resource_operations,
-                                           self._updated_connections, self._logger))
+                if override or not associated_dst_port.connected_to:
+                    connection_actions.append(
+                        UpdateConnectionAction(src_port, associated_dst_port, self._resource_operations,
+                                               self._updated_connections, self._logger))
         return ActionsContainer(update_connections=connection_actions)
-
-    # def prepare_operations(self, migration_configs):
-    #     """
-    #     :type migration_configs: list
-    #     """
-    #     migration_config_handler = MigrationConfigHandler(self._api, self._logger, self._configuration.get(
-    #         ConfigHelper.NEW_RESOURCE_NAME_PREFIX_KEY))
-    #     operations = migration_config_handler.define_operations_for_list(migration_configs)
-    #     operation_validator = MigrationOperationValidator(self._api, self._logger)
-    #     for operation in operations:
-    #         self._operation_handler.prepare_operation(operation)
-    #         operation_validator.validate(operation)
-    #         if operation.valid:
-    #             self._operation_handler.define_connections(operation)
-    #     return operations
-
-    # def perform_operations(self, operations):
-    #     for operation in operations:
-    #         if operation.valid:
-    #             # try:
-    #             self._operation_handler.perform_operation(operation)
-    #             # except Exception as e:
-    #             #     operation.success = False
-    #             #     self._logger.error('Error: '.format(str(e)))
