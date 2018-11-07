@@ -46,7 +46,7 @@ class ResourceOperations(object):
 
     @property
     def l1_resources(self):
-        return [resource for resource in self.installed_resources if resource.family == self.L1_FAMILY]
+        return [resource for name, resource in self.installed_resources.iteritems() if resource.family == self.L1_FAMILY]
 
     def define_resource_attributes(self, resource):
         """

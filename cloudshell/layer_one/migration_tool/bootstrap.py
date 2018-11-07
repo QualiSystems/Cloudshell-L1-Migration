@@ -93,7 +93,7 @@ def migrate(config_path, dry_run, src_resources, dst_resources, yes, backup_file
     for pair in resources_pairs:
         click.echo('{0}=>{1}'.format(*pair))
 
-    click.echo('Actions:')
+    click.echo('Next actions will be executed:')
     click.echo(actions_container.to_string())
 
     if no_backup:
@@ -177,7 +177,7 @@ def restore(config_path, backup_file, dry_run, resources, connections, routes, o
     if actions_container.is_empty():
         click.echo('Nothing to do')
         sys.exit(0)
-    click.echo('Actions:')
+    click.echo('Next actions will be executed:')
     click.echo(actions_container.to_string())
     if not yes and not click.confirm('Do you want to continue?'):
         click.echo('Aborted')
