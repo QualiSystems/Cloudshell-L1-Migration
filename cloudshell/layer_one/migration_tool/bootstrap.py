@@ -27,7 +27,7 @@ def cli():
 @click.argument(u'key', type=str, default=None, required=False)
 @click.argument(u'value', type=str, default=None, required=False)
 @click.option(u'--config', 'config_path', default=None, help="Configuration file.")
-@click.option(u'--patterns_table', is_flag=True, default=False, help='Add key:value to patterns table')
+@click.option(u'--patterns-table', is_flag=True, default=False, help='Add key:value to patterns table')
 def config(key, value, config_path, patterns_table):
     """
     Configuration settings
@@ -190,11 +190,15 @@ def _initialize_api(configuration):
     """
     :type configuration: dict
     """
-    return CloudShellAPISession(configuration.get(ConfigHelper.HOST_KEY),
-                                configuration.get(ConfigHelper.USERNAME_KEY),
-                                configuration.get(ConfigHelper.PASSWORD_KEY),
-                                configuration.get(ConfigHelper.DOMAIN_KEY),
-                                port=configuration.get(ConfigHelper.PORT_KEY))
+    try:
+        return CloudShellAPISession(configuration.get(ConfigHelper.HOST_KEY),
+                                    configuration.get(ConfigHelper.USERNAME_KEY),
+                                    configuration.get(ConfigHelper.PASSWORD_KEY),
+                                    configuration.get(ConfigHelper.DOMAIN_KEY),
+                                    port=configuration.get(ConfigHelper.PORT_KEY))
+    except IOError as e:
+        click.echo('ERROR: Cannot initialize Cloudshell API connection, check API settings, details: {}'.format(e), err=True)
+        sys.exit(1)
 
 
 def _initialize_logger(configuration):
