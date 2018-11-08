@@ -16,13 +16,14 @@ Requirements
 Installation
 ============
 ```bash
-pip install cloudshell-l1-migration-1.0.1.zip
+pip install cloudshell-l1-migration-x.x.x.zip
 ```
 Usage:
 ======================
-1.  **Configure Cloudshell credentials**
-    
-    In order to use the tool, the user must configure his credentials:
+1.  **Basic Configuration**
+    * Cloudshell credentials:
+        
+        *In order to use the tool, the user must configure his credentials*
 
     ```bash
     migration_tool config host <CSHost>  # CS Host
@@ -30,28 +31,51 @@ Usage:
     migration_tool config password <CSPassword> # CS Password
     migration_tool config domain <CSDomain> # CS Domain
     migration_tool config port <CSPort> # CS Port
-    migration_tool config name_prefix "New" # Prefix for new resource
-    migration_tool config new_port_pattern "(.*)/(.*)" # Relative address pattern for the new resource ports
-    migration_tool config old_port_pattern ".*/(.*)/(.*)"   # Relative address pattern for the old resource ports
     ```    
-    You may see the current credentials by running:
+    * Logging level:
     
-    ```
-    migration_tool config
-    ```
-    To get detailed output, specify logging level:
+        *To get detailed output, specify logging level*
     
     ```bash
     migration_tool config logging_level DEBUG
     ```
-    Relative address patterns *new_port_pattern/old_port_pattern* distinguish blocks of address which will be used for ports association.
+    
+    * Backup location:
+        
+        *Folder where to save backup* 
+    ```bash
+    migration_tool config backup_location C:\Backup # Backup folder
+    ```
+    
+    * Name prefix:
+        * New created resources will be used SRC resource name with the prefix
+    ```bash
+    migration_tool config name_prefix "New_" # Prefix for new resource
+
+    ```
+    * You may see the current settings by running:
+    
+    ```bash
+    migration_tool config
+    ```
+    
+    
+2.  **Patterns Table**
+    Patterns distinguish blocks of relative address which will be used for ports association.
     To compare full string of relative address use "(.*)".
     
+    * Add new pattern associated with resource Family/Model:
+    ```bash
+        migration_tool config --patterns_table "L1 Switch/Test Switch Chassis" ".*/(.*)/(.*)"
+    ```
+    * List patterns
+    ```bash
+        migration_tool config --patterns_table
+    ```
 
-
-2.  **Migrate resources**
+3.  **Migrate resources**
     
-    In order to run migration process, the user have to specify source resources and destination resources. Migration tool uses format below.
+    In order to run migration process, the user have to specify source resources(SRC) and destination resources(DST). Migration tool uses format below.
     
     ```
     Resource Name/Resource Family/Resource Model/Resource Driver
@@ -59,20 +83,64 @@ Usage:
     
     *Examples:*
      
-    How to migrate all resources for a specific Family/Model          
+    How to migrate all resources for a specific Family/Model 
+             
     ```bash
-    migration_tool migrate "*/Old Family/Old model" "*/New Family/New Model/New Driver"
+    migration_tool migrate "*/Old Family/Old model" "*/New Family/New Model" --override
     ```
+    
     How to migrate a list of resources
     
     ```bash
-    migration_tool migrate "L1Switc 1,L1Switch 2" "*/New Family/New Model/New Driver"
+    migration_tool migrate "L1 Switch 1, L1 Switch2" "*/New Family/New Model/New Driver" --override
     ```
-    Dry run option used to verify port association. Do not remove routes and do not switch connections. 
+    
+    How to migrate to existing resource
     
     ```bash
-    migration_tool migrate --dry-run "L1Switc 1,L1Switch 2" "*/New Family/New Model/New Driver"
+    migration_tool migrate "L1 Switch 1, L1 Switch2" "New Switch1, New Switch 2" --override
+    ```    
+    
+    Dry run option used to verify port association. It does not remove routes and switch connections.
+    
+    ```bash
+    migration_tool migrate --dry-run "L1 Switch 1,L1 Switch 2" "*/New Family/New Model/New Driver" --override
     ```
     
+4. **Backup/Restore**
+    * Backup specified resources
+    
+        ```bash
+        migration_tool backup "L1 Switch 1,L1 Switch 2"
+        ```
+        Backup to a specified file
         
- 
+        ```bash
+        migration_tool backup "L1 Switch 1,L1 Switch 2" --backup-file c:\Backup\backup.yaml
+        ```
+    
+    * Restore
+    
+        Restore connections and routes for resources from backup file
+        
+        ```bash
+        migration_tool restore --backup-file c:\Backup\backup.yaml --override
+        ```
+        
+        Restore connections and routes for specified resources 
+        
+        ```bash
+        migration_tool restore --backup-file c:\Backup\backup.yaml "L1 Switch 1" --override
+        ```
+
+        Restore connections only
+        
+        ```bash
+        migration_tool restore --backup-file c:\Backup\backup.yaml "L1 Switch 1" --connections --override
+        ```
+        
+        Restore routes only
+        
+        ```bash
+        migration_tool restore --backup-file c:\Backup\backup.yaml "L1 Switch 1" --routes --override
+        ```
