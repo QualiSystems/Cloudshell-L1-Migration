@@ -153,7 +153,7 @@ def backup(config_path, backup_file, resources, connections, routes, yes):
 @cli.command()
 @click.option(u'--config', 'config_path', default=None, help="Configuration file.")
 @click.option(u'--dry-run/--run', 'dry_run', default=False, help="Dry run.")
-@click.option(u'--backup-file', default=None, help="Backup file path.")
+@click.option(u'--backup-file', default=None, required=True, help="Backup file path.")
 @click.option(u'--override', is_flag=True, default=False, help="Override routes/connections.")
 @click.option(u'--yes', is_flag=True, default=False, help='Assume "yes" to all questions.')
 @click.option(u'--connections', 'connections', default=False, help="Restore connections only.")

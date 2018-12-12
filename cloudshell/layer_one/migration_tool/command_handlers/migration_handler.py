@@ -60,7 +60,6 @@ class MigrationHandler(object):
             if not dst.name:
                 dst.name = self._configuration.get(ConfigHelper.NEW_RESOURCE_NAME_PREFIX_KEY, 'New_') + src.name
             dst.address = src.address
-            dst.attributes = src.attributes
 
         return resources_pair
 
@@ -99,15 +98,22 @@ class MigrationHandler(object):
         """
         src, dst = resource_pair
 
+        # Load SRC resource
+        if not src.ports:
+            self._resource_operations.update_details(src)
+            self._logical_route_operations.define_logical_routes(src)
+
+        # Load DST resource
+        dst.attributes = src.attributes
         if not dst.exist:
             self._resource_operations.create_resource(dst)
+            self._resource_operations.autoload_resource(dst)
+        else:
+            self._resource_operations.sync_from_device(dst)
 
-        self._resource_operations.autoload_resource(dst)
-
-        for resource in resource_pair:
-            if not resource.ports:
-                self._resource_operations.update_details(resource)
-                self._logical_route_operations.define_logical_routes(resource)
+        if not dst.ports:
+            self._resource_operations.update_details(dst)
+            self._logical_route_operations.define_logical_routes(dst)
 
     def _initialize_logical_route_actions(self, resource_pair):
         actions_container = ActionsContainer()
