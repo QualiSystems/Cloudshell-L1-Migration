@@ -1,6 +1,7 @@
 import sys
 
 import click
+import pkg_resources
 
 from cloudshell.api.cloudshell_api import CloudShellAPISession
 from cloudshell.layer_one.migration_tool.command_handlers.backup_handler import BackupHandler
@@ -18,19 +19,30 @@ L1_FAMILY = 'L1 Switch'
 DRY_RUN = False
 
 
-@click.group()
-def cli():
-    pass
+@click.group(invoke_without_command=True)
+@click.option(u'--version', is_flag=True, default=False, help='Package version.')
+@click.pass_context
+def cli(ctx, version):
+    """For more information on a specific command, type migration_tool COMMAND --help"""
+    if version:
+        version = pkg_resources.get_distribution(u'cloudshell-l1-migration').version
+        click.echo('Version: {}'.format(version))
+        sys.exit(0)
+    else:
+        if not ctx.invoked_subcommand:
+            click.echo(ctx.get_help())
 
 
 @cli.command()
 @click.argument(u'key', type=str, default=None, required=False)
 @click.argument(u'value', type=str, default=None, required=False)
-@click.option(u'--config', 'config_path', default=None, help="Configuration file.")
-@click.option(u'--patterns-table', is_flag=True, default=False, help='Add key:value to patterns table')
+@click.option(u'--config', 'config_path', default=None, help="Generate a custom config file (.conf, .yaml or .yml).",
+              metavar="FILE-PATH")
+@click.option(u'--patterns-table', is_flag=True, default=False,
+              help='Manage ports associated table. For Quali support use only.')
 def config(key, value, config_path, patterns_table):
     """
-    Configuration settings
+    Set configuration parameters.
     """
     configuration_handler = ConfigurationHandler(ConfigHelper(config_path))
 
@@ -52,11 +64,12 @@ def config(key, value, config_path, patterns_table):
 
 
 @cli.command()
-@click.option(u'--config', 'config_path', default=None, help="Configuration file.")
-@click.option(u'--family', 'family', default=L1_FAMILY, help="Resource Family.")
+@click.option(u'--config', 'config_path', default=None, help="Show resources based on a custom config file.",
+              metavar="FILE-PATH")
+@click.option(u'--family', 'family', default=L1_FAMILY, help="Show resources of a particular Family.")
 def show(config_path, family):
     """
-    Show list of resources
+    Show L1 resources.
     """
     config_helper = ConfigHelper(config_path)
     api = _initialize_api(config_helper.configuration)
@@ -65,17 +78,25 @@ def show(config_path, family):
 
 
 @cli.command()
-@click.option(u'--config', 'config_path', default=None, help="Configuration file.")
-@click.option(u'--dry-run/--run', 'dry_run', default=False, help="Dry run.")
-@click.option(u'--backup-file', default=None, help="Backup file path.")
+@click.option(u'--config', 'config_path', default=None, help="Use a custom config file.", metavar="FILE-PATH")
+@click.option(u'--dry-run', is_flag=True, default=False,
+              help="Dry run creates resources but does not switch physical connections or create and remove routes.")
+@click.option(u'--backup-file', default=None, help="Backup to a different yaml file.", metavar="BACKUP FILE-PATH")
 @click.option(u'--yes', is_flag=True, default=False, help='Assume "yes" to all questions.')
-@click.option(u'--override', is_flag=True, default=False, help="Override connections.")
-@click.option(u'--no-backup', is_flag=True, default=False, help='Do not do backup before migration.')
+@click.option(u'--override', is_flag=True, default=False,
+              help="Port connections on the source resource override any "
+                   "existing port connections on the destination resource.")
+@click.option(u'--no-backup', is_flag=True, default=False,
+              help='Do not create a backup file before migration.(Do not use this option. '
+                   'You are advised to create a backup file before performing any migration.)')
 @click.argument(u'src_resources', type=str, default=None, required=True)
 @click.argument(u'dst_resources', type=str, default=None, required=True)
 def migrate(config_path, dry_run, src_resources, dst_resources, yes, backup_file, no_backup, override):
     """
-    Migrate connections from SRC to DST resource
+    Migrate connections from source (SRC) resource(s) to destination (DST) resource(s),
+    for example specifying the Family/Model, or a comma-separated list of the source resources to migrate.
+    For additional info - see the tool's user guide at:
+    https://github.com/QualiSystems/Cloudshell-L1-Migration/blob/master/README.md.
     """
     config_helper = ConfigHelper(config_path)
     api = _initialize_api(config_helper.configuration)
@@ -117,15 +138,18 @@ def migrate(config_path, dry_run, src_resources, dst_resources, yes, backup_file
 
 
 @cli.command()
-@click.option(u'--config', 'config_path', default=None, help="Configuration file.")
-@click.option(u'--backup-file', default=None, help="Backup file path.")
-@click.option(u'--connections', 'connections', default=False, help="Backup connections only.")
-@click.option(u'--routes', 'routes', default=False, help="Backup routes only.")
+@click.option(u'--config', 'config_path', default=None, help="Backup using a custom yaml config file.",
+              metavar="FILE-PATH")
+@click.option(u'--backup-file', default=None, help="Backup to a different yaml file.", metavar="BACKUP FILE-PATH")
+@click.option(u'--connections', is_flag=True, default=False, help="Backup connections only.")
+@click.option(u'--routes', is_flag=True, default=False, help="Backup routes only.")
 @click.option(u'--yes', is_flag=True, default=False, help='Assume "yes" to all questions.')
-@click.argument(u'resources', type=str, default=None, required=False)
+@click.argument(u'resources', type=str, default=None, required=False, metavar='RESOURCES')
 def backup(config_path, backup_file, resources, connections, routes, yes):
     """
-    Backup connections and routes
+    Backup connections and routes.
+
+    RESOURCES: Comma-separated list of the names of the desired resources.
     """
     config_helper = ConfigHelper(config_path)
 
@@ -151,17 +175,27 @@ def backup(config_path, backup_file, resources, connections, routes, yes):
 
 
 @cli.command()
-@click.option(u'--config', 'config_path', default=None, help="Configuration file.")
-@click.option(u'--dry-run/--run', 'dry_run', default=False, help="Dry run.")
+@click.option(u'--config', 'config_path', default=None, help="Use a custom config file.", metavar="FILE-PATH")
+@click.option(u'--dry-run', is_flag=True, default=False, help="Dry run creates resources but does not switch "
+                                                              "physical connections or create and remove routes.")
 @click.option(u'--backup-file', default=None, required=True, help="Backup file path.")
-@click.option(u'--override', is_flag=True, default=False, help="Override routes/connections.")
+@click.option(u'--override', is_flag=True, default=False, help="Port connections on the source resource override any "
+                                                               "existing portconnections on the destination resource.")
 @click.option(u'--yes', is_flag=True, default=False, help='Assume "yes" to all questions.')
 @click.option(u'--connections', 'connections', default=False, help="Restore connections only.")
 @click.option(u'--routes', 'routes', default=False, help="Restore routes only.")
 @click.argument(u'resources', type=str, default=None, required=False)
 def restore(config_path, backup_file, dry_run, resources, connections, routes, override, yes):
     """
-    Restore connections and routes
+    Restore connections and routes.
+
+    BACKUP FILE-PATH:
+        The full path to the backup file, including the file name.
+
+    RESOURCES:
+        Comma-separated list of the names of the desired resources.
+        You do not need to specify the full path from the root of the desired resource(s).
+            However, the tool will create the new resource(s) in the root.
     """
     config_helper = ConfigHelper(config_path)
     api = _initialize_api(config_helper.configuration)
@@ -197,7 +231,8 @@ def _initialize_api(configuration):
                                     configuration.get(ConfigHelper.DOMAIN_KEY),
                                     port=configuration.get(ConfigHelper.PORT_KEY))
     except IOError as e:
-        click.echo('ERROR: Cannot initialize Cloudshell API connection, check API settings, details: {}'.format(e), err=True)
+        click.echo('ERROR: Cannot initialize Cloudshell API connection, check API settings, details: {}'.format(e),
+                   err=True)
         sys.exit(1)
 
 
