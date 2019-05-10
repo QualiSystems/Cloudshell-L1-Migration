@@ -25,12 +25,16 @@ class ConfigHelper(object):
     BACKUP_LOCATION_KEY = 'backup_location'
     PATTERNS_TABLE_KEY = 'patterns_table'
     DEFAULT_PATTERN_KEY = 'default_pattern'
-    DEFAULT_PATTERN = '.*/(.*)/(.*)'
+    DEFAULT_PATTERN = r'.*/(.*)/(.*)'
 
     MIGRATION_PATTERNS_TABLE = {
         DEFAULT_PATTERN_KEY: DEFAULT_PATTERN,
-        'L1 Switch/OS-192': '.*/.*/(.*)/(.*)',
-        'L1 Switch/Test Switch Chassis': DEFAULT_PATTERN
+        'L1 Switch/Test Switch Chassis': DEFAULT_PATTERN,
+        'L1 Switch/OS-192': r'.*/.*/(.*)/(.*)',
+        'Switch/Arista EOS Switch': r'.*/.*/(.*)/(.*)',
+        'Router/Arista EOS Router': r'.*/.*/(.*)/(.*)',
+        'CS_Router/AristaEosRouterShell2G': r'.*/.*/M(.*)/P(.*)',
+        'CS_Switch/AristaEosSwitchShell2G': r'.*/.*/M(.*)/P(.*)'
     }
 
     DEFAULT_CONFIGURATION = {
