@@ -108,8 +108,8 @@ class MigrationHandler(object):
         if not dst.exist:
             self._resource_operations.create_resource(dst)
             self._resource_operations.autoload_resource(dst)
-        else:
-            self._resource_operations.sync_from_device(dst)
+        # else:
+        #     self._resource_operations.sync_from_device(dst)
 
         if not dst.ports:
             self._resource_operations.update_details(dst)
@@ -140,6 +140,8 @@ class MigrationHandler(object):
         for src_port in src_resource.ports:
             if src_port.connected_to:
                 associated_dst_port = port_associator.associated_port(src_port)
+                if not associated_dst_port:
+                    continue
                 if override or not associated_dst_port.connected_to:
                     connection_actions.append(
                         UpdateConnectionAction(src_port, associated_dst_port, self._resource_operations,

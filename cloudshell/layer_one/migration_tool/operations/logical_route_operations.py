@@ -90,9 +90,10 @@ class LogicalRouteOperations(object):
         """
         logical_routes_table = []
         for port in resource.ports:
-            logical_route = self.logical_routes_by_segment.get(port.name)
-            if logical_route and logical_route not in logical_routes_table:
-                logical_routes_table.append(logical_route)
+            if port.connected_to:
+                logical_route = self.logical_routes_by_segment.get(port.name)
+                if logical_route and logical_route not in logical_routes_table:
+                    logical_routes_table.append(logical_route)
             # port.associated_logical_route = logical_route
             # if logical_route and logical_route not in resource.associated_logical_routes:
             #     resource.associated_logical_routes.append(logical_route)

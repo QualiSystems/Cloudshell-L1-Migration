@@ -64,7 +64,7 @@ class ResourceOperations(object):
         resource.address = resource_details.RootAddress
         resource.driver = resource_details.DriverName
         self.define_resource_ports(resource)
-        self.define_resource_attributes(resource)
+        # self.define_resource_attributes(resource)
         return resource
 
     def define_resource_ports(self, resource):
