@@ -6,6 +6,7 @@ from platform import node
 
 import click
 import yaml
+from backports.functools_lru_cache import lru_cache
 
 
 class ConfigHelper(object):
@@ -19,22 +20,44 @@ class ConfigHelper(object):
     HOST_KEY = 'host'
     PORT_KEY = 'port'
     LOGGING_LEVEL_KEY = 'logging_level'
-    OLD_PORT_PATTERN_KEY = 'old_port_pattern'
-    NEW_PORT_PATTERN_KEY = 'new_port_pattern'
     NEW_RESOURCE_NAME_PREFIX_KEY = 'name_prefix'
     BACKUP_LOCATION_KEY = 'backup_location'
-    PATTERNS_TABLE_KEY = 'patterns_table'
-    DEFAULT_PATTERN_KEY = 'default_pattern'
-    DEFAULT_PATTERN = r'.*/(.*)/(.*)'
+    PATTERN_KEY = 'pattern'
+    DEFAULT_L1_PATTERN = r'.*/(.*)/(.*)'
+    DEFAULT_PATTERN = r'.*/CH(.*)/M(.*)/SM(.*)/P(.*)'
+    ASSOCIATE_BY_ADDRESS_KEY = 'by_address'
+    ASSOCIATE_BY_NAME_KEY = 'by_name'
+    ASSOCIATE_BY_PORT_NAME_KEY = 'by_port_name'
+    ASSOCIATIONS_TABLE_KEY = 'associations_table'
 
-    MIGRATION_PATTERNS_TABLE = {
-        DEFAULT_PATTERN_KEY: DEFAULT_PATTERN,
-        'L1 Switch/Test Switch Chassis': DEFAULT_PATTERN,
-        'L1 Switch/OS-192': r'.*/.*/(.*)/(.*)',
-        'Switch/Arista EOS Switch': r'.*/.*/(.*)/(.*)',
-        'Router/Arista EOS Router': r'.*/.*/(.*)/(.*)',
-        'CS_Router/AristaEosRouterShell2G': r'.*/.*/M(.*)/P(.*)',
-        'CS_Switch/AristaEosSwitchShell2G': r'.*/.*/M(.*)/P(.*)'
+    ASSOCIATIONS_TABLE = {
+        '*/*': {PATTERN_KEY: DEFAULT_PATTERN, ASSOCIATE_BY_ADDRESS_KEY: True, ASSOCIATE_BY_NAME_KEY: True,
+                ASSOCIATE_BY_PORT_NAME_KEY: True},
+        'L1 Switch/*': {PATTERN_KEY: DEFAULT_L1_PATTERN, ASSOCIATE_BY_ADDRESS_KEY: True},
+        'L1 Switch/OS-192': {PATTERN_KEY: r'.*/.*/(.*)/(.*)', ASSOCIATE_BY_ADDRESS_KEY: True},
+        'Switch/Arista EOS Switch': {PATTERN_KEY: r'.*/.*/(.*)/(.*)', ASSOCIATE_BY_ADDRESS_KEY: True,
+                                     ASSOCIATE_BY_NAME_KEY: True,
+                                     ASSOCIATE_BY_PORT_NAME_KEY: True},
+        'Router/Arista EOS Router': {PATTERN_KEY: r'.*/.*/(.*)/(.*)', ASSOCIATE_BY_ADDRESS_KEY: True,
+                                     ASSOCIATE_BY_NAME_KEY: True,
+                                     ASSOCIATE_BY_PORT_NAME_KEY: True},
+        'CS_Router/AristaEosRouterShell2G': {PATTERN_KEY: r'.*/.*/M(.*)/P(.*)', ASSOCIATE_BY_ADDRESS_KEY: True,
+                                             ASSOCIATE_BY_NAME_KEY: True,
+                                             ASSOCIATE_BY_PORT_NAME_KEY: True},
+        'CS_Switch/AristaEosSwitchShell2G': {PATTERN_KEY: r'.*/.*/M(.*)/P(.*)', ASSOCIATE_BY_ADDRESS_KEY: True,
+                                             ASSOCIATE_BY_NAME_KEY: True,
+                                             ASSOCIATE_BY_PORT_NAME_KEY: True}
+    }
+
+    L1_ATTRIBUTES = {
+        'User': 'User',
+        'Password': 'Password'
+    }
+
+    SHELLS_ATTRIBUTES = {
+        'User': 'User',
+        'Password': 'Password'
+
     }
 
     DEFAULT_CONFIGURATION = {
@@ -46,22 +69,20 @@ class ConfigHelper(object):
         LOGGING_LEVEL_KEY: 'DEBUG',
         NEW_RESOURCE_NAME_PREFIX_KEY: 'new_',
         BACKUP_LOCATION_KEY: BACKUP_LOCATION,
-        PATTERNS_TABLE_KEY: MIGRATION_PATTERNS_TABLE
+        # ASSOCIATIONS_TABLE_KEY: ASSOCIATIONS_TABLE,
     }
 
     def __init__(self, config_path):
         self._config_path = config_path or self.CONFIG_PATH
-        self._configuration = None
 
     @property
+    @lru_cache()
     def configuration(self):
-        if not self._configuration:
-            self._configuration = self._read_configuration()
-        return self._configuration
+        return self._read_configuration()
 
     @property
-    def patterns_table(self):
-        return self.configuration.get(self.PATTERNS_TABLE_KEY)
+    def _associations_table(self):
+        return self.configuration.get(self.ASSOCIATIONS_TABLE_KEY)
 
     def save(self):
         self._write_configuration(self.configuration)
@@ -79,7 +100,7 @@ class ConfigHelper(object):
                 configuration = yaml.load(config)
                 if configuration:
                     configuration = PasswordModification.decrypt_password(configuration)
-                    if self.update_configuration(configuration) | self.update_migration_table(configuration):
+                    if self._update_configuration(configuration) | self._update_associations_table(configuration):
                         self._write_configuration(configuration)
                 else:
                     configuration = self.DEFAULT_CONFIGURATION
@@ -88,7 +109,7 @@ class ConfigHelper(object):
             configuration = self.DEFAULT_CONFIGURATION
         return configuration
 
-    def update_configuration(self, configuration):
+    def _update_configuration(self, configuration):
         updated = False
         for key, value in self.DEFAULT_CONFIGURATION.iteritems():
             if key not in configuration:
@@ -96,14 +117,26 @@ class ConfigHelper(object):
                 updated = True
         return updated
 
-    def update_migration_table(self, configuration):
+    def _update_associations_table(self, configuration):
         updated = False
-        migration_table = configuration.get(self.PATTERNS_TABLE_KEY)
-        for key, value in self.DEFAULT_CONFIGURATION.get(self.PATTERNS_TABLE_KEY).iteritems():
-            if key not in migration_table:
-                migration_table[key] = value
+        associations_table = configuration.get(self.ASSOCIATIONS_TABLE_KEY)
+        for key, value in self.DEFAULT_CONFIGURATION.get(self.ASSOCIATIONS_TABLE_KEY).items():
+            if key not in associations_table:
+                associations_table[key] = value
                 updated = True
         return updated
+
+    def get_association_configuration(self, family, model):
+        """
+        :param str family:
+        :param str model:
+        :rtype: dict
+        """
+        key_order = ['{}/{}'.format(family, model), '{}/*'.format(family), '*/*']
+        for key in key_order:
+            association_conf = self._associations_table.get(key)
+            if association_conf:
+                return association_conf
 
     def _write_configuration(self, configuration):
         if not ConfigHelper._config_path_is_ok(self._config_path):
@@ -122,7 +155,7 @@ class ConfigHelper(object):
         :param default_value: Default value
         :return:
         """
-        value = self._configuration
+        value = self.configuration
         for key in complex_key.split('.'):
             if isinstance(value, dict):
                 value = value.get(key)

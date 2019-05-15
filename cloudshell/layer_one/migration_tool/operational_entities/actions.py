@@ -143,3 +143,23 @@ class UpdateConnectionAction(Action):
         :type other: UpdateConnectionAction
         """
         return self._comparable_unit == other._comparable_unit
+
+
+class CreateResourceAction(Action):
+    def __init__(self, src_resource, dst_resource, resource_operations, logger):
+        """
+        :type src_resource: cloudshell.layer_one.migration_tool.entities.Port
+        :type dst_resource: cloudshell.layer_one.migration_tool.entities.Port
+        :type resource_operations: cloudshell.layer_one.migration_tool.operations.resource_operations.ResourceOperations
+        :type logger: cloudshell.layer_one.migration_tool.helpers.logger.Logger
+        """
+        super(CreateResourceAction, self).__init__(logger)
+        self.src_resource = src_resource
+        self.dst_resource = dst_resource
+        self.resource_operations = resource_operations
+
+    def execute(self):
+        pass
+
+    def to_string(self):
+        pass
