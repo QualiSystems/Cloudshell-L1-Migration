@@ -25,24 +25,24 @@ class ConfigurationHandler(object):
         else:
             raise click.UsageError('Configuration key {} does not exist'.format(key))
 
-    def get_patterns_table_value(self, key):
-        return self._format_key(key, self._config_helper.patterns_table.get(key))
-
-    def set_patterns_table_value(self, key, value):
-        self._config_helper.patterns_table[key] = value
-        self._config_helper.save()
+    # def get_patterns_table_value(self, key):
+    #     return self._format_key(key, self._config_helper.patterns_table.get(key))
+    #
+    # def set_patterns_table_value(self, key, value):
+    #     self._config_helper.patterns_table[key] = value
+    #     self._config_helper.save()
 
     def get_config_description(self):
         return self._format_table(self._config_helper.configuration)
 
-    def get_patterns_table_description(self):
-        return self._format_table(self._config_helper.patterns_table)
+    # def get_patterns_table_description(self):
+    #     return self._format_table(self._config_helper.patterns_table)
 
     @staticmethod
     def _format_key(key, value):
         if key == ConfigHelper.PASSWORD_KEY:
             value = '*' * len(value)
-        elif key == ConfigHelper.PATTERNS_TABLE_KEY:
+        elif key == ConfigHelper.ASSOCIATIONS_TABLE_KEY:
             return
         return '{0}: {1}'.format(key, value)
 

@@ -38,29 +38,29 @@ def cli(ctx, version):
 @click.argument(u'value', type=str, default=None, required=False)
 @click.option(u'--config', 'config_path', default=None, help="Generate a custom config file (.conf, .yaml or .yml).",
               metavar="FILE-PATH")
-@click.option(u'--patterns-table', is_flag=True, default=False,
-              help='Manage ports associated table. For Quali support use only.')
-def config(key, value, config_path, patterns_table):
+# @click.option(u'--associations-table', is_flag=True, default=False,
+#               help='Manage ports associated table. For Quali support use only.')
+def config(key, value, config_path):
     """
     Set configuration parameters.
     """
     configuration_handler = ConfigurationHandler(ConfigHelper(config_path))
 
-    if patterns_table:
-        if key and value:
-            configuration_handler.set_patterns_table_value(key, value)
-        elif key:
-            click.echo(configuration_handler.get_patterns_table_value(key))
-        else:
-            click.echo('Patterns Table(Family/Model: Pattern)')
-            click.echo(configuration_handler.get_patterns_table_description())
+    # if patterns_table:
+    #     if key and value:
+    #         configuration_handler.set_patterns_table_value(key, value)
+    #     elif key:
+    #         click.echo(configuration_handler.get_patterns_table_value(key))
+    #     else:
+    #         click.echo('Patterns Table(Family/Model: Pattern)')
+    #         click.echo(configuration_handler.get_patterns_table_description())
+    # else:
+    if key and value:
+        configuration_handler.set_key_value(key, value)
+    elif key:
+        click.echo(configuration_handler.get_key_value(key))
     else:
-        if key and value:
-            configuration_handler.set_key_value(key, value)
-        elif key:
-            click.echo(configuration_handler.get_key_value(key))
-        else:
-            click.echo(configuration_handler.get_config_description())
+        click.echo(configuration_handler.get_config_description())
 
 
 @cli.command()
@@ -72,7 +72,7 @@ def show(config_path, family):
     Show L1 resources.
     """
     config_helper = ConfigHelper(config_path)
-    api = _initialize_api(config_helper.configuration)
+    api = _initialize_api(config_helper)
     resources_handler = ResourcesHandler(api)
     click.echo(resources_handler.show_resources(family))
 
@@ -99,11 +99,11 @@ def migrate(config_path, dry_run, src_resources, dst_resources, yes, backup_file
     https://github.com/QualiSystems/Cloudshell-L1-Migration/blob/master/README.md.
     """
     config_helper = ConfigHelper(config_path)
-    api = _initialize_api(config_helper.configuration)
-    logger = _initialize_logger(config_helper.configuration)
+    api = _initialize_api(config_helper)
+    logger = _initialize_logger(config_helper)
     resource_operations = ResourceOperations(api, logger, dry_run)
     logical_route_operations = LogicalRouteOperations(api, logger, dry_run)
-    migration_handler = MigrationHandler(api, logger, config_helper.configuration, resource_operations,
+    migration_handler = MigrationHandler(api, logger, config_helper, resource_operations,
                                          logical_route_operations)
     with ExceptionLogger(logger):
         resources_pairs = migration_handler.define_resources_pairs(src_resources, dst_resources)
@@ -153,8 +153,8 @@ def backup(config_path, backup_file, resources, connections, routes, yes):
     """
     config_helper = ConfigHelper(config_path)
 
-    api = _initialize_api(config_helper.configuration)
-    logger = _initialize_logger(config_helper.configuration)
+    api = _initialize_api(config_helper)
+    logger = _initialize_logger(config_helper)
     resource_operations = ResourceOperations(api, logger)
     logical_route_operations = LogicalRouteOperations(api, logger)
     backup_handler = BackupHandler(api, logger, config_helper.configuration, backup_file, resource_operations,
@@ -198,8 +198,8 @@ def restore(config_path, backup_file, dry_run, resources, connections, routes, o
             However, the tool will create the new resource(s) in the root.
     """
     config_helper = ConfigHelper(config_path)
-    api = _initialize_api(config_helper.configuration)
-    logger = _initialize_logger(config_helper.configuration)
+    api = _initialize_api(config_helper)
+    logger = _initialize_logger(config_helper)
     resource_operations = ResourceOperations(api, logger, dry_run)
     logical_route_operations = LogicalRouteOperations(api, logger, dry_run)
     restore_handler = RestoreHandler(api, logger, config_helper.configuration, backup_file, resource_operations,
@@ -220,24 +220,35 @@ def restore(config_path, backup_file, dry_run, resources, connections, routes, o
         actions_container.execute_actions()
 
 
-def _initialize_api(configuration):
+def _initialize_api(config_helper):
     """
-    :type configuration: dict
+    :type config_helper: cloudshell.layer_one.migration_tool.helpers.config_helper.ConfigHelper
     """
     try:
-        return CloudShellAPISession(configuration.get(ConfigHelper.HOST_KEY),
-                                    configuration.get(ConfigHelper.USERNAME_KEY),
-                                    configuration.get(ConfigHelper.PASSWORD_KEY),
-                                    configuration.get(ConfigHelper.DOMAIN_KEY),
-                                    port=configuration.get(ConfigHelper.PORT_KEY))
+        return CloudShellAPISession(config_helper.read_key(config_helper.HOST_KEY,
+                                                           config_helper.DEFAULT_CONFIGURATION.get(
+                                                               config_helper.HOST_KEY)),
+                                    config_helper.read_key(config_helper.USERNAME_KEY,
+                                                           config_helper.DEFAULT_CONFIGURATION.get(
+                                                               config_helper.USERNAME_KEY)),
+                                    config_helper.read_key(config_helper.PASSWORD_KEY,
+                                                           config_helper.DEFAULT_CONFIGURATION.get(
+                                                               config_helper.PASSWORD_KEY)),
+                                    config_helper.read_key(config_helper.DOMAIN_KEY,
+                                                           config_helper.DEFAULT_CONFIGURATION.get(
+                                                               config_helper.DOMAIN_KEY)),
+                                    port=config_helper.read_key(config_helper.PORT_KEY,
+                                                                config_helper.DEFAULT_CONFIGURATION.get(
+                                                                    config_helper.PORT_KEY)))
     except IOError as e:
         click.echo('ERROR: Cannot initialize Cloudshell API connection, check API settings, details: {}'.format(e),
                    err=True)
         sys.exit(1)
 
 
-def _initialize_logger(configuration):
+def _initialize_logger(config_helper):
     """
-    :type configuration: dict
+    :type config_helper: cloudshell.layer_one.migration_tool.helpers.config_helper.ConfigHelper
     """
-    return Logger(configuration.get(ConfigHelper.LOGGING_LEVEL_KEY))
+    return Logger(config_helper.read_key(config_helper.LOGGING_LEVEL_KEY,
+                                         config_helper.DEFAULT_CONFIGURATION.get(config_helper.LOGGING_LEVEL_KEY)))

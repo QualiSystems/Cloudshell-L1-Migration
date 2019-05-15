@@ -1,7 +1,6 @@
 from copy import copy
 
 from cloudshell.layer_one.migration_tool.exceptions import MigrationToolException
-from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
 from cloudshell.layer_one.migration_tool.helpers.port_associator import PortAssociator
 from cloudshell.layer_one.migration_tool.operational_entities.actions import ActionsContainer, RemoveRouteAction, \
     CreateRouteAction, \
@@ -11,18 +10,17 @@ from cloudshell.layer_one.migration_tool.operations.argument_parser import Argum
 
 class MigrationHandler(object):
 
-    def __init__(self, api, logger, configuration, resource_operations, logical_route_operations):
+    def __init__(self, api, logger, config_helper, resource_operations, logical_route_operations):
         """
         :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
         :type logger: cloudshell.layer_one.migration_tool.helpers.logger.Logger
-        :type configuration: dict
+        :type config_helper: cloudshell.layer_one.migration_tool.helpers.config_helper.ConfigHelper
         :type resource_operations: cloudshell.layer_one.migration_tool.operations.resource_operations.ResourceOperations
         :type logical_route_operations: cloudshell.layer_one.migration_tool.operations.logical_route_operations.LogicalRouteOperations
         """
         self._api = api
         self._logger = logger
-        self._configuration = configuration
-        self._patterns_table = self._configuration.get(ConfigHelper.PATTERNS_TABLE_KEY)
+        self._config_helper = config_helper
         self._resource_operations = resource_operations
         self._logical_route_operations = logical_route_operations
         self._updated_connections = {}
@@ -58,7 +56,9 @@ class MigrationHandler(object):
         src, dst = resources_pair
         if not dst.exist:
             if not dst.name:
-                dst.name = self._configuration.get(ConfigHelper.NEW_RESOURCE_NAME_PREFIX_KEY, 'New_') + src.name
+                dst.name = self._config_helper.read_key(self._config_helper.NEW_RESOURCE_NAME_PREFIX_KEY,
+                                                        self._config_helper.DEFAULT_CONFIGURATION.get(
+                                                        self._config_helper.NEW_RESOURCE_NAME_PREFIX_KEY)) + src.name
             dst.address = src.address
 
         return resources_pair
@@ -130,20 +130,13 @@ class MigrationHandler(object):
 
     def _initialize_connection_actions(self, resource_pair, override):
         src_resource, dst_resource = resource_pair
-        src_port_pattern = self._patterns_table.get('{}/{}'.format(src_resource.family, src_resource.model),
-                                                    self._patterns_table.get(ConfigHelper.DEFAULT_PATTERN_KEY))
-        dst_port_pattern = self._patterns_table.get('{}/{}'.format(dst_resource.family, dst_resource.model),
-                                                    self._patterns_table.get(ConfigHelper.DEFAULT_PATTERN_KEY))
-        port_associator = PortAssociator(dst_resource.ports, src_port_pattern, dst_port_pattern, self._logger)
+        port_associator = PortAssociator(src_resource, dst_resource, self._config_helper, self._logger)
 
         connection_actions = []
-        for src_port in src_resource.ports:
-            if src_port.connected_to:
-                associated_dst_port = port_associator.associated_port(src_port)
-                if not associated_dst_port:
-                    continue
-                if override or not associated_dst_port.connected_to:
-                    connection_actions.append(
-                        UpdateConnectionAction(src_port, associated_dst_port, self._resource_operations,
-                                               self._updated_connections, self._logger))
+
+        for src_port, dst_port in port_associator.associated_pairs():
+            if override or not dst_port.connected_to:
+                connection_actions.append(
+                    UpdateConnectionAction(src_port, dst_port, self._resource_operations,
+                                           self._updated_connections, self._logger))
         return ActionsContainer(update_connections=connection_actions)
