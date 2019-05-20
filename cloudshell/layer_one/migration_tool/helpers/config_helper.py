@@ -80,7 +80,7 @@ class ConfigHelper(object):
 
     @property
     def _associations_table(self):
-        return self.configuration.get(self.ASSOCIATIONS_TABLE_KEY)
+        return self.ASSOCIATIONS_TABLE
 
     def save(self):
         self._write_configuration(self.configuration)
