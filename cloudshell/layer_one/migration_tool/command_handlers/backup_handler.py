@@ -62,10 +62,14 @@ class BackupHandler(object):
 
         logical_routes = set()
         for resource in resources:
+            self._resource_operations.update_details(resource)
+            if not resource.attributes:
+                self._resource_operations.load_resource_attributes(resource)
             if connections and not resource.ports:
-                self._resource_operations.update_details(resource)
+                self._resource_operations.load_resource_ports(resource)
+                self._resource_operations.load_resource_attributes(resource)
             if routes and not resource.associated_logical_routes:
-                self._logical_route_operations.define_logical_routes(resource)
+                self._logical_route_operations.load_logical_routes(resource)
                 logical_routes.update(resource.associated_logical_routes)
 
         # backup_dict = {self.RESOURCES_KEY: resources,

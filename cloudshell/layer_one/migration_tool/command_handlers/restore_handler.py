@@ -74,7 +74,8 @@ class RestoreHandler(object):
         actions_container = ActionsContainer()
         for backup_resource in requested_backup_resources:
             cs_resource = copy(backup_resource)
-            self._resource_operations.update_details(cs_resource)
+            # self._resource_operations.update_details(cs_resource)
+            self._resource_operations.load_resource_ports(cs_resource)
             # self._logical_route_operations.get_logical_routes_table(cs_resource)
             actions_container.update(self._connection_actions_for_resource(backup_resource, cs_resource, override))
         return actions_container

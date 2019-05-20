@@ -101,7 +101,7 @@ def migrate(config_path, dry_run, src_resources, dst_resources, yes, backup_file
     config_helper = ConfigHelper(config_path)
     api = _initialize_api(config_helper)
     logger = _initialize_logger(config_helper)
-    resource_operations = ResourceOperations(api, logger, dry_run)
+    resource_operations = ResourceOperations(api, logger, config_helper, dry_run)
     logical_route_operations = LogicalRouteOperations(api, logger, dry_run)
     migration_handler = MigrationHandler(api, logger, config_helper, resource_operations,
                                          logical_route_operations)
@@ -155,7 +155,7 @@ def backup(config_path, backup_file, resources, connections, routes, yes):
 
     api = _initialize_api(config_helper)
     logger = _initialize_logger(config_helper)
-    resource_operations = ResourceOperations(api, logger)
+    resource_operations = ResourceOperations(api, logger, config_helper)
     logical_route_operations = LogicalRouteOperations(api, logger)
     backup_handler = BackupHandler(api, logger, config_helper.configuration, backup_file, resource_operations,
                                    logical_route_operations)
@@ -200,7 +200,7 @@ def restore(config_path, backup_file, dry_run, resources, connections, routes, o
     config_helper = ConfigHelper(config_path)
     api = _initialize_api(config_helper)
     logger = _initialize_logger(config_helper)
-    resource_operations = ResourceOperations(api, logger, dry_run)
+    resource_operations = ResourceOperations(api, logger, config_helper, dry_run)
     logical_route_operations = LogicalRouteOperations(api, logger, dry_run)
     restore_handler = RestoreHandler(api, logger, config_helper.configuration, backup_file, resource_operations,
                                      logical_route_operations)

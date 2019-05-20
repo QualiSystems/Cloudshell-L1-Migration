@@ -54,12 +54,25 @@ class MigrationHandler(object):
 
     def _synchronize_resources_pair(self, resources_pair):
         src, dst = resources_pair
+
+        # Create DST if not exist
         if not dst.exist:
+            self._resource_operations.update_details(src)
             if not dst.name:
                 dst.name = self._config_helper.read_key(self._config_helper.NEW_RESOURCE_NAME_PREFIX_KEY,
                                                         self._config_helper.DEFAULT_CONFIGURATION.get(
-                                                        self._config_helper.NEW_RESOURCE_NAME_PREFIX_KEY)) + src.name
+                                                            self._config_helper.NEW_RESOURCE_NAME_PREFIX_KEY)) + src.name
             dst.address = src.address
+            self._resource_operations.create_resource(dst)
+
+            # Sync attributes
+            self._resource_operations.load_resource_attributes(src)
+            self._resource_operations.load_resource_attributes(dst)
+            for name, src_attr in src.attributes.items():
+                dst_attr = dst.attributes.get(name)
+                if dst_attr:
+                    dst_attr.Value = src_attr.Value
+            self._resource_operations.set_resource_attributes(dst)
 
         return resources_pair
 
@@ -98,22 +111,22 @@ class MigrationHandler(object):
         """
         src, dst = resource_pair
 
-        # Load SRC resource
-        if not src.ports:
-            self._resource_operations.update_details(src)
-            self._logical_route_operations.define_logical_routes(src)
+        # # Load SRC resource
+        # if not src.ports:
+        #     self._resource_operations.load_resource_ports(src)
+        #     self._logical_route_operations.load_logical_routes(src)
 
         # Load DST resource
-        dst.attributes = src.attributes
         if not dst.exist:
-            self._resource_operations.create_resource(dst)
             self._resource_operations.autoload_resource(dst)
-        # else:
-        #     self._resource_operations.sync_from_device(dst)
+        else:
+            #self._resource_operations.sync_from_device(dst)
+            pass
 
-        if not dst.ports:
-            self._resource_operations.update_details(dst)
-            self._logical_route_operations.define_logical_routes(dst)
+        for resource in resource_pair:
+            if not resource.ports:
+                self._resource_operations.load_resource_ports(resource)
+                self._logical_route_operations.load_logical_routes(dst)
 
     def _initialize_logical_route_actions(self, resource_pair):
         actions_container = ActionsContainer()

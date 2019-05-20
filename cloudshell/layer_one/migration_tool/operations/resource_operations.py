@@ -1,60 +1,79 @@
 from collections import defaultdict
 
+from backports.functools_lru_cache import lru_cache
+
 from cloudshell.layer_one.migration_tool.entities import Port, Resource
 
 
 class ResourceOperations(object):
     L1_FAMILY = 'L1 Switch'
-    PORT_MARKERS = ['port']
 
-    def __init__(self, api, logger, dry_run=False):
+    def __init__(self, api, logger, config_helper, dry_run=False):
         """
         :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
         :type logger: cloudshell.layer_one.migration_tool.helpers.logger.Logger
+        :type config_helper: cloudshell.layer_one.migration_tool.helpers.config_helper.ConfigHelper
         """
         self._api = api
         self._logger = logger
+        self._config_helper = config_helper
         self._dry_run = dry_run
-        self._resource_details_container = {}
-        self._installed_resources = {}
-        self._resources_by_family_model = {}
 
+    @lru_cache()
     def _get_resource_details(self, resource):
-        if resource.name not in self._resource_details_container:
-            self._resource_details_container[resource.name] = self._api.GetResourceDetails(resource.name)
-        return self._resource_details_container.get(resource.name)
+        return self._api.GetResourceDetails(resource.name)
 
     @property
+    @lru_cache()
     def installed_resources(self):
         """
         :rtype: dict
         """
-        if not self._installed_resources:
-            for resource_info in self._api.GetResourceList().Resources:
-                resource = Resource(resource_info.Name, resource_info.Address, resource_info.ResourceFamilyName,
-                                    resource_info.ResourceModelName, exist=True)
-                self._installed_resources[resource.name] = resource
-        return self._installed_resources
+        installed_resources = {}
+        for resource_info in self._api.GetResourceList().Resources:
+            resource = Resource(resource_info.Name, resource_info.Address, resource_info.ResourceFamilyName,
+                                resource_info.ResourceModelName, exist=True)
+            installed_resources[resource.name] = resource
+        return installed_resources
 
     @property
+    @lru_cache()
     def sorted_by_family_model_resources(self):
-        if not self._resources_by_family_model:
-            self._resources_by_family_model = defaultdict(list)
-            for resource in self.installed_resources.values():
-                self._resources_by_family_model[(resource.family, resource.model)].append(resource)
-        return self._resources_by_family_model
+        resources_by_family_model = defaultdict(list)
+        for resource in self.installed_resources.values():
+            resources_by_family_model[(resource.family, resource.model)].append(resource)
+        return resources_by_family_model
 
     @property
     def l1_resources(self):
-        return [resource for name, resource in self.installed_resources.iteritems() if resource.family == self.L1_FAMILY]
+        return [resource for name, resource in self.installed_resources.iteritems() if
+                resource.family == self.L1_FAMILY]
 
-    def define_resource_attributes(self, resource):
+    def _is_l1_resource(self, resource):
+        resource_details = self._get_resource_details(resource)
+        if resource_details.ResourceFamilyName in self._config_helper.L1_FAMILIES:
+            return True
+        else:
+            return False
+
+    def load_resource_attributes(self, resource):
         """
         :type resource: cloudshell.layer_one.migration_tool.entities.Resource
         """
-        for attribute in resource.attributes:
-            value = self._api.GetAttributeValue(resource.name, attribute).Value
-            resource.attributes[attribute] = value
+
+        resource_details = self._get_resource_details(resource)
+        resource_attr_dict = {attr.Name: attr for attr in resource_details.ResourceAttributes}
+        if self._is_l1_resource(resource):
+            attribute_list = self._config_helper.L1_ATTRIBUTES
+        else:
+            attribute_list = self._config_helper.SHELLS_ATTRIBUTES
+
+        for attr_name in attribute_list:
+            attribute = resource_attr_dict.get(attr_name, None) or resource_attr_dict.get(
+                '.'.join([resource_details.ResourceFamilyName, attr_name]), None) or resource_attr_dict.get(
+                '.'.join([resource_details.ResourceModelName, attr_name]), None)
+            resource.attributes[attr_name] = attribute
+        return resource
 
     def update_details(self, resource):
         """
@@ -63,11 +82,11 @@ class ResourceOperations(object):
         resource_details = self._get_resource_details(resource)
         resource.address = resource_details.RootAddress
         resource.driver = resource_details.DriverName
-        self.define_resource_ports(resource)
+        # self.define_resource_ports(resource)
         # self.define_resource_attributes(resource)
         return resource
 
-    def define_resource_ports(self, resource):
+    def load_resource_ports(self, resource):
         """
         :type resource: cloudshell.layer_one.migration_tool.entities.Resource
         """
@@ -92,10 +111,10 @@ class ResourceOperations(object):
         """
         :type resource_info: cloudshell.api.cloudshell_api.ResourceInfo
         """
-        if not resource_info.ChildResources:
-            for marker in self.PORT_MARKERS:
-                if marker in resource_info.ResourceFamilyName.lower() or marker in resource_info.ResourceModelName.lower():
-                    return True
+        if not resource_info.ChildResources and resource_info.ResourceFamilyName in self._config_helper.PORT_FAMILIES:
+            return True
+        else:
+            return False
 
     def _build_port(self, resource_info):
         """
@@ -116,16 +135,18 @@ class ResourceOperations(object):
         """
         self._logger.debug('Creating new resource {}'.format(resource))
         self._api.CreateResource(resource.family, resource.model, resource.name, resource.address)
-        resource.exist = True
+        # resource.exist = True
         if resource.driver:
             self._api.UpdateResourceDriver(resource.name, resource.driver)
-
-        for attribute, value in resource.attributes.iteritems():
-            if value:
-                if attribute == resource.PASSWORD_ATTRIBUTE:
-                    value = self._api.DecryptPassword(value).Value
-                self._api.SetAttributeValue(resource.name, attribute, value)
         return resource
+
+    def set_resource_attributes(self, resource):
+        for name, attribute in resource.attributes.items():
+            value = attribute.Value
+            if value:
+                if name == self._config_helper.PASSWORD_ATTRIBUTE:
+                    value = self._api.DecryptPassword(value).Value
+                self._api.SetAttributeValue(resource.name, attribute.Name, value)
 
     def autoload_resource(self, resource):
         """

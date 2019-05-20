@@ -13,6 +13,8 @@ class ConfigHelper(object):
     PACKAGE_NAME = 'migration_tool'
     CONFIG_PATH = os.path.join(click.get_app_dir('Quali'), PACKAGE_NAME, 'cloudshell_config.yml')
     BACKUP_LOCATION = os.path.join(click.get_app_dir('Quali'), PACKAGE_NAME, 'Backup')
+    PORT_FAMILIES = ['L1 Switch Port', 'Port', 'CS_Port']
+    L1_FAMILIES = ['L1 Switch']
 
     USERNAME_KEY = 'username'
     PASSWORD_KEY = 'password'
@@ -49,16 +51,12 @@ class ConfigHelper(object):
                                              ASSOCIATE_BY_PORT_NAME_KEY: True}
     }
 
-    L1_ATTRIBUTES = {
-        'User': 'User',
-        'Password': 'Password'
-    }
+    L1_ATTRIBUTES = [
+        'User', 'Password']
 
-    SHELLS_ATTRIBUTES = {
-        'User': 'User',
-        'Password': 'Password'
+    SHELLS_ATTRIBUTES = ['User', 'Password', 'SNMP Read Community', 'SNMP Version', 'Enable SNMP', 'Disable SNMP']
 
-    }
+    PASSWORD_ATTRIBUTE = 'Password'
 
     DEFAULT_CONFIGURATION = {
         USERNAME_KEY: 'admin',
@@ -100,7 +98,8 @@ class ConfigHelper(object):
                 configuration = yaml.load(config)
                 if configuration:
                     configuration = PasswordModification.decrypt_password(configuration)
-                    if self._update_configuration(configuration) | self._update_associations_table(configuration):
+                    # if self._update_configuration(configuration) | self._update_associations_table(configuration):
+                    if self._update_configuration(configuration):
                         self._write_configuration(configuration)
                 else:
                     configuration = self.DEFAULT_CONFIGURATION
@@ -117,14 +116,14 @@ class ConfigHelper(object):
                 updated = True
         return updated
 
-    def _update_associations_table(self, configuration):
-        updated = False
-        associations_table = configuration.get(self.ASSOCIATIONS_TABLE_KEY)
-        for key, value in self.DEFAULT_CONFIGURATION.get(self.ASSOCIATIONS_TABLE_KEY).items():
-            if key not in associations_table:
-                associations_table[key] = value
-                updated = True
-        return updated
+    # def _update_associations_table(self, configuration):
+    #     updated = False
+    #     associations_table = configuration.get(self.ASSOCIATIONS_TABLE_KEY)
+    #     for key, value in self.DEFAULT_CONFIGURATION.get(self.ASSOCIATIONS_TABLE_KEY).items():
+    #         if key not in associations_table:
+    #             associations_table[key] = value
+    #             updated = True
+    #     return updated
 
     def get_association_configuration(self, family, model):
         """

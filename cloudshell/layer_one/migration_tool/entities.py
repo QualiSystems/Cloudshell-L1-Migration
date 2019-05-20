@@ -1,6 +1,4 @@
 class Resource(object):
-    USERNAME_ATTRIBUTE = 'User'
-    PASSWORD_ATTRIBUTE = 'Password'
 
     def __init__(self, name, address=None, family=None, model=None, driver=None, exist=False):
         self.name = name
@@ -11,7 +9,7 @@ class Resource(object):
         self.ports = []
         self.associated_logical_routes = []
 
-        self.attributes = {self.USERNAME_ATTRIBUTE: None, self.PASSWORD_ATTRIBUTE: None}
+        self.attributes = {}
         self.exist = exist
 
     def to_string(self):
