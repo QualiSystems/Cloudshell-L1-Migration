@@ -107,7 +107,7 @@ class LogicalRouteOperations(object):
         resource.associated_logical_routes = [route for route, endpoint in logical_routes_table if endpoint]
         return resource
 
-    def define_logical_routes(self, resource):
+    def load_logical_routes(self, resource):
         """
         :type resource: cloudshell.layer_one.migration_tool.entities.Resource
         """
