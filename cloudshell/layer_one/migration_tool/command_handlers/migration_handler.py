@@ -126,7 +126,7 @@ class MigrationHandler(object):
         for resource in resource_pair:
             if not resource.ports:
                 self._resource_operations.load_resource_ports(resource)
-                self._logical_route_operations.load_logical_routes(dst)
+                self._logical_route_operations.load_logical_routes(resource)
 
     def _initialize_logical_route_actions(self, resource_pair):
         actions_container = ActionsContainer()

@@ -22,15 +22,20 @@ class PortAssociator(object):
         self._dst_association_configuration = self._config_helper.get_association_configuration(
             self._dst_resource.family, self._dst_resource.model)
 
-        self._src_port_pattern = re.compile(self._src_association_configuration.get(self._config_helper.PATTERN_KEY,
-                                            self._config_helper.DEFAULT_PATTERN), re.IGNORECASE)
-        self._dst_port_pattern = re.compile(self._dst_association_configuration.get(self._config_helper.PATTERN_KEY,
-                                            self._config_helper.DEFAULT_PATTERN), re.IGNORECASE)
+        self._src_port_pattern = re.compile(self._src_association_configuration.get(self._config_helper.PATTERN_KEY),
+                                            re.IGNORECASE)
+        self._dst_port_pattern = re.compile(self._dst_association_configuration.get(self._config_helper.PATTERN_KEY),
+                                            re.IGNORECASE)
 
     @property
     @lru_cache()
     def _dst_port_sorted_by_associated_address(self):
-        return {self._format_dst_address(port.address): port for port in self._dst_resource.ports}
+        address_dict = {}
+        for port in self._dst_resource.ports:
+            f_addr = self._format_dst_address(port.address)
+            if f_addr:
+                address_dict[f_addr] = port
+        return address_dict
 
     @property
     @lru_cache()
@@ -74,9 +79,9 @@ class PortAssociator(object):
             self._logger.error('Cannot find associated DST port, for {}'.format(src_port))
         elif len(set(result_list)) > 1:
             self._logger.error('Multiple associations {} for {}'.format(result_list, src_port))
-            return result_list[-1]
+            return result_list[0]
         else:
-            return result_list[-1]
+            return result_list[0]
 
     def _format_dst_address(self, address):
         # self._logger.debug('Matching new address {} for pattern {}'.format(address, self._dst_port_pattern))
@@ -91,7 +96,7 @@ class PortAssociator(object):
         if match:
             x = tuple(map(lambda x: x.zfill(2), match.groups()))
             return x
-        self._logger.error('Cannot match address {} for pattern {}'.format(address, pattern))
+        # self._logger.error('Cannot match address {} for pattern {}'.format(address, pattern))
 
     def _format_name(self, name):
         """
