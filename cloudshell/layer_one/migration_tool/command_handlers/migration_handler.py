@@ -120,7 +120,7 @@ class MigrationHandler(object):
         if not dst.exist:
             self._resource_operations.autoload_resource(dst)
         else:
-            #self._resource_operations.sync_from_device(dst)
+            # self._resource_operations.sync_from_device(dst)
             pass
 
         for resource in resource_pair:
@@ -135,7 +135,8 @@ class MigrationHandler(object):
                 lambda logical_route: RemoveRouteAction(logical_route, self._logical_route_operations, self._logger),
                 resource.associated_logical_routes)
             create_route_actions = map(
-                lambda logical_route: CreateRouteAction(logical_route, self._logical_route_operations, self._logger),
+                lambda logical_route: CreateRouteAction(logical_route, self._logical_route_operations,
+                                                        self._updated_connections, self._logger),
                 resource.associated_logical_routes)
             actions_container.update(
                 ActionsContainer(remove_routes=remove_route_actions, create_routes=create_route_actions))

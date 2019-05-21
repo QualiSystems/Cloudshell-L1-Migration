@@ -92,11 +92,20 @@ class RemoveRouteAction(LogicalRouteAction):
 
 
 class CreateRouteAction(LogicalRouteAction):
+    def __init__(self, logical_route, logical_route_operations, updated_connections, logger):
+        super(CreateRouteAction, self).__init__(logical_route, logical_route_operations, logger)
+        self._updated_connections = updated_connections
+
     def execute(self):
+        self._refresh_route()
         try:
             self.logical_route_operations.create_route(self.logical_route)
         except Exception as e:
             self.logger.error('Cannot create route {}, reason {}'.format(self.logical_route, ','.join(e.args)))
+
+    def _refresh_route(self):
+        self.logical_route.source = self._updated_connections.get(self.logical_route.source, self.logical_route.source)
+        self.logical_route.target = self._updated_connections.get(self.logical_route.target, self.logical_route.target)
 
     def to_string(self):
         return 'Create Route: {}'.format(self.logical_route)
