@@ -144,8 +144,11 @@ class ResourceOperations(object):
         for name, attribute in resource.attributes.items():
             value = attribute.Value
             if value:
-                if name == self._config_helper.PASSWORD_ATTRIBUTE:
-                    value = self._api.DecryptPassword(value).Value
+                if attribute.Type == 'Password':
+                    try:
+                        value = self._api.DecryptPassword(value).Value
+                    except:
+                        pass
                 self._api.SetAttributeValue(resource.name, attribute.Name, value)
 
     def autoload_resource(self, resource):

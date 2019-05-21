@@ -25,17 +25,15 @@ class ConfigHelper(object):
     NEW_RESOURCE_NAME_PREFIX_KEY = 'name_prefix'
     BACKUP_LOCATION_KEY = 'backup_location'
     PATTERN_KEY = 'pattern'
-    DEFAULT_L1_PATTERN = r'.*/(.*)/(.*)'
-    DEFAULT_PATTERN = r'.*/CH(.*)/M(.*)/SM(.*)/P(.*)'
     ASSOCIATE_BY_ADDRESS_KEY = 'by_address'
     ASSOCIATE_BY_NAME_KEY = 'by_name'
     ASSOCIATE_BY_PORT_NAME_KEY = 'by_port_name'
-    ASSOCIATIONS_TABLE_KEY = 'associations_table'
 
     ASSOCIATIONS_TABLE = {
-        '*/*': {PATTERN_KEY: DEFAULT_PATTERN, ASSOCIATE_BY_ADDRESS_KEY: True, ASSOCIATE_BY_NAME_KEY: True,
+        '*/*': {PATTERN_KEY: r'.*/CH(.*)/M(.*)/SM(.*)/P(.*)', ASSOCIATE_BY_ADDRESS_KEY: True,
+                ASSOCIATE_BY_NAME_KEY: True,
                 ASSOCIATE_BY_PORT_NAME_KEY: True},
-        'L1 Switch/*': {PATTERN_KEY: DEFAULT_L1_PATTERN, ASSOCIATE_BY_ADDRESS_KEY: True},
+        'L1 Switch/*': {PATTERN_KEY: r'.*/(.*)/(.*)', ASSOCIATE_BY_ADDRESS_KEY: True},
         'L1 Switch/OS-192': {PATTERN_KEY: r'.*/.*/(.*)/(.*)', ASSOCIATE_BY_ADDRESS_KEY: True},
         'Switch/Arista EOS Switch': {PATTERN_KEY: r'.*/.*/(.*)/(.*)', ASSOCIATE_BY_ADDRESS_KEY: True,
                                      ASSOCIATE_BY_NAME_KEY: True,
@@ -54,9 +52,10 @@ class ConfigHelper(object):
     L1_ATTRIBUTES = [
         'User', 'Password']
 
-    SHELLS_ATTRIBUTES = ['User', 'Password', 'SNMP Read Community', 'SNMP Version', 'Enable SNMP', 'Disable SNMP']
-
-    PASSWORD_ATTRIBUTE = 'Password'
+    SHELLS_ATTRIBUTES = ['User', 'Password', 'Enable Password', 'CLI Connection Type', 'SNMP Read Community',
+                         'SNMP Version', 'Enable SNMP', 'Disable SNMP', 'Console Password', 'Console Port',
+                         'Console Server IP Address', 'Console User', 'Power Management', 'Sessions Concurrency Limit',
+                         'SNMP Write Community', 'VRF Management Name']
 
     DEFAULT_CONFIGURATION = {
         USERNAME_KEY: 'admin',

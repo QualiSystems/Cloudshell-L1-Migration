@@ -109,7 +109,7 @@ class RestoreHandler(object):
         :type override: bool
         """
         if len(backup_resource.ports) != len(cs_resource.ports):
-            raise MigrationToolException('Resource  {} does not match'.format(backup_resource))
+            raise MigrationToolException('CS Resource "{}" does not match backup resource "{}"'.format(backup_resource, cs_resource))
         remove_route_actions = []
         update_connection_actions = []
         create_route_actions = []
