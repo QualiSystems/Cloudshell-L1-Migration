@@ -44,7 +44,7 @@ class Action(object):
 
     def __init__(self, logger):
         """
-        :type logger: cloudshell.layer_one.migration_tool.helpers.logger.Logger
+        :type logger: cloudshell.layer_one.migration_tool.helpers.log_helper.Logger
         """
         self.logger = logger
 
@@ -118,7 +118,7 @@ class UpdateConnectionAction(Action):
         :type dst_port: cloudshell.layer_one.migration_tool.entities.Port
         :type resource_operations: cloudshell.layer_one.migration_tool.operations.resource_operations.ResourceOperations
         :type updated_connections: dict
-        :type logger: cloudshell.layer_one.migration_tool.helpers.logger.Logger
+        :type logger: cloudshell.layer_one.migration_tool.helpers.log_helper.Logger
         """
         super(UpdateConnectionAction, self).__init__(logger)
         self.src_port = src_port
@@ -160,7 +160,7 @@ class CreateResourceAction(Action):
         :type src_resource: cloudshell.layer_one.migration_tool.entities.Port
         :type dst_resource: cloudshell.layer_one.migration_tool.entities.Port
         :type resource_operations: cloudshell.layer_one.migration_tool.operations.resource_operations.ResourceOperations
-        :type logger: cloudshell.layer_one.migration_tool.helpers.logger.Logger
+        :type logger: cloudshell.layer_one.migration_tool.helpers.log_helper.Logger
         """
         super(CreateResourceAction, self).__init__(logger)
         self.src_resource = src_resource

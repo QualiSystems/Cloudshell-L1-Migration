@@ -4,28 +4,30 @@ from backports.functools_lru_cache import lru_cache
 
 
 class PortAssociator(object):
-    def __init__(self, src_resource, dst_resource, config_helper, logger):
+    def __init__(self, src_resource, dst_resource, config_operations, logger):
         """
         :type src_resource: cloudshell.layer_one.migration_tool.entities.Resource
         :type dst_resource: cloudshell.layer_one.migration_tool.entities.Resource
-        :type config_helper: cloudshell.layer_one.migration_tool.helpers.config_helper.ConfigHelper
-        :type logger: cloudshell.layer_one.migration_tool.helpers.logger.Logger
+        :type config_operations: cloudshell.layer_one.migration_tool.operations.config_operations.ConfigOperations
+        :type logger: cloudshell.layer_one.migration_tool.helpers.log_helper.Logger
         """
 
         self._src_resource = src_resource
         self._dst_resource = dst_resource
-        self._config_helper = config_helper
+        self._config_operations = config_operations
         self._logger = logger
 
-        self._src_association_configuration = self._config_helper.get_association_configuration(
+        self._src_association_configuration = self._config_operations.get_association_configuration(
             self._src_resource.family, self._src_resource.model)
-        self._dst_association_configuration = self._config_helper.get_association_configuration(
+        self._dst_association_configuration = self._config_operations.get_association_configuration(
             self._dst_resource.family, self._dst_resource.model)
 
-        self._src_port_pattern = re.compile(self._src_association_configuration.get(self._config_helper.PATTERN_KEY),
-                                            re.IGNORECASE)
-        self._dst_port_pattern = re.compile(self._dst_association_configuration.get(self._config_helper.PATTERN_KEY),
-                                            re.IGNORECASE)
+        self._src_port_pattern = re.compile(
+            self._src_association_configuration.get(self._config_operations.KEY.PATTERN),
+            re.IGNORECASE)
+        self._dst_port_pattern = re.compile(
+            self._dst_association_configuration.get(self._config_operations.KEY.PATTERN),
+            re.IGNORECASE)
 
     @property
     @lru_cache()
@@ -59,18 +61,18 @@ class PortAssociator(object):
         :type src_port: cloudshell.layer_one.migration_tool.entities.Port
         """
         result_list = []
-        if self._dst_association_configuration.get(self._config_helper.ASSOCIATE_BY_ADDRESS_KEY, True):
+        if self._dst_association_configuration.get(self._config_operations.KEY.ASSOCIATE_BY_ADDRESS, True):
             dst_port_by_address = self._dst_port_sorted_by_associated_address.get(
                 self._format_src_address(src_port.address))
             if dst_port_by_address:
                 result_list.append(dst_port_by_address)
 
-        if self._dst_association_configuration.get(self._config_helper.ASSOCIATE_BY_NAME_KEY, False):
+        if self._dst_association_configuration.get(self._config_operations.KEY.ASSOCIATE_BY_NAME, False):
             dst_port_by_name = self._dst_port_sorted_by_name.get(self._format_name(src_port.name))
             if dst_port_by_name:
                 result_list.append(dst_port_by_name)
 
-        if self._dst_association_configuration.get(self._config_helper.ASSOCIATE_BY_PORT_NAME_KEY, False):
+        if self._dst_association_configuration.get(self._config_operations.KEY.ASSOCIATE_BY_PORT_NAME, False):
             dst_port_by_port_name = self._dst_port_sorted_by_port_name.get(self._format_port_name(src_port.name))
             if dst_port_by_port_name:
                 result_list.append(dst_port_by_port_name)

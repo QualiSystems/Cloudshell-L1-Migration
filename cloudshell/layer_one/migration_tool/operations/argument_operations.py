@@ -2,10 +2,14 @@ from cloudshell.layer_one.migration_tool.exceptions import MigrationToolExceptio
 from cloudshell.layer_one.migration_tool.operational_entities.config_unit import ConfigUnit
 
 
-class ArgumentParser(object):
+class ArgumentOperations(object):
     RESOURCE_SEPARATOR = ','
 
     def __init__(self, logger, resource_operations):
+        """
+        :param cloudshell.layer_one.migration_tool.helpers.log_helper.Logger logger:
+        :param loudshell.layer_one.migration_tool.operations.resource_operations.ResourceOperations resource_operations:
+        """
         self._logger = logger
         self._resource_operations = resource_operations
 

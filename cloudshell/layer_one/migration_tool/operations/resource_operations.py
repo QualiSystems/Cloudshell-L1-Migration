@@ -6,17 +6,16 @@ from cloudshell.layer_one.migration_tool.entities import Port, Resource
 
 
 class ResourceOperations(object):
-    L1_FAMILY = 'L1 Switch'
 
-    def __init__(self, api, logger, config_helper, dry_run=False):
+    def __init__(self, api, logger, config_operations, dry_run=False):
         """
         :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
-        :type logger: cloudshell.layer_one.migration_tool.helpers.logger.Logger
-        :type config_helper: cloudshell.layer_one.migration_tool.helpers.config_helper.ConfigHelper
+        :type logger: logging.Logger
+        :type config_operations: cloudshell.layer_one.migration_tool.operations.config_operations.ConfigOperations
         """
         self._api = api
         self._logger = logger
-        self._config_helper = config_helper
+        self._config_operations = config_operations
         self._dry_run = dry_run
 
     @lru_cache()
@@ -45,13 +44,12 @@ class ResourceOperations(object):
         return resources_by_family_model
 
     @property
-    def l1_resources(self):
-        return [resource for name, resource in self.installed_resources.iteritems() if
-                resource.family == self.L1_FAMILY]
+    def resources(self):
+        return [resource for name, resource in self.installed_resources.iteritems()]
 
     def _is_l1_resource(self, resource):
         resource_details = self._get_resource_details(resource)
-        if resource_details.ResourceFamilyName in self._config_helper.L1_FAMILIES:
+        if resource_details.ResourceFamilyName in self._config_operations.L1_FAMILIES:
             return True
         else:
             return False
@@ -64,9 +62,9 @@ class ResourceOperations(object):
         resource_details = self._get_resource_details(resource)
         resource_attr_dict = {attr.Name: attr for attr in resource_details.ResourceAttributes}
         if self._is_l1_resource(resource):
-            attribute_list = self._config_helper.L1_ATTRIBUTES
+            attribute_list = self._config_operations.L1_ATTRIBUTES
         else:
-            attribute_list = self._config_helper.SHELLS_ATTRIBUTES
+            attribute_list = self._config_operations.SHELL_ATTRIBUTES
 
         for attr_name in attribute_list:
             attribute = resource_attr_dict.get(attr_name, None) or resource_attr_dict.get(
@@ -111,7 +109,7 @@ class ResourceOperations(object):
         """
         :type resource_info: cloudshell.api.cloudshell_api.ResourceInfo
         """
-        if not resource_info.ChildResources and resource_info.ResourceFamilyName in self._config_helper.PORT_FAMILIES:
+        if not resource_info.ChildResources and resource_info.ResourceFamilyName in self._config_operations.PORT_FAMILIES:
             return True
         else:
             return False

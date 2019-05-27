@@ -23,5 +23,6 @@ class ResourcesHandler(object):
             model = resource.ResourceModelName
             details = self._api.GetResourceDetails(name)
             driver = details.DriverName
-            resources_list.append(Resource(name, address, family, model, driver))
+            # driver = None
+            resources_list.append(Resource(name, address, resource_family, model, driver, True))
         return resources_list
