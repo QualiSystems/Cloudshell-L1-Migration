@@ -6,24 +6,24 @@ from cloudshell.layer_one.migration_tool.exceptions import MigrationToolExceptio
 from cloudshell.layer_one.migration_tool.operational_entities.actions import RemoveRouteAction, CreateRouteAction, \
     UpdateConnectionAction, \
     ActionsContainer
-from cloudshell.layer_one.migration_tool.operations.argument_parser import ArgumentParser
+from cloudshell.layer_one.migration_tool.operations.argument_operations import ArgumentOperations
 
 
 class RestoreHandler(object):
     SEPARATOR = ','
 
-    def __init__(self, api, logger, configuration, backup_file, resource_operations, logical_route_operations):
+    def __init__(self, api, logger, config_operations, backup_file, resource_operations, logical_route_operations):
         """
         :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
-        :type logger: cloudshell.layer_one.migration_tool.helpers.logger.Logger
-        :type configuration: dict
+        :type logger: cloudshell.layer_one.migration_tool.helpers.log_helper.Logger
+        :type config_operations: cloudshell.layer_one.migration_tool.operations.config_operations.ConfigOperations
         :type backup_file: str
         :type resource_operations: cloudshell.layer_one.migration_tool.operations.resource_operations.ResourceOperations
         :type logical_route_operations: cloudshell.layer_one.migration_tool.operations.logical_route_operations.LogicalRouteOperations
         """
         self._api = api
         self._logger = logger
-        self._configuration = configuration
+        self._config_operations = config_operations
         self._backup_file = backup_file
 
         self._logical_route_operations = logical_route_operations
@@ -40,8 +40,8 @@ class RestoreHandler(object):
         :type resources_arguments: str
         :rtype: list
         """
-        requested_resources = ArgumentParser(self._logger,
-                                             self._resource_operations).initialize_existing_resources(
+        requested_resources = ArgumentOperations(self._logger,
+                                                 self._resource_operations).initialize_existing_resources(
             resources_arguments)
         backup_resources = self._load_backup()
         requested_backup_resources = []
@@ -91,7 +91,8 @@ class RestoreHandler(object):
             src_related_route = self._logical_route_operations.logical_routes_by_segment.get(route.source)
             dst_related_route = self._logical_route_operations.logical_routes_by_segment.get(route.target)
             if not src_related_route and not dst_related_route:
-                create_route_actions.add(CreateRouteAction(route, self._logical_route_operations, self._logger))
+                create_route_actions.add(
+                    CreateRouteAction(route, self._logical_route_operations, self._updated_connections, self._logger))
             elif override:
                 if src_related_route:
                     remove_route_actions.add(
@@ -99,7 +100,8 @@ class RestoreHandler(object):
                 if dst_related_route:
                     remove_route_actions.add(
                         RemoveRouteAction(dst_related_route[0], self._logical_route_operations, self._logger))
-                create_route_actions.add(CreateRouteAction(route, self._logical_route_operations, self._logger))
+                create_route_actions.add(
+                    CreateRouteAction(route, self._logical_route_operations, self._updated_connections, self._logger))
         return ActionsContainer(remove_route_actions, None, create_route_actions)
 
     def _connection_actions_for_resource(self, backup_resource, cs_resource, override):
@@ -109,7 +111,8 @@ class RestoreHandler(object):
         :type override: bool
         """
         if len(backup_resource.ports) != len(cs_resource.ports):
-            raise MigrationToolException('CS Resource "{}" does not match backup resource "{}"'.format(backup_resource, cs_resource))
+            raise MigrationToolException(
+                'CS Resource "{}" does not match backup resource "{}"'.format(backup_resource, cs_resource))
         remove_route_actions = []
         update_connection_actions = []
         create_route_actions = []
@@ -129,7 +132,8 @@ class RestoreHandler(object):
                     remove_route_actions.append(
                         RemoveRouteAction(logical_route[0], self._logical_route_operations, self._logger))
                     create_route_actions.append(
-                        CreateRouteAction(logical_route[0], self._logical_route_operations, self._logger))
+                        CreateRouteAction(logical_route[0], self._logical_route_operations, self._updated_connections,
+                                          self._logger))
                 # connected_to_logical_route = self._logical_route_operations.logical_routes_by_segment.get(backup_port.connected_to)
                 # if connected_to_logical_route:
                 #     remove_route_actions.append(

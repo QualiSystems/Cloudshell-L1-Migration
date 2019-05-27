@@ -2,48 +2,46 @@ import os
 
 import click
 
-from cloudshell.layer_one.migration_tool.helpers.config_helper import ConfigHelper
+from cloudshell.layer_one.migration_tool.operations.config_operations import ConfigOperations
 
 
 class ConfigurationHandler(object):
     NEW_LINE = os.linesep
 
-    def __init__(self, config_helper):
+    def __init__(self, config_operations):
         """
-        :type config_helper: cloudshell.layer_one.migration_tool.helpers.config_helper.ConfigHelper
+        :type config_operations: cloudshell.layer_one.migration_tool.operations.config_operations.ConfigOperations
         """
-        self._config_helper = config_helper
+        self._config_operations = config_operations
 
     def get_key_value(self, key):
-        value = self._config_helper.configuration.get(key)
+        value = self._config_operations.configuration.get(key)
         return self._format_key(key, value)
 
     def set_key_value(self, key, value):
-        if key in ConfigHelper.DEFAULT_CONFIGURATION:
-            self._config_helper.configuration[key] = value
-            self._config_helper.save()
+        if key in ConfigOperations.DEFAULT_CONFIGURATION:
+            self._config_operations.configuration[key] = value
+            self._config_operations.save()
         else:
             raise click.UsageError('Configuration key {} does not exist'.format(key))
 
     # def get_patterns_table_value(self, key):
-    #     return self._format_key(key, self._config_helper.patterns_table.get(key))
+    #     return self._format_key(key, self._config_operations.patterns_table.get(key))
     #
     # def set_patterns_table_value(self, key, value):
-    #     self._config_helper.patterns_table[key] = value
-    #     self._config_helper.save()
+    #     self._config_operations.patterns_table[key] = value
+    #     self._config_operations.save()
 
     def get_config_description(self):
-        return self._format_table(self._config_helper.configuration)
+        return self._format_table(self._config_operations.configuration)
 
     # def get_patterns_table_description(self):
-    #     return self._format_table(self._config_helper.patterns_table)
+    #     return self._format_table(self._config_operations.patterns_table)
 
     @staticmethod
     def _format_key(key, value):
-        if key == ConfigHelper.PASSWORD_KEY:
+        if key == ConfigOperations.KEY.PASSWORD:
             value = '*' * len(value)
-        elif key == ConfigHelper.ASSOCIATIONS_TABLE_KEY:
-            return
         return '{0}: {1}'.format(key, value)
 
     def _format_table(self, table):

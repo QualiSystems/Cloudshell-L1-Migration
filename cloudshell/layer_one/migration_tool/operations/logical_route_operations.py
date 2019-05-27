@@ -7,7 +7,7 @@ class LogicalRouteOperations(object):
     def __init__(self, api, logger, dry_run=False):
         """
         :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
-        :type logger: cloudshell.layer_one.migration_tool.helpers.logger.Logger
+        :type logger: cloudshell.layer_one.migration_tool.helpers.log_helper.Logger
         """
         self._api = api
         self._logger = logger

@@ -9,63 +9,69 @@ import yaml
 from backports.functools_lru_cache import lru_cache
 
 
-class ConfigHelper(object):
+class ConfigOperations(object):
     PACKAGE_NAME = 'migration_tool'
     CONFIG_PATH = os.path.join(click.get_app_dir('Quali'), PACKAGE_NAME, 'cloudshell_config.yml')
     BACKUP_LOCATION = os.path.join(click.get_app_dir('Quali'), PACKAGE_NAME, 'Backup')
+    LOG_PATH = os.path.join(click.get_app_dir('Quali'), PACKAGE_NAME, 'Log')
     PORT_FAMILIES = ['L1 Switch Port', 'Port', 'CS_Port']
     L1_FAMILIES = ['L1 Switch']
 
-    USERNAME_KEY = 'username'
-    PASSWORD_KEY = 'password'
-    DOMAIN_KEY = 'domain'
-    HOST_KEY = 'host'
-    PORT_KEY = 'port'
-    LOGGING_LEVEL_KEY = 'logging_level'
-    NEW_RESOURCE_NAME_PREFIX_KEY = 'name_prefix'
-    BACKUP_LOCATION_KEY = 'backup_location'
-    PATTERN_KEY = 'pattern'
-    ASSOCIATE_BY_ADDRESS_KEY = 'by_address'
-    ASSOCIATE_BY_NAME_KEY = 'by_name'
-    ASSOCIATE_BY_PORT_NAME_KEY = 'by_port_name'
+    class KEY:
+        # Basic
+        USERNAME = 'username'
+        PASSWORD = 'password'
+        DOMAIN = 'domain'
+        HOST = 'host'
+        PORT = 'port'
+        LOG_LEVEL = 'log_level'
+        LOG_PATH = 'log_path'
+        NEW_RESOURCE_NAME_PREFIX = 'name_prefix'
+        BACKUP_LOCATION = 'backup_location'
+        # Associations
+        PATTERN = 'pattern'
+        ASSOCIATE_BY_ADDRESS = 'by_address'
+        ASSOCIATE_BY_NAME = 'by_name'
+        ASSOCIATE_BY_PORT_NAME = 'by_port_name'
 
     ASSOCIATIONS_TABLE = {
-        '*/*': {PATTERN_KEY: r'.*/CH(.*)/M(.*)/SM(.*)/P(.*)', ASSOCIATE_BY_ADDRESS_KEY: True,
-                ASSOCIATE_BY_NAME_KEY: True,
-                ASSOCIATE_BY_PORT_NAME_KEY: True},
-        'L1 Switch/*': {PATTERN_KEY: r'.*/(.*)/(.*)', ASSOCIATE_BY_ADDRESS_KEY: True},
-        'L1 Switch/OS-192': {PATTERN_KEY: r'.*/.*/(.*)/(.*)', ASSOCIATE_BY_ADDRESS_KEY: True},
-        'Switch/Arista EOS Switch': {PATTERN_KEY: r'.*/.*/(.*)/(.*)', ASSOCIATE_BY_ADDRESS_KEY: True,
-                                     ASSOCIATE_BY_NAME_KEY: True,
-                                     ASSOCIATE_BY_PORT_NAME_KEY: True},
-        'Router/Arista EOS Router': {PATTERN_KEY: r'.*/.*/(.*)/(.*)', ASSOCIATE_BY_ADDRESS_KEY: True,
-                                     ASSOCIATE_BY_NAME_KEY: True,
-                                     ASSOCIATE_BY_PORT_NAME_KEY: True},
-        'CS_Router/AristaEosRouterShell2G': {PATTERN_KEY: r'.*/.*/M(.*)/P(.*)', ASSOCIATE_BY_ADDRESS_KEY: True,
-                                             ASSOCIATE_BY_NAME_KEY: True,
-                                             ASSOCIATE_BY_PORT_NAME_KEY: True},
-        'CS_Switch/AristaEosSwitchShell2G': {PATTERN_KEY: r'.*/.*/M(.*)/P(.*)', ASSOCIATE_BY_ADDRESS_KEY: True,
-                                             ASSOCIATE_BY_NAME_KEY: True,
-                                             ASSOCIATE_BY_PORT_NAME_KEY: True}
+        '*/*': {KEY.PATTERN: r'.*/CH(.*)/M(.*)/SM(.*)/P(.*)', KEY.ASSOCIATE_BY_ADDRESS: True,
+                KEY.ASSOCIATE_BY_NAME: True,
+                KEY.ASSOCIATE_BY_PORT_NAME: True},
+        'L1 Switch/*': {KEY.PATTERN: r'.*/(.*)/(.*)', KEY.ASSOCIATE_BY_ADDRESS: True},
+        'L1 Switch/OS-192': {KEY.PATTERN: r'.*/.*/(.*)/(.*)', KEY.ASSOCIATE_BY_ADDRESS: True},
+        'Switch/Arista EOS Switch': {KEY.PATTERN: r'.*/.*/(.*)/(.*)', KEY.ASSOCIATE_BY_ADDRESS: True,
+                                     KEY.ASSOCIATE_BY_NAME: True,
+                                     KEY.ASSOCIATE_BY_PORT_NAME: True},
+        'Router/Arista EOS Router': {KEY.PATTERN: r'.*/.*/(.*)/(.*)', KEY.ASSOCIATE_BY_ADDRESS: True,
+                                     KEY.ASSOCIATE_BY_NAME: True,
+                                     KEY.ASSOCIATE_BY_PORT_NAME: True},
+        'CS_Router/AristaEosRouterShell2G': {KEY.PATTERN: r'.*/.*/M(.*)/P(.*)', KEY.ASSOCIATE_BY_ADDRESS: True,
+                                             KEY.ASSOCIATE_BY_NAME: True,
+                                             KEY.ASSOCIATE_BY_PORT_NAME: True},
+        'CS_Switch/AristaEosSwitchShell2G': {KEY.PATTERN: r'.*/.*/M(.*)/P(.*)', KEY.ASSOCIATE_BY_ADDRESS: True,
+                                             KEY.ASSOCIATE_BY_NAME: True,
+                                             KEY.ASSOCIATE_BY_PORT_NAME: True}
     }
 
     L1_ATTRIBUTES = [
         'User', 'Password']
 
-    SHELLS_ATTRIBUTES = ['User', 'Password', 'Enable Password', 'CLI Connection Type', 'SNMP Read Community',
-                         'SNMP Version', 'Enable SNMP', 'Disable SNMP', 'Console Password', 'Console Port',
-                         'Console Server IP Address', 'Console User', 'Power Management', 'Sessions Concurrency Limit',
-                         'SNMP Write Community', 'VRF Management Name']
+    SHELL_ATTRIBUTES = ['User', 'Password', 'Enable Password', 'CLI Connection Type', 'SNMP Read Community',
+                        'SNMP Version', 'Enable SNMP', 'Disable SNMP', 'Console Password', 'Console Port',
+                        'Console Server IP Address', 'Console User', 'Power Management', 'Sessions Concurrency Limit',
+                        'SNMP Write Community', 'VRF Management Name']
 
     DEFAULT_CONFIGURATION = {
-        USERNAME_KEY: 'admin',
-        DOMAIN_KEY: 'Global',
-        PASSWORD_KEY: 'admin',
-        HOST_KEY: 'localhost',
-        PORT_KEY: 8029,
-        LOGGING_LEVEL_KEY: 'DEBUG',
-        NEW_RESOURCE_NAME_PREFIX_KEY: 'new_',
-        BACKUP_LOCATION_KEY: BACKUP_LOCATION,
+        KEY.USERNAME: 'admin',
+        KEY.DOMAIN: 'Global',
+        KEY.PASSWORD: 'admin',
+        KEY.HOST: 'localhost',
+        KEY.PORT: 8029,
+        KEY.LOG_PATH: LOG_PATH,
+        KEY.LOG_LEVEL: 'DEBUG',
+        KEY.NEW_RESOURCE_NAME_PREFIX: 'new_',
+        KEY.BACKUP_LOCATION: BACKUP_LOCATION,
         # ASSOCIATIONS_TABLE_KEY: ASSOCIATIONS_TABLE,
     }
 
@@ -92,14 +98,14 @@ class ConfigHelper(object):
 
     def _read_configuration(self):
         """Read configuration from file if exists or use default"""
-        if ConfigHelper._config_path_is_ok(self._config_path):
+        if ConfigOperations._config_path_is_ok(self._config_path):
             with open(self._config_path, 'r') as config:
                 configuration = yaml.load(config)
                 if configuration:
                     configuration = PasswordModification.decrypt_password(configuration)
                     # if self._update_configuration(configuration) | self._update_associations_table(configuration):
-                    if self._update_configuration(configuration):
-                        self._write_configuration(configuration)
+                    # if self._update_configuration(configuration):
+                    #     self._write_configuration(configuration)
                 else:
                     configuration = self.DEFAULT_CONFIGURATION
 
@@ -137,7 +143,7 @@ class ConfigHelper(object):
                 return association_conf
 
     def _write_configuration(self, configuration):
-        if not ConfigHelper._config_path_is_ok(self._config_path):
+        if not ConfigOperations._config_path_is_ok(self._config_path):
             try:
                 os.makedirs(os.path.dirname(self._config_path))
             except OSError:
@@ -163,6 +169,9 @@ class ConfigHelper(object):
 
         return value or default_value
 
+    def read_key_or_default(self, key):
+        return self.read_key(key, self.DEFAULT_CONFIGURATION.get(key))
+
 
 class PasswordModification(object):
 
@@ -172,21 +181,21 @@ class PasswordModification(object):
         Encrypt password
         :type data: dict
         """
-        value = data.get(ConfigHelper.PASSWORD_KEY)
+        value = data.get(ConfigOperations.KEY.PASSWORD)
         encryption_key = PasswordModification._get_encryption_key()
         encoded = PasswordModification._decode_encode(value, encryption_key)
-        data[ConfigHelper.PASSWORD_KEY] = base64.b64encode(encoded)
+        data[ConfigOperations.KEY.PASSWORD] = base64.b64encode(encoded)
         return data
 
     @staticmethod
     def decrypt_password(data):
-        value = data.get(ConfigHelper.PASSWORD_KEY)
+        value = data.get(ConfigOperations.KEY.PASSWORD)
         try:
             encryption_key = PasswordModification._get_encryption_key()
             decoded = PasswordModification._decode_encode(base64.decodestring(value), encryption_key)
-            data[ConfigHelper.PASSWORD_KEY] = decoded
+            data[ConfigOperations.KEY.PASSWORD] = decoded
         except binascii.Error:
-            data[ConfigHelper.PASSWORD_KEY] = value
+            data[ConfigOperations.KEY.PASSWORD] = value
         return data
 
     @staticmethod

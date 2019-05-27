@@ -2,3 +2,4 @@ PyYAML
 click
 backports.functools-lru-cache
 cloudshell-automation-api
+cloudshell-logging

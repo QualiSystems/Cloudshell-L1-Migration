@@ -9,8 +9,9 @@ class Logger(object):
     DEBUG = 'DEBUG'
     INFO = 'INFO'
 
-    def __init__(self, level=INFO):
+    def __init__(self, level=INFO, file_path=None):
         self.level = level
+        self.file_path = file_path
 
     def info(self, message):
         """

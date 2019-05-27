@@ -5,28 +5,28 @@ from cloudshell.layer_one.migration_tool.helpers.port_associator import PortAsso
 from cloudshell.layer_one.migration_tool.operational_entities.actions import ActionsContainer, RemoveRouteAction, \
     CreateRouteAction, \
     UpdateConnectionAction
-from cloudshell.layer_one.migration_tool.operations.argument_parser import ArgumentParser
+from cloudshell.layer_one.migration_tool.operations.argument_operations import ArgumentOperations
 
 
 class MigrationHandler(object):
 
-    def __init__(self, api, logger, config_helper, resource_operations, logical_route_operations):
+    def __init__(self, api, logger, config_operations, resource_operations, logical_route_operations):
         """
         :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
-        :type logger: cloudshell.layer_one.migration_tool.helpers.logger.Logger
-        :type config_helper: cloudshell.layer_one.migration_tool.helpers.config_helper.ConfigHelper
+        :type logger: cloudshell.layer_one.migration_tool.helpers.log_helper.Logger
+        :type config_operations: cloudshell.layer_one.migration_tool.operations.config_operations.ConfigOperations
         :type resource_operations: cloudshell.layer_one.migration_tool.operations.resource_operations.ResourceOperations
         :type logical_route_operations: cloudshell.layer_one.migration_tool.operations.logical_route_operations.LogicalRouteOperations
         """
         self._api = api
         self._logger = logger
-        self._config_helper = config_helper
+        self._config_operations = config_operations
         self._resource_operations = resource_operations
         self._logical_route_operations = logical_route_operations
         self._updated_connections = {}
 
     def define_resources_pairs(self, src_resources_arguments, dst_resources_arguments):
-        argument_parser = ArgumentParser(self._logger, self._resource_operations)
+        argument_parser = ArgumentOperations(self._logger, self._resource_operations)
         src_resources = argument_parser.initialize_existing_resources(src_resources_arguments)
         dst_resources = argument_parser.initialize_resources_with_stubs(dst_resources_arguments)
         return self._initialize_resources_pairs(src_resources, dst_resources)
@@ -59,9 +59,8 @@ class MigrationHandler(object):
         if not dst.exist:
             self._resource_operations.update_details(src)
             if not dst.name:
-                dst.name = self._config_helper.read_key(self._config_helper.NEW_RESOURCE_NAME_PREFIX_KEY,
-                                                        self._config_helper.DEFAULT_CONFIGURATION.get(
-                                                            self._config_helper.NEW_RESOURCE_NAME_PREFIX_KEY)) + src.name
+                dst.name = self._config_operations.read_key_or_default(
+                    self._config_operations.KEY.NEW_RESOURCE_NAME_PREFIX) + src.name
             dst.address = src.address
             self._resource_operations.create_resource(dst)
 
@@ -144,7 +143,7 @@ class MigrationHandler(object):
 
     def _initialize_connection_actions(self, resource_pair, override):
         src_resource, dst_resource = resource_pair
-        port_associator = PortAssociator(src_resource, dst_resource, self._config_helper, self._logger)
+        port_associator = PortAssociator(src_resource, dst_resource, self._config_operations, self._logger)
 
         connection_actions = []
 
