@@ -1,3 +1,7 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+
 class Resource(object):
 
     def __init__(self, name, address=None, family=None, model=None, driver=None, exist=False):

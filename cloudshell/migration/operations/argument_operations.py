@@ -1,5 +1,4 @@
-from cloudshell.layer_one.migration_tool.exceptions import MigrationToolException
-from cloudshell.layer_one.migration_tool.operational_entities.config_unit import ConfigUnit
+from cloudshell.migration.operational_entities.config_unit import ConfigUnit
 
 
 class ArgumentOperations(object):
@@ -7,8 +6,8 @@ class ArgumentOperations(object):
 
     def __init__(self, logger, resource_operations):
         """
-        :param cloudshell.layer_one.migration_tool.helpers.log_helper.Logger logger:
-        :param loudshell.layer_one.migration_tool.operations.resource_operations.ResourceOperations resource_operations:
+        :param logging.Logger logger:
+        :param cloudshell.migration.operations.resource_operations.ResourceOperations resource_operations:
         """
         self._logger = logger
         self._resource_operations = resource_operations

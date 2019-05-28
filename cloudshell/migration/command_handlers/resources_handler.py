@@ -1,5 +1,5 @@
-from cloudshell.layer_one.migration_tool.operational_entities.config_unit import ConfigUnit
-from cloudshell.layer_one.migration_tool.entities import Resource
+from cloudshell.migration.entities import Resource
+from cloudshell.migration.operational_entities.config_unit import ConfigUnit
 
 
 class ResourcesHandler(object):

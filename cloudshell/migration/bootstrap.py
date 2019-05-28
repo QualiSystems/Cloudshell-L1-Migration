@@ -1,3 +1,5 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 import os
 import sys
 
@@ -5,18 +7,19 @@ import click
 import pkg_resources
 
 from cloudshell.api.cloudshell_api import CloudShellAPISession
-from cloudshell.layer_one.migration_tool.command_handlers.backup_handler import BackupHandler
-from cloudshell.layer_one.migration_tool.command_handlers.configuration_handler import ConfigurationHandler
-from cloudshell.layer_one.migration_tool.command_handlers.migration_handler import MigrationHandler
-from cloudshell.layer_one.migration_tool.command_handlers.resources_handler import ResourcesHandler
-from cloudshell.layer_one.migration_tool.command_handlers.restore_handler import RestoreHandler
-from cloudshell.layer_one.migration_tool.helpers.log_helper import Logger, ExceptionLogger
-from cloudshell.layer_one.migration_tool.operations.config_operations import ConfigOperations
-from cloudshell.layer_one.migration_tool.operations.logical_route_operations import LogicalRouteOperations
-from cloudshell.layer_one.migration_tool.operations.resource_operations import ResourceOperations
-from cloudshell.logging.qs_logger import get_qs_logger
+from cloudshell.migration.command_handlers.backup_handler import BackupHandler
+from cloudshell.migration.command_handlers.configuration_handler import ConfigurationHandler
+from cloudshell.migration.command_handlers.migration_handler import MigrationHandler
+from cloudshell.migration.command_handlers.resources_handler import ResourcesHandler
+from cloudshell.migration.command_handlers.restore_handler import RestoreHandler
+from cloudshell.migration.helpers.log_helper import ExceptionLogger
+from cloudshell.migration.operations.config_operations import ConfigOperations
 
-PACKAGE_NAME = u'cloudshell-l1-migration'
+from cloudshell.logging.qs_logger import get_qs_logger
+from cloudshell.migration.operations.logical_route_operations import LogicalRouteOperations
+from cloudshell.migration.operations.resource_operations import ResourceOperations
+
+PACKAGE_NAME = u'cloudshell-migration'
 
 
 @click.group(invoke_without_command=True)
@@ -128,13 +131,17 @@ def migrate(config_path, dry_run, src_resources, dst_resources, yes, backup_file
         sys.exit(1)
 
     if not no_backup and not dry_run:
-        backup_handler = BackupHandler(api, logger, config_operations.configuration, backup_file, resource_operations,
+        backup_handler = BackupHandler(api, logger, config_operations, backup_file, resource_operations,
                                        logical_route_operations)
         with ExceptionLogger(logger):
-            backup_handler.backup_resources([src for src, dst in resources_pairs])
+            backup_file = backup_handler.backup_resources([src for src, dst in resources_pairs])
+            click.echo('Backup File: {}'.format(backup_file))
 
     with ExceptionLogger(logger):
-        actions_container.execute_actions()
+        click.echo("Executing actions:")
+        for action in actions_container.sequence():
+            result = action.execute()
+            click.echo(result)
 
 
 @cli.command()
@@ -203,7 +210,7 @@ def restore(config_path, backup_file, dry_run, resources, connections, routes, o
     logger = _initialize_logger(config_operations)
     resource_operations = ResourceOperations(api, logger, config_operations, dry_run)
     logical_route_operations = LogicalRouteOperations(api, logger, dry_run)
-    restore_handler = RestoreHandler(api, logger, config_operations.configuration, backup_file, resource_operations,
+    restore_handler = RestoreHandler(api, logger, config_operations, backup_file, resource_operations,
                                      logical_route_operations)
     with ExceptionLogger(logger):
         resources = restore_handler.initialize_resources(resources)
@@ -218,12 +225,15 @@ def restore(config_path, backup_file, dry_run, resources, connections, routes, o
         click.echo('Aborted')
         sys.exit(1)
     with ExceptionLogger(logger):
-        actions_container.execute_actions()
+        click.echo("Executing actions:")
+        for action in actions_container.sequence():
+            result = action.execute()
+            click.echo(result)
 
 
 def _initialize_api(config_operations):
     """
-    :type config_operations: cloudshell.layer_one.migration_tool.operations.config_operations.ConfigOperations
+    :type config_operations: cloudshell.migration.operations.config_operations.ConfigOperations
     """
     try:
         return CloudShellAPISession(config_operations.read_key_or_default(config_operations.KEY.HOST),
@@ -239,9 +249,11 @@ def _initialize_api(config_operations):
 
 def _initialize_logger(config_operations):
     """
-    :type config_operations: cloudshell.layer_one.migration_tool.operations.config_operations.ConfigOperations
+    :type config_operations: cloudshell.migration.operations.config_operations.ConfigOperations
     """
+
     os.environ['LOG_PATH'] = config_operations.read_key_or_default(config_operations.KEY.LOG_PATH)
     logger = get_qs_logger(str(PACKAGE_NAME), 'migration_tool', 'migration_tool')
     logger.setLevel(config_operations.read_key_or_default(config_operations.KEY.LOG_LEVEL))
+    click.echo('Log file: {}'.format(logger.handlers[0].baseFilename))
     return logger

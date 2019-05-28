@@ -1,4 +1,4 @@
-from cloudshell.layer_one.migration_tool.entities import Resource
+from cloudshell.migration.entities import Resource
 
 
 class ConfigUnit(object):

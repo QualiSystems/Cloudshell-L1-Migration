@@ -1,13 +1,13 @@
 from collections import defaultdict
 
-from cloudshell.layer_one.migration_tool.entities import LogicalRoute
+from cloudshell.migration.entities import LogicalRoute
 
 
 class LogicalRouteOperations(object):
     def __init__(self, api, logger, dry_run=False):
         """
         :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
-        :type logger: cloudshell.layer_one.migration_tool.helpers.log_helper.Logger
+        :type logger: cloudshell.migration.helpers.log_helper.Logger
         """
         self._api = api
         self._logger = logger
@@ -86,7 +86,7 @@ class LogicalRouteOperations(object):
 
     def get_logical_routes_table(self, resource):
         """
-        :type resource: cloudshell.layer_one.migration_tool.entities.Resource
+        :type resource: cloudshell.migration.entities.Resource
         """
         logical_routes_table = []
         for port in resource.ports:
@@ -101,7 +101,7 @@ class LogicalRouteOperations(object):
 
     def define_endpoint_logical_routes(self, resource):
         """
-        :type resource: cloudshell.layer_one.migration_tool.entities.Resource
+        :type resource: cloudshell.migration.entities.Resource
         """
         logical_routes_table = self.get_logical_routes_table(resource)
         resource.associated_logical_routes = [route for route, endpoint in logical_routes_table if endpoint]
@@ -109,7 +109,7 @@ class LogicalRouteOperations(object):
 
     def load_logical_routes(self, resource):
         """
-        :type resource: cloudshell.layer_one.migration_tool.entities.Resource
+        :type resource: cloudshell.migration.entities.Resource
         """
         logical_routes_table = self.get_logical_routes_table(resource)
         resource.associated_logical_routes = list(set([route for route, endpoint in logical_routes_table]))
@@ -117,7 +117,7 @@ class LogicalRouteOperations(object):
 
     def remove_route(self, logical_route):
         """
-        :type logical_route: cloudshell.layer_one.migration_tool.entities.logical_route.LogicalRoute
+        :type logical_route: cloudshell.migration.entities.logical_route.LogicalRoute
         """
         self._logger.debug('Removing logical route {}'.format(logical_route))
         if not self._dry_run:
@@ -127,7 +127,7 @@ class LogicalRouteOperations(object):
 
     def create_route(self, logical_route):
         """
-        :type logical_route: cloudshell.layer_one.migration_tool.entities.logical_route.LogicalRoute
+        :type logical_route: cloudshell.migration.entities.logical_route.LogicalRoute
         """
         self._logger.debug('Creating logical route {}'.format(logical_route))
         if not self._dry_run:

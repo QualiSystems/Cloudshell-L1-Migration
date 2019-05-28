@@ -2,7 +2,7 @@ from collections import defaultdict
 
 from backports.functools_lru_cache import lru_cache
 
-from cloudshell.layer_one.migration_tool.entities import Port, Resource
+from cloudshell.migration.entities import Resource, Port
 
 
 class ResourceOperations(object):
@@ -11,16 +11,24 @@ class ResourceOperations(object):
         """
         :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
         :type logger: logging.Logger
-        :type config_operations: cloudshell.layer_one.migration_tool.operations.config_operations.ConfigOperations
+        :type config_operations: cloudshell.migration.operations.config_operations.ConfigOperations
         """
         self._api = api
         self._logger = logger
         self._config_operations = config_operations
         self._dry_run = dry_run
 
-    @lru_cache()
+        self.__resource_details = {}
+
     def _get_resource_details(self, resource):
-        return self._api.GetResourceDetails(resource.name)
+        """
+        :type resource: cloudshell.migration.entities.Resource
+        """
+        details = self.__resource_details.get(resource.name)
+        if not details:
+            details = self._api.GetResourceDetails(resource.name)
+            self.__resource_details[resource.name] = details
+        return details
 
     @property
     @lru_cache()
@@ -56,7 +64,7 @@ class ResourceOperations(object):
 
     def load_resource_attributes(self, resource):
         """
-        :type resource: cloudshell.layer_one.migration_tool.entities.Resource
+        :type resource: cloudshell.migration.entities.Resource
         """
 
         resource_details = self._get_resource_details(resource)
@@ -75,7 +83,7 @@ class ResourceOperations(object):
 
     def update_details(self, resource):
         """
-        :type resource: cloudshell.layer_one.migration_tool.entities.Resource
+        :type resource: cloudshell.migration.entities.Resource
         """
         resource_details = self._get_resource_details(resource)
         resource.address = resource_details.RootAddress
@@ -86,7 +94,7 @@ class ResourceOperations(object):
 
     def load_resource_ports(self, resource):
         """
-        :type resource: cloudshell.layer_one.migration_tool.entities.Resource
+        :type resource: cloudshell.migration.entities.Resource
         """
         self._logger.debug('Getting ports for resource {}'.format(resource.name))
         resource_details = self._get_resource_details(resource)
@@ -129,7 +137,7 @@ class ResourceOperations(object):
 
     def create_resource(self, resource):
         """
-        :type resource: cloudshell.layer_one.migration_tool.entities.Resource
+        :type resource: cloudshell.migration.entities.Resource
         """
         self._logger.debug('Creating new resource {}'.format(resource))
         self._api.CreateResource(resource.family, resource.model, resource.name, resource.address)
@@ -145,13 +153,14 @@ class ResourceOperations(object):
                 if attribute.Type == 'Password':
                     try:
                         value = self._api.DecryptPassword(value).Value
-                    except:
-                        pass
+                    except Exception as e:
+                        self._logger.error(e.message)
+                self._logger.debug("Set attribute {}".format(attribute.Name))
                 self._api.SetAttributeValue(resource.name, attribute.Name, value)
 
     def autoload_resource(self, resource):
         """
-        :type resource: cloudshell.layer_one.migration_tool.entities.Resource
+        :type resource: cloudshell.migration.entities.Resource
         """
         self._logger.debug('Autoloading resource {}'.format(resource))
         self._api.ExcludeResource(resource.name)
@@ -160,21 +169,23 @@ class ResourceOperations(object):
         self._api.AutoLoad(resource.name)
         # self.is_loaded = True
         self._api.IncludeResource(resource.name)
+        del self.__resource_details[resource.name]
         return resource
 
     def sync_from_device(self, resource):
         """
-        :type resource: cloudshell.layer_one.migration_tool.entities.Resource
+        :type resource: cloudshell.migration.entities.Resource
         """
         self._logger.debug('SyncFromDevice resource {}'.format(resource))
         self._api.ExcludeResource(resource.name)
         self._api.SyncResourceFromDevice(resource.name)
         self._api.IncludeResource(resource.name)
+        del self.__resource_details[resource.name]
         return resource
 
     def update_connection(self, port):
         """
-        :type port: cloudshell.layer_one.migration_tool.entities.Port
+        :type port: cloudshell.migration.entities.Port
         """
         self._logger.info('---- Updating Connection {}=>{}'.format(port.name, port.connected_to))
         if not self._dry_run:

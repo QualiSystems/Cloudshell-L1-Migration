@@ -3,8 +3,8 @@ from datetime import datetime
 
 import yaml
 
-from cloudshell.layer_one.migration_tool.exceptions import MigrationToolException
-from cloudshell.layer_one.migration_tool.operations.argument_operations import ArgumentOperations
+from cloudshell.migration.exceptions import MigrationToolException
+from cloudshell.migration.operations.argument_operations import ArgumentOperations
 
 
 class BackupHandler(object):
@@ -15,11 +15,11 @@ class BackupHandler(object):
     def __init__(self, api, logger, config_operations, backup_file, resource_operations, logical_route_operations):
         """
         :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
-        :type logger: cloudshell.layer_one.migration_tool.helpers.log_helper.Logger
-        :type config_operations: cloudshell.layer_one.migration_tool.operations.config_operations.ConfigOperations
+        :type logger: cloudshell.migration.helpers.log_helper.Logger
+        :type config_operations: cloudshell.migration.operations.config_operations.ConfigOperations
         :type backup_file: str
-        :type resource_operations: cloudshell.layer_one.migration_tool.operations.resource_operations.ResourceOperations
-        :type logical_route_operations: cloudshell.layer_one.migration_tool.operations.logical_route_operations.LogicalRouteOperations
+        :type resource_operations: cloudshell.migration.operations.resource_operations.ResourceOperations
+        :type logical_route_operations: cloudshell.migration.operations.logical_route_operations.LogicalRouteOperations
         """
         self._api = api
         self._logger = logger

@@ -6,10 +6,10 @@ from backports.functools_lru_cache import lru_cache
 class PortAssociator(object):
     def __init__(self, src_resource, dst_resource, config_operations, logger):
         """
-        :type src_resource: cloudshell.layer_one.migration_tool.entities.Resource
-        :type dst_resource: cloudshell.layer_one.migration_tool.entities.Resource
-        :type config_operations: cloudshell.layer_one.migration_tool.operations.config_operations.ConfigOperations
-        :type logger: cloudshell.layer_one.migration_tool.helpers.log_helper.Logger
+        :type src_resource: cloudshell.migration.entities.Resource
+        :type dst_resource: cloudshell.migration.entities.Resource
+        :type config_operations: cloudshell.migration.operations.config_operations.ConfigOperations
+        :type logger: cloudshell.migration.helpers.log_helper.Logger
         """
 
         self._src_resource = src_resource
@@ -58,7 +58,7 @@ class PortAssociator(object):
 
     def _associate_dst_port(self, src_port):
         """
-        :type src_port: cloudshell.layer_one.migration_tool.entities.Port
+        :type src_port: cloudshell.migration.entities.Port
         """
         result_list = []
         if self._dst_association_configuration.get(self._config_operations.KEY.ASSOCIATE_BY_ADDRESS, True):
@@ -80,17 +80,18 @@ class PortAssociator(object):
         if not result_list:
             self._logger.error('Cannot find associated DST port, for {}'.format(src_port))
         elif len(set(result_list)) > 1:
-            self._logger.error('Multiple associations {} for {}'.format(result_list, src_port))
+            self._logger.warning('Multiple associations {} for {}'.format(result_list, src_port))
             return result_list[0]
         else:
+            self._logger.debug('Association found {} -> {}'.format(src_port, result_list[0]))
             return result_list[0]
 
     def _format_dst_address(self, address):
-        # self._logger.debug('Matching new address {} for pattern {}'.format(address, self._dst_port_pattern))
+        self._logger.debug('Matching dst address {} for pattern {}'.format(address, self._dst_port_pattern.pattern))
         return self._format_address(address, self._dst_port_pattern)
 
     def _format_src_address(self, address):
-        # self._logger.debug('Matching old address {} for pattern {}'.format(address, self._src_port_pattern))
+        self._logger.debug('Matching src address {} for pattern {}'.format(address, self._src_port_pattern.pattern))
         return self._format_address(address, self._src_port_pattern)
 
     def _format_address(self, address, pattern):
@@ -98,7 +99,7 @@ class PortAssociator(object):
         if match:
             x = tuple(map(lambda x: x.zfill(2), match.groups()))
             return x
-        # self._logger.error('Cannot match address {} for pattern {}'.format(address, pattern))
+        self._logger.error('Cannot match address {} for pattern {}'.format(address, pattern.pattern))
 
     def _format_name(self, name):
         """
