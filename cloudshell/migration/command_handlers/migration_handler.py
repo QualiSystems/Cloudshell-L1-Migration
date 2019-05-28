@@ -1,11 +1,10 @@
 from copy import copy
 
-from cloudshell.layer_one.migration_tool.exceptions import MigrationToolException
-from cloudshell.layer_one.migration_tool.helpers.port_associator import PortAssociator
-from cloudshell.layer_one.migration_tool.operational_entities.actions import ActionsContainer, RemoveRouteAction, \
-    CreateRouteAction, \
+from cloudshell.migration.exceptions import MigrationToolException
+from cloudshell.migration.helpers.port_associator import PortAssociator
+from cloudshell.migration.operational_entities.actions import ActionsContainer, RemoveRouteAction, CreateRouteAction, \
     UpdateConnectionAction
-from cloudshell.layer_one.migration_tool.operations.argument_operations import ArgumentOperations
+from cloudshell.migration.operations.argument_operations import ArgumentOperations
 
 
 class MigrationHandler(object):
@@ -13,10 +12,10 @@ class MigrationHandler(object):
     def __init__(self, api, logger, config_operations, resource_operations, logical_route_operations):
         """
         :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
-        :type logger: cloudshell.layer_one.migration_tool.helpers.log_helper.Logger
-        :type config_operations: cloudshell.layer_one.migration_tool.operations.config_operations.ConfigOperations
-        :type resource_operations: cloudshell.layer_one.migration_tool.operations.resource_operations.ResourceOperations
-        :type logical_route_operations: cloudshell.layer_one.migration_tool.operations.logical_route_operations.LogicalRouteOperations
+        :type logger: logging.Logger
+        :type config_operations: cloudshell.migration.operations.config_operations.ConfigOperations
+        :type resource_operations: cloudshell.migration.operations.resource_operations.ResourceOperations
+        :type logical_route_operations: cloudshell.migration.operations.logical_route_operations.LogicalRouteOperations
         """
         self._api = api
         self._logger = logger
@@ -71,6 +70,9 @@ class MigrationHandler(object):
                 dst_attr = dst.attributes.get(name)
                 if dst_attr:
                     dst_attr.Value = src_attr.Value
+                    self._logger.debug("Sync attribute value: {} -> {}".format(src_attr.Name, dst_attr.Name))
+                else:
+                    self._logger.debug("Cannot find attribute name {} for src attr {}".format(name, src_attr.Name))
             self._resource_operations.set_resource_attributes(dst)
 
         return resources_pair

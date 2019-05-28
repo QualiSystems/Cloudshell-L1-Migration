@@ -2,7 +2,7 @@ import os
 
 import click
 
-from cloudshell.layer_one.migration_tool.operations.config_operations import ConfigOperations
+from cloudshell.migration.operations.config_operations import ConfigOperations
 
 
 class ConfigurationHandler(object):
@@ -10,7 +10,7 @@ class ConfigurationHandler(object):
 
     def __init__(self, config_operations):
         """
-        :type config_operations: cloudshell.layer_one.migration_tool.operations.config_operations.ConfigOperations
+        :type config_operations: cloudshell.migration.operations.config_operations.ConfigOperations
         """
         self._config_operations = config_operations
 

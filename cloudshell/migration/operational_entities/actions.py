@@ -44,7 +44,7 @@ class Action(object):
 
     def __init__(self, logger):
         """
-        :type logger: cloudshell.layer_one.migration_tool.helpers.log_helper.Logger
+        :type logger: cloudshell.migration.helpers.log_helper.Logger
         """
         self.logger = logger
 
@@ -65,8 +65,8 @@ class LogicalRouteAction(Action):
 
     def __init__(self, logical_route, logical_route_operations, logger):
         """
-        :type logical_route:  cloudshell.layer_one.migration_tool.entities.LogicalRoute
-        :type logical_route_operations: cloudshell.layer_one.migration_tool.operations.logical_route_operations.LogicalRouteOperations
+        :type logical_route:  cloudshell.migration.entities.LogicalRoute
+        :type logical_route_operations: cloudshell.migration.operations.logical_route_operations.LogicalRouteOperations
         """
         super(LogicalRouteAction, self).__init__(logger)
         self.logical_route = logical_route
@@ -84,6 +84,7 @@ class RemoveRouteAction(LogicalRouteAction):
     def execute(self):
         try:
             self.logical_route_operations.remove_route(self.logical_route)
+            return self.to_string() + " ... Done"
         except Exception as e:
             self.logger.error('Cannot remove route {}, reason {}'.format(self.logical_route, ','.join(e.args)))
 
@@ -100,6 +101,7 @@ class CreateRouteAction(LogicalRouteAction):
         self._refresh_route()
         try:
             self.logical_route_operations.create_route(self.logical_route)
+            return self.to_string() + " ... Done"
         except Exception as e:
             self.logger.error('Cannot create route {}, reason {}'.format(self.logical_route, ','.join(e.args)))
 
@@ -114,11 +116,11 @@ class CreateRouteAction(LogicalRouteAction):
 class UpdateConnectionAction(Action):
     def __init__(self, src_port, dst_port, resource_operations, updated_connections, logger):
         """
-        :type src_port: cloudshell.layer_one.migration_tool.entities.Port
-        :type dst_port: cloudshell.layer_one.migration_tool.entities.Port
-        :type resource_operations: cloudshell.layer_one.migration_tool.operations.resource_operations.ResourceOperations
+        :type src_port: cloudshell.migration.entities.Port
+        :type dst_port: cloudshell.migration.entities.Port
+        :type resource_operations: cloudshell.migration.operations.resource_operations.ResourceOperations
         :type updated_connections: dict
-        :type logger: cloudshell.layer_one.migration_tool.helpers.log_helper.Logger
+        :type logger: cloudshell.migration.helpers.log_helper.Logger
         """
         super(UpdateConnectionAction, self).__init__(logger)
         self.src_port = src_port
@@ -134,6 +136,7 @@ class UpdateConnectionAction(Action):
                                                                       self.src_port.connected_to)
             self.resource_operations.update_connection(self.dst_port)
             self.updated_connections[self.src_port.name] = self.dst_port.name
+            return self.to_string()+" ... Done"
         except Exception as e:
             self.logger.error('Cannot update port {}, reason {}'.format(self.dst_port, str(e)))
 
@@ -157,10 +160,10 @@ class UpdateConnectionAction(Action):
 class CreateResourceAction(Action):
     def __init__(self, src_resource, dst_resource, resource_operations, logger):
         """
-        :type src_resource: cloudshell.layer_one.migration_tool.entities.Port
-        :type dst_resource: cloudshell.layer_one.migration_tool.entities.Port
-        :type resource_operations: cloudshell.layer_one.migration_tool.operations.resource_operations.ResourceOperations
-        :type logger: cloudshell.layer_one.migration_tool.helpers.log_helper.Logger
+        :type src_resource: cloudshell.migration.entities.Port
+        :type dst_resource: cloudshell.migration.entities.Port
+        :type resource_operations: cloudshell.migration.operations.resource_operations.ResourceOperations
+        :type logger: cloudshell.migration.helpers.log_helper.Logger
         """
         super(CreateResourceAction, self).__init__(logger)
         self.src_resource = src_resource

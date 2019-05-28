@@ -2,11 +2,10 @@ from copy import copy
 
 import yaml
 
-from cloudshell.layer_one.migration_tool.exceptions import MigrationToolException
-from cloudshell.layer_one.migration_tool.operational_entities.actions import RemoveRouteAction, CreateRouteAction, \
-    UpdateConnectionAction, \
-    ActionsContainer
-from cloudshell.layer_one.migration_tool.operations.argument_operations import ArgumentOperations
+from cloudshell.migration.exceptions import MigrationToolException
+from cloudshell.migration.operational_entities.actions import ActionsContainer, CreateRouteAction, RemoveRouteAction, \
+    UpdateConnectionAction
+from cloudshell.migration.operations.argument_operations import ArgumentOperations
 
 
 class RestoreHandler(object):
@@ -15,11 +14,11 @@ class RestoreHandler(object):
     def __init__(self, api, logger, config_operations, backup_file, resource_operations, logical_route_operations):
         """
         :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
-        :type logger: cloudshell.layer_one.migration_tool.helpers.log_helper.Logger
-        :type config_operations: cloudshell.layer_one.migration_tool.operations.config_operations.ConfigOperations
+        :type logger: cloudshell.migration.helpers.log_helper.Logger
+        :type config_operations: cloudshell.migration.operations.config_operations.ConfigOperations
         :type backup_file: str
-        :type resource_operations: cloudshell.layer_one.migration_tool.operations.resource_operations.ResourceOperations
-        :type logical_route_operations: cloudshell.layer_one.migration_tool.operations.logical_route_operations.LogicalRouteOperations
+        :type resource_operations: cloudshell.migration.operations.resource_operations.ResourceOperations
+        :type logical_route_operations: cloudshell.migration.operations.logical_route_operations.LogicalRouteOperations
         """
         self._api = api
         self._logger = logger
@@ -82,7 +81,7 @@ class RestoreHandler(object):
 
     def _route_actions_for_resource(self, backup_resource, override):
         """
-        :type backup_resource: cloudshell.layer_one.migration_tool.entities.Resource
+        :type backup_resource: cloudshell.migration.entities.Resource
         :type override: bool
         """
         create_route_actions = set()
@@ -106,8 +105,8 @@ class RestoreHandler(object):
 
     def _connection_actions_for_resource(self, backup_resource, cs_resource, override):
         """
-        :type backup_resource: cloudshell.layer_one.migration_tool.entities.Resource
-        :type cs_resource: cloudshell.layer_one.migration_tool.entities.Resource
+        :type backup_resource: cloudshell.migration.entities.Resource
+        :type cs_resource: cloudshell.migration.entities.Resource
         :type override: bool
         """
         if len(backup_resource.ports) != len(cs_resource.ports):
