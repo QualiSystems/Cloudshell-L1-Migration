@@ -1,22 +1,22 @@
-Cloudshell-L1-Migration tool
+CloudShell migration tool
 
 Written in Python 2.7.10
 
 
 Introduction
 ======================
-This tool is intended to simplify the process of migration between old L1 shells to alternate ones.
-!!! IMPORTANT: The new L1 shell should be manually installed prior to using the tool.
+This tool is intended to simplify the process of migration between old shells to alternate ones.
+!!! IMPORTANT: The new shell should be manually installed prior to using the tool.
 
 Requirements
 ======================
 1. Windows CloudShell 7 or higher
-2. New L1 driver must be already installed (no need for creating any resources using it)
+2. New shell must be already installed (no need for creating any resources using it)
 
 Installation
 ============
 ```bash
-pip install cloudshell-l1-migration-x.x.x.zip
+pip install cloudshell-migration-x.x.x.zip
 ```
 Usage:
 ======================
@@ -32,12 +32,17 @@ Usage:
     migration_tool config domain <CSDomain> # CS Domain
     migration_tool config port <CSPort> # CS Port
     ```    
-    * Logging level:
+    Log Path:
+        *Specify log file path*
+    ```bash
+    migration_tool config log_path c:\temp\logs
+    ```
+    * Log level:
     
         *To get detailed output, specify logging level*
     
     ```bash
-    migration_tool config logging_level DEBUG
+    migration_tool config log_level DEBUG
     ```
     
     * Backup location:
@@ -57,20 +62,6 @@ Usage:
     
     ```bash
     migration_tool config
-    ```
-    
-    
-2.  **Patterns Table**
-    Patterns distinguish blocks of relative address which will be used for ports association.
-    To compare full string of relative address use "(.*)".
-    
-    * Add new pattern associated with resource Family/Model:
-    ```bash
-        migration_tool config --patterns_table "L1 Switch/Test Switch Chassis" ".*/(.*)/(.*)"
-    ```
-    * List patterns
-    ```bash
-        migration_tool config --patterns_table
     ```
 
 3.  **Migrate resources**
