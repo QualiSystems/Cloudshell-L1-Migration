@@ -11,16 +11,16 @@ def get_file_content(file_name):
         return f.read().strip()
 
 setup(
-    name='cloudshell-l1-migration',
+    name='cloudshell-migration',
     version=get_file_content('version.txt'),
-    description='QualiSystems CloudShell L1 migration script',
+    description='QualiSystems CloudShell migration script',
     author='QualiSystems',
     author_email='info@qualisystems.com',
-    url='https://github.com/QualiSystems/Cloudshell-L1-Migration',
+    url='https://github.com/QualiSystems/cloudshell-migration',
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
     package_data={'migration': ['data/*.yml', 'data/*.json']},
     entry_points={
-        "console_scripts": ['migration_tool = cloudshell.layer_one.migration_tool.bootstrap:cli']
+        "console_scripts": ['migration_tool = cloudshell.migration.bootstrap:cli']
     },
     include_package_data=True,
     install_requires=get_file_content('requirements.txt'),
