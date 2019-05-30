@@ -133,7 +133,9 @@ class ResourceOperations(object):
         else:
             connected_to = None
             connection_weight = None
-        return Port(resource_info.Name, resource_info.FullAddress, connected_to, connection_weight)
+        port = Port(resource_info.Name, resource_info.FullAddress, connected_to, connection_weight)
+        self._logger.debug(port.to_string())
+        return port
 
     def create_resource(self, resource):
         """
