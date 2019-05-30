@@ -3,16 +3,21 @@ from abc import ABCMeta, abstractmethod
 
 
 class ActionsContainer(object):
-    def __init__(self, remove_routes=None, update_connections=None, create_routes=None):
+    def __init__(self, remove_routes=None, update_connections=None, create_routes=None, remove_connectors=None,
+                 create_connectors=None):
         self.remove_routes = remove_routes or []
         self.update_connections = update_connections or []
         self.create_routes = create_routes or []
+        self.remove_connectors = remove_connectors or []
+        self.create_connectors = create_connectors or []
 
     def sequence(self):
         sequence = []
         sequence.extend(set(self.remove_routes))
+        sequence.extend(set(self.remove_connectors))
         sequence.extend(set(self.update_connections))
         sequence.extend(set(self.create_routes))
+        sequence.extend(set(self.create_connectors))
         return sequence
 
     def execute_actions(self):
@@ -25,6 +30,8 @@ class ActionsContainer(object):
         self.remove_routes = set(self.remove_routes) | set(container.remove_routes)
         self.update_connections = set(self.update_connections) | set(container.update_connections)
         self.create_routes = set(self.create_routes) | set(container.create_routes)
+        self.remove_connectors = set(self.remove_connectors) | set(container.remove_connectors)
+        self.create_connectors = set(self.create_connectors) | set(container.create_connectors)
 
     def to_string(self):
         out = ''
@@ -33,7 +40,7 @@ class ActionsContainer(object):
         return out
 
     def is_empty(self):
-        return False if self.remove_routes or self.update_connections or self.create_routes else True
+        return False if self.remove_routes or self.update_connections or self.create_routes or self.create_connectors or self.remove_connectors else True
 
     def __str__(self):
         return self.to_string()
@@ -66,7 +73,7 @@ class LogicalRouteAction(Action):
     def __init__(self, logical_route, logical_route_operations, logger):
         """
         :type logical_route:  cloudshell.migration.entities.LogicalRoute
-        :type logical_route_operations: cloudshell.migration.operations.logical_route_operations.LogicalRouteOperations
+        :type logical_route_operations: cloudshell.migration.operations.route_connector_operations.RouteConnectorOperations
         """
         super(LogicalRouteAction, self).__init__(logger)
         self.logical_route = logical_route
@@ -99,6 +106,7 @@ class CreateRouteAction(LogicalRouteAction):
 
     def execute(self):
         self._refresh_route()
+        self.logger.debug('Create Logical Route {}'.format(self.logical_route))
         try:
             self.logical_route_operations.create_route(self.logical_route)
             return self.to_string() + " ... Done"
@@ -136,7 +144,7 @@ class UpdateConnectionAction(Action):
                                                                       self.src_port.connected_to)
             self.resource_operations.update_connection(self.dst_port)
             self.updated_connections[self.src_port.name] = self.dst_port.name
-            return self.to_string()+" ... Done"
+            return self.to_string() + " ... Done"
         except Exception as e:
             self.logger.error('Cannot update port {}, reason {}'.format(self.dst_port, str(e)))
 
@@ -157,21 +165,51 @@ class UpdateConnectionAction(Action):
         return self._comparable_unit == other._comparable_unit
 
 
-class CreateResourceAction(Action):
-    def __init__(self, src_resource, dst_resource, resource_operations, logger):
+class ConnectorAction(Action):
+    def __init__(self, connector, route_connector_operations, logger):
         """
-        :type src_resource: cloudshell.migration.entities.Port
-        :type dst_resource: cloudshell.migration.entities.Port
-        :type resource_operations: cloudshell.migration.operations.resource_operations.ResourceOperations
+        :type connector:
+        :type route_connector_operations: cloudshell.migration.operations.route_connector_operations.RouteConnectorOperations
         :type logger: cloudshell.migration.helpers.log_helper.Logger
         """
-        super(CreateResourceAction, self).__init__(logger)
-        self.src_resource = src_resource
-        self.dst_resource = dst_resource
-        self.resource_operations = resource_operations
+        super(ConnectorAction, self).__init__(logger)
+        self.connector = connector
+        self.route_connector_operations = route_connector_operations
 
+    def __hash__(self):
+        return hash(self.connector)
+
+    def __eq__(self, other):
+        return self.connector == other.connector
+
+
+class RemoveConnectorAction(ConnectorAction):
     def execute(self):
-        pass
+        self.logger.debug("Removing connector {}".format(self.connector))
+        self.route_connector_operations.remove_connector(self.connector)
+        return self.to_string() + " ... Done"
 
     def to_string(self):
-        pass
+        return "Remove Connector: {}".format(self.connector)
+
+
+class CreateConnectorAction(ConnectorAction):
+    def __init__(self, connector, route_connector_operations, updated_connections, logger):
+        """
+        :type connector:
+        :type route_connector_operations: cloudshell.migration.operations.route_connector_operations.RouteConnectorOperations
+        :type updated_connections: dict
+        :type logger: cloudshell.migration.helpers.log_helper.Logger
+        """
+        super(CreateConnectorAction, self).__init__(connector, route_connector_operations, logger)
+        self._updated_connections = updated_connections
+
+    def execute(self):
+        self.connector.source = self._updated_connections.get(self.connector.source, self.connector.source)
+        self.connector.target = self._updated_connections.get(self.connector.target, self.connector.target)
+        self.logger.debug("Creating connector {}".format(self.connector))
+        self.route_connector_operations.update_connector(self.connector)
+        return self.to_string() + " ... Done"
+
+    def to_string(self):
+        return "Create Connector: {}".format(self.connector)

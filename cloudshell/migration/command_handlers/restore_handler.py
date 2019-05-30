@@ -4,7 +4,7 @@ import yaml
 
 from cloudshell.migration.exceptions import MigrationToolException
 from cloudshell.migration.operational_entities.actions import ActionsContainer, CreateRouteAction, RemoveRouteAction, \
-    UpdateConnectionAction
+    UpdateConnectionAction, CreateConnectorAction
 from cloudshell.migration.operations.argument_operations import ArgumentOperations
 
 
@@ -18,14 +18,14 @@ class RestoreHandler(object):
         :type config_operations: cloudshell.migration.operations.config_operations.ConfigOperations
         :type backup_file: str
         :type resource_operations: cloudshell.migration.operations.resource_operations.ResourceOperations
-        :type logical_route_operations: cloudshell.migration.operations.logical_route_operations.LogicalRouteOperations
+        :type logical_route_operations: cloudshell.migration.operations.route_connector_operations.RouteConnectorOperations
         """
         self._api = api
         self._logger = logger
         self._config_operations = config_operations
         self._backup_file = backup_file
 
-        self._logical_route_operations = logical_route_operations
+        self._route_connector_operations = logical_route_operations
         self._resource_operations = resource_operations
         self._updated_connections = {}
 
@@ -53,14 +53,18 @@ class RestoreHandler(object):
             requested_backup_resources = backup_resources
         return requested_backup_resources
 
-    def define_actions(self, requested_backup_resources, connections, routes, override):
-        if not connections and not routes:
-            routes = connections = True
+    def define_actions(self, requested_backup_resources, connections, routes, connectors, override):
+        if not connections and not routes and not connectors:
+            routes = connections = connectors = True
         actions_container = ActionsContainer()
         if routes:
             actions_container.update(self._route_actions(requested_backup_resources, override))
         if connections:
             actions_container.update(self._connection_actions(requested_backup_resources, override))
+
+        if connectors:
+            actions_container.update(self._connector_actions(requested_backup_resources, override))
+
         return actions_container
 
     def _route_actions(self, requested_backup_resources, override):
@@ -79,6 +83,16 @@ class RestoreHandler(object):
             actions_container.update(self._connection_actions_for_resource(backup_resource, cs_resource, override))
         return actions_container
 
+    def _connector_actions(self, requested_backup_resources, override):
+        actions_container = ActionsContainer()
+        for backup_resource in requested_backup_resources:
+            cs_resource = copy(backup_resource)
+            # self._resource_operations.update_details(cs_resource)
+            # self._resource_operations.load_resource_ports(cs_resource)
+            # self._logical_route_operations.get_logical_routes_table(cs_resource)
+            actions_container.update(self._connector_actions_for_resource(backup_resource, cs_resource, override))
+        return actions_container
+
     def _route_actions_for_resource(self, backup_resource, override):
         """
         :type backup_resource: cloudshell.migration.entities.Resource
@@ -87,20 +101,20 @@ class RestoreHandler(object):
         create_route_actions = set()
         remove_route_actions = set()
         for route in backup_resource.associated_logical_routes:
-            src_related_route = self._logical_route_operations.logical_routes_by_segment.get(route.source)
-            dst_related_route = self._logical_route_operations.logical_routes_by_segment.get(route.target)
+            src_related_route = self._route_connector_operations.logical_routes_by_segment.get(route.source)
+            dst_related_route = self._route_connector_operations.logical_routes_by_segment.get(route.target)
             if not src_related_route and not dst_related_route:
                 create_route_actions.add(
-                    CreateRouteAction(route, self._logical_route_operations, self._updated_connections, self._logger))
+                    CreateRouteAction(route, self._route_connector_operations, self._updated_connections, self._logger))
             elif override:
                 if src_related_route:
                     remove_route_actions.add(
-                        RemoveRouteAction(src_related_route[0], self._logical_route_operations, self._logger))
+                        RemoveRouteAction(src_related_route[0], self._route_connector_operations, self._logger))
                 if dst_related_route:
                     remove_route_actions.add(
-                        RemoveRouteAction(dst_related_route[0], self._logical_route_operations, self._logger))
+                        RemoveRouteAction(dst_related_route[0], self._route_connector_operations, self._logger))
                 create_route_actions.add(
-                    CreateRouteAction(route, self._logical_route_operations, self._updated_connections, self._logger))
+                    CreateRouteAction(route, self._route_connector_operations, self._updated_connections, self._logger))
         return ActionsContainer(remove_route_actions, None, create_route_actions)
 
     def _connection_actions_for_resource(self, backup_resource, cs_resource, override):
@@ -126,12 +140,12 @@ class RestoreHandler(object):
                 update_connection_actions.append(
                     UpdateConnectionAction(backup_port, cs_port, self._resource_operations, self._updated_connections,
                                            self._logger))
-                logical_route = self._logical_route_operations.logical_routes_by_segment.get(cs_port.name)
+                logical_route = self._route_connector_operations.logical_routes_by_segment.get(cs_port.name)
                 if logical_route:
                     remove_route_actions.append(
-                        RemoveRouteAction(logical_route[0], self._logical_route_operations, self._logger))
+                        RemoveRouteAction(logical_route[0], self._route_connector_operations, self._logger))
                     create_route_actions.append(
-                        CreateRouteAction(logical_route[0], self._logical_route_operations, self._updated_connections,
+                        CreateRouteAction(logical_route[0], self._route_connector_operations, self._updated_connections,
                                           self._logger))
                 # connected_to_logical_route = self._logical_route_operations.logical_routes_by_segment.get(backup_port.connected_to)
                 # if connected_to_logical_route:
@@ -141,3 +155,13 @@ class RestoreHandler(object):
                 #         CreateRouteAction(connected_to_logical_route[0], self._logical_route_operations, self._logger))
 
         return ActionsContainer(remove_route_actions, update_connection_actions, create_route_actions)
+
+    def _connector_actions_for_resource(self, backup_resource, cs_resource, override):
+        # remove_connector_actions = map(
+        #     lambda connector: RemoveConnectorAction(connector, self._route_connector_operations, self._logger),
+        #     src_resource.associated_connectors)
+        create_connector_actions = map(
+            lambda connector: CreateConnectorAction(connector, self._route_connector_operations,
+                                                    self._updated_connections, self._logger),
+            backup_resource.associated_connectors)
+        return ActionsContainer(create_connectors=create_connector_actions)

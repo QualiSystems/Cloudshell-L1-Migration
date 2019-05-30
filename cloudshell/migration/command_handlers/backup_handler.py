@@ -19,7 +19,7 @@ class BackupHandler(object):
         :type config_operations: cloudshell.migration.operations.config_operations.ConfigOperations
         :type backup_file: str
         :type resource_operations: cloudshell.migration.operations.resource_operations.ResourceOperations
-        :type logical_route_operations: cloudshell.migration.operations.logical_route_operations.LogicalRouteOperations
+        :type logical_route_operations: cloudshell.migration.operations.route_connector_operations.RouteConnectorOperations
         """
         self._api = api
         self._logger = logger
@@ -54,22 +54,24 @@ class BackupHandler(object):
         else:
             return self._resource_operations.resources
 
-    def backup_resources(self, resources, connections=True, routes=True):
+    def backup_resources(self, resources, connections=True, routes=True, connectors=True):
         self._logger.info('Doing backup ...')
-        if not connections and not routes:
-            connections = routes = True
+        if not connections and not routes and not connectors:
+            connections = routes = connectors = True
 
-        logical_routes = set()
+        # logical_routes = set()
         for resource in resources:
             self._resource_operations.update_details(resource)
             if not resource.attributes:
                 self._resource_operations.load_resource_attributes(resource)
             if connections and not resource.ports:
                 self._resource_operations.load_resource_ports(resource)
-                self._resource_operations.load_resource_attributes(resource)
+                # self._resource_operations.load_resource_attributes(resource)
             if routes and not resource.associated_logical_routes:
                 self._logical_route_operations.load_logical_routes(resource)
-                logical_routes.update(resource.associated_logical_routes)
+                # logical_routes.update(resource.associated_logical_routes)
+            if connectors and not resource.associated_connectors:
+                self._logical_route_operations.load_connectors(resource)
 
         # backup_dict = {self.RESOURCES_KEY: resources,
         #                self.LOGICAL_ROUTES_KEY: list(logical_routes)}

@@ -1,9 +1,12 @@
 from collections import defaultdict
 
-from cloudshell.migration.entities import LogicalRoute
+from backports.functools_lru_cache import lru_cache
+
+from cloudshell.api.cloudshell_api import SetConnectorRequest
+from cloudshell.migration.entities import LogicalRoute, Connector
 
 
-class LogicalRouteOperations(object):
+class RouteConnectorOperations(object):
     def __init__(self, api, logger, dry_run=False):
         """
         :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
@@ -18,27 +21,37 @@ class LogicalRouteOperations(object):
         self._handled_logical_routes = []
 
     @property
-    def logical_routes_by_resource_name(self):
-        if not self._logical_routes_by_resource_name:
-            active_routes = []
-            for reservation in self._api.GetCurrentReservations().Reservations:
-                if reservation.Id:
-                    details = self._api.GetReservationDetails(reservation.Id).ReservationDescription
-                    for route_info in details.ActiveRoutesInfo:
-                        self._define_logical_route_by_resource_name(reservation.Id, route_info, True)
-                        active_routes.append((route_info.Source, route_info.Target))
-                    for route_info in details.RequestedRoutesInfo:
-                        if (route_info.Source, route_info.Target) not in active_routes:
-                            self._define_logical_route_by_resource_name(reservation.Id, route_info, False)
-        return self._logical_routes_by_resource_name
+    @lru_cache()
+    def _reservations(self):
+        return self._api.GetCurrentReservations().Reservations
+
+    @lru_cache()
+    def _reservation_details(self, reservation_id):
+        return self._api.GetReservationDetails(reservation_id).ReservationDescription
+
+    # @property
+    # def logical_routes_by_resource_name(self):
+    #     if not self._logical_routes_by_resource_name:
+    #         active_routes = []
+    #         for reservation in self._api.GetCurrentReservations().Reservations:
+    #             if reservation.Id:
+    #                 details = self._api.GetReservationDetails(reservation.Id).ReservationDescription
+    #                 for route_info in details.ActiveRoutesInfo:
+    #                     self._define_logical_route_by_resource_name(reservation.Id, route_info, True)
+    #                     active_routes.append((route_info.Source, route_info.Target))
+    #                 for route_info in details.RequestedRoutesInfo:
+    #                     if (route_info.Source, route_info.Target) not in active_routes:
+    #                         self._define_logical_route_by_resource_name(reservation.Id, route_info, False)
+    #     return self._logical_routes_by_resource_name
 
     @property
+    @lru_cache()
     def logical_routes_by_segment(self):
         if not self._logical_routes_by_segment:
             active_routes = []
-            for reservation in self._api.GetCurrentReservations().Reservations:
+            for reservation in self._reservations:
                 if reservation.Id:
-                    details = self._api.GetReservationDetails(reservation.Id).ReservationDescription
+                    details = self._reservation_details(reservation.Id)
                     for route_info in details.ActiveRoutesInfo:
                         self._define_logical_route_by_segment(reservation.Id, route_info, True)
                         active_routes.append((route_info.Source, route_info.Target))
@@ -47,16 +60,16 @@ class LogicalRouteOperations(object):
                             self._define_logical_route_by_segment(reservation.Id, route_info, False)
         return self._logical_routes_by_segment
 
-    def _define_logical_route_by_resource_name(self, reservation_id, route_info, active=True):
-        source = route_info.Source
-        target = route_info.Target
-        route_type = route_info.RouteType
-        route_alias = route_info.Alias
-        shared = route_info.Shared
-        logical_route = LogicalRoute(source, target, reservation_id, route_type, route_alias, active, shared)
-        for segment in route_info.Segments:
-            self._logical_routes_by_resource_name[segment.Source.split('/')[0]].add(logical_route)
-            self._logical_routes_by_resource_name[segment.Target.split('/')[0]].add(logical_route)
+    # def _define_logical_route_by_resource_name(self, reservation_id, route_info, active=True):
+    #     source = route_info.Source
+    #     target = route_info.Target
+    #     route_type = route_info.RouteType
+    #     route_alias = route_info.Alias
+    #     shared = route_info.Shared
+    #     logical_route = LogicalRoute(source, target, reservation_id, route_type, route_alias, active, shared)
+    #     for segment in route_info.Segments:
+    #         self._logical_routes_by_resource_name[segment.Source.split('/')[0]].add(logical_route)
+    #         self._logical_routes_by_resource_name[segment.Target.split('/')[0]].add(logical_route)
 
     def _define_logical_route_by_segment(self, reservation_id, route_info, active=True):
         source = route_info.Source
@@ -141,3 +154,42 @@ class LogicalRouteOperations(object):
                                                  [logical_route.target],
                                                  logical_route.route_type, 2, logical_route.route_alias,
                                                  logical_route.shared)
+
+    def load_connectors(self, resource):
+        """
+        :type resource: cloudshell.migration.entities.Resource
+        """
+        resource.associated_connectors = self._connectors_by_resource_name.get(resource.name, [])
+        return resource
+
+    @property
+    @lru_cache()
+    def _connectors_by_resource_name(self):
+        connector_by_resource_name = defaultdict(list)
+        for reservation in self._reservations:
+            if reservation.Id:
+                details = self._reservation_details(reservation.Id)
+                for connector in details.Connectors:
+                    if connector.Source and connector.Target:
+                        connector_ent = Connector(connector.Source, connector.Target, reservation.Id,
+                                                  connector.Direction, connector.Type, connector.Alias)
+                        connector_by_resource_name[connector.Source.split('/')[0]].append(connector_ent)
+                        connector_by_resource_name[connector.Target.split('/')[0]].append(connector_ent)
+        return connector_by_resource_name
+
+    def update_connector(self, connector):
+        """
+        :param cloudshell.migration.entities.Connector connector:
+        :return:
+        """
+        self._logger.debug('Updating connector {}'.format(connector))
+        self._api.SetConnectorsInReservation(connector.reservation_id, [
+            SetConnectorRequest(connector.source, connector.target, connector.direction, connector.alias)])
+
+    def remove_connector(self, connector):
+        """
+        :param cloudshell.migration.entities.Connector connector:
+        :return:
+        """
+        self._logger.debug('Removing connector {}'.format(connector))
+        self._api.RemoveConnectorsFromReservation(connector.reservation_id, [connector.source, connector.target])

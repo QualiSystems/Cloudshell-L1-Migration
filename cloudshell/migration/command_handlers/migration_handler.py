@@ -3,7 +3,7 @@ from copy import copy
 from cloudshell.migration.exceptions import MigrationToolException
 from cloudshell.migration.helpers.port_associator import PortAssociator
 from cloudshell.migration.operational_entities.actions import ActionsContainer, RemoveRouteAction, CreateRouteAction, \
-    UpdateConnectionAction
+    UpdateConnectionAction, CreateConnectorAction, RemoveConnectorAction
 from cloudshell.migration.operations.argument_operations import ArgumentOperations
 
 
@@ -15,13 +15,13 @@ class MigrationHandler(object):
         :type logger: logging.Logger
         :type config_operations: cloudshell.migration.operations.config_operations.ConfigOperations
         :type resource_operations: cloudshell.migration.operations.resource_operations.ResourceOperations
-        :type logical_route_operations: cloudshell.migration.operations.logical_route_operations.LogicalRouteOperations
+        :type logical_route_operations: cloudshell.migration.operations.route_connector_operations.RouteConnectorOperations
         """
         self._api = api
         self._logger = logger
         self._config_operations = config_operations
         self._resource_operations = resource_operations
-        self._logical_route_operations = logical_route_operations
+        self._route_connector_operations = logical_route_operations
         self._updated_connections = {}
 
     def define_resources_pairs(self, src_resources_arguments, dst_resources_arguments):
@@ -98,14 +98,6 @@ class MigrationHandler(object):
                 handled_resources.append(resource.name)
         return resources_pair
 
-    def initialize_actions(self, resources_pairs, override):
-        actions_container = ActionsContainer()
-        for pair in resources_pairs:
-            self._load_resources(pair)
-            actions_container.update(self._initialize_logical_route_actions(pair))
-            actions_container.update(self._initialize_connection_actions(pair, override))
-        return actions_container
-
     def _load_resources(self, resource_pair):
         """
         :type resource_pair: tuple
@@ -127,16 +119,27 @@ class MigrationHandler(object):
         for resource in resource_pair:
             if not resource.ports:
                 self._resource_operations.load_resource_ports(resource)
-                self._logical_route_operations.load_logical_routes(resource)
+        self._route_connector_operations.load_logical_routes(src)
+        self._route_connector_operations.load_connectors(src)
+
+    def initialize_actions(self, resources_pairs, override):
+        actions_container = ActionsContainer()
+        for pair in resources_pairs:
+            self._load_resources(pair)
+            actions_container.update(self._initialize_logical_route_actions(pair))
+            actions_container.update(self._initialize_connection_actions(pair, override))
+            actions_container.update(self._initialize_connector_actions(pair, override))
+
+        return actions_container
 
     def _initialize_logical_route_actions(self, resource_pair):
         actions_container = ActionsContainer()
         for resource in resource_pair:
             remove_route_actions = map(
-                lambda logical_route: RemoveRouteAction(logical_route, self._logical_route_operations, self._logger),
+                lambda logical_route: RemoveRouteAction(logical_route, self._route_connector_operations, self._logger),
                 resource.associated_logical_routes)
             create_route_actions = map(
-                lambda logical_route: CreateRouteAction(logical_route, self._logical_route_operations,
+                lambda logical_route: CreateRouteAction(logical_route, self._route_connector_operations,
                                                         self._updated_connections, self._logger),
                 resource.associated_logical_routes)
             actions_container.update(
@@ -155,3 +158,17 @@ class MigrationHandler(object):
                     UpdateConnectionAction(src_port, dst_port, self._resource_operations,
                                            self._updated_connections, self._logger))
         return ActionsContainer(update_connections=connection_actions)
+
+    def _initialize_connector_actions(self, resource_pair, override):
+        src_resource = resource_pair[0]
+        """
+        :type src_resource: cloudshell.migration.entities.Resource
+        """
+        remove_connector_actions = map(
+            lambda connector: RemoveConnectorAction(connector, self._route_connector_operations, self._logger),
+            src_resource.associated_connectors)
+        create_connector_actions = map(
+            lambda connector: CreateConnectorAction(connector, self._route_connector_operations,
+                                                    self._updated_connections, self._logger),
+            src_resource.associated_connectors)
+        return ActionsContainer(remove_connectors=remove_connector_actions, create_connectors=create_connector_actions)

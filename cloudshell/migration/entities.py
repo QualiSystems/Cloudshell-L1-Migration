@@ -12,6 +12,7 @@ class Resource(object):
         self.driver = driver
         self.ports = []
         self.associated_logical_routes = []
+        self.associated_connectors = []
 
         self.attributes = {}
         self.exist = exist
@@ -84,3 +85,31 @@ class LogicalRoute(object):
 
     def __hash__(self):
         return hash(self.source + self.target)
+
+
+class Connector(object):
+    def __init__(self, source, target, reservation_id, direction, connector_type, alias, active=True, shared=False):
+        self.source = source
+        self.target = target
+        self.reservation_id = reservation_id
+        self.direction = direction
+        self.connector_type = connector_type
+        self.alias = alias
+        self.active = active
+        self.shared = shared
+
+    def to_string(self):
+        return '{0}<->{1}, {2}'.format(self.source, self.target, self.connector_type)
+
+    def __str__(self):
+        return self.to_string()
+
+    def __eq__(self, other):
+        """
+        :type other: LogicalRoute
+        """
+        return self.source == other.source and self.target == other.target
+
+    def __hash__(self):
+        return hash(self.source + self.target)
+

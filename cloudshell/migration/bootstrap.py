@@ -16,7 +16,7 @@ from cloudshell.migration.helpers.log_helper import ExceptionLogger
 from cloudshell.migration.operations.config_operations import ConfigOperations
 
 from cloudshell.logging.qs_logger import get_qs_logger
-from cloudshell.migration.operations.logical_route_operations import LogicalRouteOperations
+from cloudshell.migration.operations.route_connector_operations import RouteConnectorOperations
 from cloudshell.migration.operations.resource_operations import ResourceOperations
 
 PACKAGE_NAME = u'cloudshell-migration'
@@ -105,7 +105,7 @@ def migrate(config_path, dry_run, src_resources, dst_resources, yes, backup_file
     api = _initialize_api(config_operations)
     logger = _initialize_logger(config_operations)
     resource_operations = ResourceOperations(api, logger, config_operations, dry_run)
-    logical_route_operations = LogicalRouteOperations(api, logger, dry_run)
+    logical_route_operations = RouteConnectorOperations(api, logger, dry_run)
     migration_handler = MigrationHandler(api, logger, config_operations, resource_operations,
                                          logical_route_operations)
     with ExceptionLogger(logger):
@@ -149,10 +149,11 @@ def migrate(config_path, dry_run, src_resources, dst_resources, yes, backup_file
               metavar="FILE-PATH")
 @click.option(u'--backup-file', default=None, help="Backup to a different yaml file.", metavar="BACKUP FILE-PATH")
 @click.option(u'--connections', is_flag=True, default=False, help="Backup connections only.")
-@click.option(u'--routes', is_flag=True, default=False, help="Backup routes only.")
+@click.option(u'--routes', is_flag=True, default=False, help="Backup routes.")
+@click.option(u'--connectors', 'connectors', default=True, help="Backup connectors.")
 @click.option(u'--yes', is_flag=True, default=False, help='Assume "yes" to all questions.')
 @click.argument(u'resources', type=str, default=None, required=False, metavar='RESOURCES')
-def backup(config_path, backup_file, resources, connections, routes, yes):
+def backup(config_path, backup_file, resources, connections, routes, connectors, yes):
     """
     Backup connections and routes.
 
@@ -163,7 +164,7 @@ def backup(config_path, backup_file, resources, connections, routes, yes):
     api = _initialize_api(config_operations)
     logger = _initialize_logger(config_operations)
     resource_operations = ResourceOperations(api, logger, config_operations)
-    logical_route_operations = LogicalRouteOperations(api, logger)
+    logical_route_operations = RouteConnectorOperations(api, logger)
     backup_handler = BackupHandler(api, logger, config_operations, backup_file, resource_operations,
                                    logical_route_operations)
     with ExceptionLogger(logger):
@@ -177,7 +178,7 @@ def backup(config_path, backup_file, resources, connections, routes, yes):
         sys.exit(1)
 
     with ExceptionLogger(logger):
-        backup_file = backup_handler.backup_resources(resources, connections, routes)
+        backup_file = backup_handler.backup_resources(resources, connections, routes, connectors)
         click.echo('Backup File: {}'.format(backup_file))
     click.echo('Backup done')
 
@@ -190,10 +191,11 @@ def backup(config_path, backup_file, resources, connections, routes, yes):
 @click.option(u'--override', is_flag=True, default=False, help="Port connections on the source resource override any "
                                                                "existing portconnections on the destination resource.")
 @click.option(u'--yes', is_flag=True, default=False, help='Assume "yes" to all questions.')
-@click.option(u'--connections', 'connections', default=False, help="Restore connections only.")
-@click.option(u'--routes', 'routes', default=False, help="Restore routes only.")
+@click.option(u'--connections', 'connections', default=True, help="Restore connections.")
+@click.option(u'--routes', 'routes', default=True, help="Restore routes.")
+@click.option(u'--connectors', 'connectors', default=True, help="Restore connectors.")
 @click.argument(u'resources', type=str, default=None, required=False)
-def restore(config_path, backup_file, dry_run, resources, connections, routes, override, yes):
+def restore(config_path, backup_file, dry_run, resources, connections, routes, connectors, override, yes):
     """
     Restore connections and routes.
 
@@ -209,12 +211,12 @@ def restore(config_path, backup_file, dry_run, resources, connections, routes, o
     api = _initialize_api(config_operations)
     logger = _initialize_logger(config_operations)
     resource_operations = ResourceOperations(api, logger, config_operations, dry_run)
-    logical_route_operations = LogicalRouteOperations(api, logger, dry_run)
+    logical_route_operations = RouteConnectorOperations(api, logger, dry_run)
     restore_handler = RestoreHandler(api, logger, config_operations, backup_file, resource_operations,
                                      logical_route_operations)
     with ExceptionLogger(logger):
         resources = restore_handler.initialize_resources(resources)
-        actions_container = restore_handler.define_actions(resources, connections, routes, override)
+        actions_container = restore_handler.define_actions(resources, connections, routes, connectors, override)
 
     if actions_container.is_empty():
         click.echo('Nothing to do')

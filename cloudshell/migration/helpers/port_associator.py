@@ -52,11 +52,11 @@ class PortAssociator(object):
     def associated_pairs(self):
         for src_port in self._src_resource.ports:
             if src_port.connected_to:
-                associated_dst_port = self._associate_dst_port(src_port)
+                associated_dst_port = self.associate_dst_port(src_port)
                 if associated_dst_port:
                     yield src_port, associated_dst_port
 
-    def _associate_dst_port(self, src_port):
+    def associate_dst_port(self, src_port):
         """
         :type src_port: cloudshell.migration.entities.Port
         """
