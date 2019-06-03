@@ -13,10 +13,11 @@ Document version: 1.0
 * [Help Commands](#help-commands)
 * [Configuration](#configuration)
 * [Showing Resources](#showing-resources)
-* [Backing up Resource Connections, Routes and Connectors](#backing-up-resource-connections-,-routes-and-connectors)
-    * [Backing up resource connections, routes and connectors](#backing-up-resource-connections-,-routes-and-connectors)
+* [Backing up Resource Connections, Routes and Connectors](#backing-up-resource-connections-routes-and-connectors)
+    * [Backing up resource connections, routes and connectors](#backing-up-resource-connections-routes-and-connectors)
     * [Backing up resource routes only](#backing-up-resource-routes-only)
     * [Backing up resource connections only](#backing-up-resource-connections-only)
+    * [Backing up resource connectors only](#backing-up-resource-connectors-only)
     * [Backing up resources using a different config file](#backing-up-resources-using-a-different-config-file)
  * [Migrating Resources](#migrating-resources)  
      * [Migrate resources of a specific Family and Model](#migrate-resources-of-a-specific-family-and-model)
@@ -55,7 +56,7 @@ Quali’s upgraded shells include certain enhancements, such as the following:
     b.	Import the shells into CloudShell. See [Importing Shells](https://help.quali.com/Online%20Help/9.0/Portal/Content/CSP/MNG/Mng-Shells.htm#Adding) in the CloudShell online help.
 3.	Install the Migration tool. See [Installing the Migration tool](#installing-the-migration-tool).
 4.	Configure the Migration tool. See [Configuration](#configuration).
-5.	Back up the routes, connections and connectors of the resources you want to migrate. See [Backing up resource connections, routes and connectors](#backing-up-resource-connections-,-routes-and-connectors).
+5.	Back up the routes, connections and connectors of the resources you want to migrate. See [Backing up resource connections, routes and connectors](#backing-up-resource-connections-routes-and-connectors).
 6.	Run the Migration tool. See [Migrating Resources](#migrating-resources). 
 7.	If you are not satisfied with your results, you can restore the resource routes and connections to their state prior to the migration. See [Appendix Restoring Resource Mappings](#appendix-restoring-resource-mappings).<br><br>
 The new resources are displayed in **Resource Manager Client’s Resource Explorer** with the prefix (“New_”). The migration process copies physical connections to the new resources. In active sandboxes, all existing routes are updated to use the new resources.
