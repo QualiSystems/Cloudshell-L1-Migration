@@ -131,7 +131,8 @@ The new resources are displayed in **Resource Manager Client’s Resource Explor
       ```username: admin
       domain: Global
       name_prefix: new_
-      logging_level: INFO
+      log_path: C:\Users\Administrator\AppData\Roaming\Quali\migration_tool\Logs
+      log_level: INFO
       host: localhost
       backup_location: C:\Users\Administrator\AppData\Roaming\Quali\migration_tool\Backup
       password: ******
