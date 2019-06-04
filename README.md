@@ -223,11 +223,11 @@ By default, a backup file is saved in the folder you specified in the config fil
 
 **To back up resource connections, routes and connectors:**
 
-1. Run the following command-line and include the name of your resource(s) you want to backup:
+1. Run the following command-line and include the name of your resource(s) you want to back up:
 
    ```migration_tool backup “RESOURCE1,RESOURCE2,etc.”```
    
-   The names of the **Resources to backup** are presented in the command-line.
+   The names of the **Resources to back up** are presented in the command-line.
    
    [Optional] To change the path to the backup yaml file, add the file path as follows:
    
@@ -251,7 +251,7 @@ By default, a backup file is saved in the folder you specified in the config fil
 
 ## Backing up resource connections only
 
-**To backup resource connections only:**
+**To back up resource connections only:**
 
 * Run the following command-line: 
 
@@ -263,7 +263,7 @@ By default, a backup file is saved in the folder you specified in the config fil
 
 ## Backing up resource connectors only
 
-**To backup resource connections only:**
+**To back up resource connections only:**
 
 * Run the following command-line: 
 
