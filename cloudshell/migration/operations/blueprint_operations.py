@@ -60,7 +60,12 @@ class TopologiesOperations(object):
         routes = []
         connectors = []
         for topo in self._inactive_topologies:
-            topo_details = self._api.GetTopologyDetails(topo)
+            self._logger.debug('Topology path: {}'.format(topo))
+            try:
+                topo_details = self._api.GetTopologyDetails(topo)
+            except Exception as e:
+                self._logger.error(e.message)
+                continue
             if topo_details.Type != 'Template':
                 for route in topo_details.Routes:
                     if route.Source and route.Target:
@@ -193,7 +198,7 @@ class PackageOperations(object):
             if node.get('Name') == name:
                 return node
         sub_resources = root_node.find('SubResources')
-        if not sub_resources:
+        if sub_resources is None:
             sub_resources = Element('SubResources')
             root_node.append(sub_resources)
         resource = Element('Resource')
@@ -204,10 +209,13 @@ class PackageOperations(object):
 
     def _get_or_append_resource(self, name, shared='true'):
         resources_node = self._root_node.find('Resources')
-        for node in resources_node or []:
+        if resources_node is None:
+            raise Exception('Cannot find <Resources> XML node')
+
+        for node in resources_node:
             if node.get('Name') == name:
                 return node
-        if not resources_node:
+        if resources_node is None:
             resources_node = Element('Resources')
             self._root_node.append(resources_node)
         resource = Element('Resource')
@@ -258,9 +266,10 @@ class PackageOperations(object):
         :param cloudshell.migration.entities.LogicalRoute route:
         """
         routes_node = self._root_node.find('Routes')
-        for route in routes_node or []:
-            if source == route.get('Source') and target == route.get('Target'):
-                routes_node.remove(route)
+        if routes_node is not None:
+            for route in routes_node:
+                if source == route.get('Source') and target == route.get('Target'):
+                    routes_node.remove(route)
 
     # def remove_connector(self, connector):
     #     pass

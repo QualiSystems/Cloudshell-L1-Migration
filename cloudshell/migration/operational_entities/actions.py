@@ -246,6 +246,7 @@ class BlueprintAction(Action):
         self._updated_connections = updated_connections
 
     def execute(self):
+        self.logger.debug("Executing action for blueprint {}".format(self.blueprint_name))
         package_operations = PackageOperations(self.quali_api, self.logger)
         package_operations.load_package(self.blueprint_name)
         for ent in list(self.routes) + list(self.connectors):

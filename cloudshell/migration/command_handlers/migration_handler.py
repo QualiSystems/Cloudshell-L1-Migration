@@ -29,6 +29,7 @@ class MigrationHandler(object):
         self._topologies_operations = topologies_operations
         self.quali_api = quali_api
         self._updated_connections = {}
+        self._associations_table = {}
 
     def define_resources_pairs(self, src_resources_arguments, dst_resources_arguments):
         argument_parser = ArgumentOperations(self._logger, self._resource_operations)
@@ -131,9 +132,12 @@ class MigrationHandler(object):
     def initialize_actions(self, resources_pairs, override):
         actions_container = ActionsContainer()
         for pair in resources_pairs:
+            src_resource, dst_resource = pair
             self._load_resources(pair)
+            port_associator = PortAssociator(src_resource, dst_resource, self._config_operations, self._logger)
+            self._associations_table.update(port_associator.association_table())
             actions_container.update(self._initialize_logical_route_actions(pair))
-            actions_container.update(self._initialize_connection_actions(pair, override))
+            actions_container.update(self._initialize_connection_actions(port_associator, override))
             actions_container.update(self._initialize_connector_actions(pair, override))
             actions_container.update(self._initialize_blueprint_actions(pair))
 
@@ -153,13 +157,13 @@ class MigrationHandler(object):
                 ActionsContainer(remove_routes=remove_route_actions, create_routes=create_route_actions))
         return actions_container
 
-    def _initialize_connection_actions(self, resource_pair, override):
-        src_resource, dst_resource = resource_pair
-        port_associator = PortAssociator(src_resource, dst_resource, self._config_operations, self._logger)
+    def _initialize_connection_actions(self, port_associator, override):
+        # src_resource, dst_resource = resource_pair
+        # port_associator = PortAssociator(src_resource, dst_resource, self._config_operations, self._logger)
 
         connection_actions = []
 
-        for src_port, dst_port in port_associator.associated_pairs():
+        for src_port, dst_port in port_associator.associated_connected_pairs():
             if override or not dst_port.connected_to:
                 connection_actions.append(
                     UpdateConnectionAction(src_port, dst_port, self._resource_operations,
@@ -176,7 +180,7 @@ class MigrationHandler(object):
             src_resource.associated_connectors)
         create_connector_actions = map(
             lambda connector: CreateConnectorAction(connector, self._route_connector_operations,
-                                                    self._updated_connections, self._logger),
+                                                    self._associations_table, self._logger),
             src_resource.associated_connectors)
         return ActionsContainer(remove_connectors=remove_connector_actions, create_connectors=create_connector_actions)
 
@@ -196,6 +200,6 @@ class MigrationHandler(object):
 
         actions = []
         for blueprint_name, data in blueprint_table.items():
-            actions.append(BlueprintAction(blueprint_name, data[0], data[1], self.quali_api, self._updated_connections,
+            actions.append(BlueprintAction(blueprint_name, data[0], data[1], self.quali_api, self._associations_table,
                                            self._logger))
         return ActionsContainer(blueprint_actions=actions)

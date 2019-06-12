@@ -49,13 +49,26 @@ class PortAssociator(object):
     def _dst_port_sorted_by_port_name(self):
         return {self._format_port_name(port.name): port for port in self._dst_resource.ports}
 
-    def associated_pairs(self):
+    def associated_connected_pairs(self):
         for src_port in self._src_resource.ports:
             if src_port.connected_to:
                 associated_dst_port = self.associate_dst_port(src_port)
                 if associated_dst_port:
                     yield src_port, associated_dst_port
+                else:
+                    self._logger.warning('Cannot find associated port for {}'.format(src_port))
 
+    def association_table(self):
+        association_table = {}
+        for src_port in self._src_resource.ports:
+            associated_dst_port = self.associate_dst_port(src_port)
+            if associated_dst_port:
+                association_table[src_port.name] = associated_dst_port.name
+            else:
+                self._logger.warning('Cannot find associated port for {}'.format(src_port))
+        return association_table
+
+    @lru_cache()
     def associate_dst_port(self, src_port):
         """
         :type src_port: cloudshell.migration.entities.Port
