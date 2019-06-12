@@ -1,15 +1,18 @@
 import os
 from abc import ABCMeta, abstractmethod
 
+from cloudshell.migration.operations.blueprint_operations import PackageOperations
+
 
 class ActionsContainer(object):
     def __init__(self, remove_routes=None, update_connections=None, create_routes=None, remove_connectors=None,
-                 create_connectors=None):
+                 create_connectors=None, blueprint_actions=None):
         self.remove_routes = remove_routes or []
         self.update_connections = update_connections or []
         self.create_routes = create_routes or []
         self.remove_connectors = remove_connectors or []
         self.create_connectors = create_connectors or []
+        self.blueprint_actions = blueprint_actions or []
 
     def sequence(self):
         sequence = []
@@ -18,6 +21,7 @@ class ActionsContainer(object):
         sequence.extend(set(self.update_connections))
         sequence.extend(set(self.create_routes))
         sequence.extend(set(self.create_connectors))
+        sequence.extend(set(self.blueprint_actions))
         return sequence
 
     def execute_actions(self):
@@ -32,6 +36,14 @@ class ActionsContainer(object):
         self.create_routes = set(self.create_routes) | set(container.create_routes)
         self.remove_connectors = set(self.remove_connectors) | set(container.remove_connectors)
         self.create_connectors = set(self.create_connectors) | set(container.create_connectors)
+        self._update_blieprint_actions(container.blueprint_actions)
+
+    def _update_blieprint_actions(self, blueprint_actions):
+        for action in blueprint_actions:
+            if action in self.blueprint_actions:
+                self.blueprint_actions[self.blueprint_actions.index(action)].merge(action)
+            else:
+                self.blueprint_actions.append(action)
 
     def to_string(self):
         out = ''
@@ -40,7 +52,7 @@ class ActionsContainer(object):
         return out
 
     def is_empty(self):
-        return False if self.remove_routes or self.update_connections or self.create_routes or self.create_connectors or self.remove_connectors else True
+        return False if self.remove_routes or self.update_connections or self.create_routes or self.create_connectors or self.remove_connectors or self.blueprint_actions else True
 
     def __str__(self):
         return self.to_string()
@@ -94,6 +106,7 @@ class RemoveRouteAction(LogicalRouteAction):
             return self.to_string() + " ... Done"
         except Exception as e:
             self.logger.error('Cannot remove route {}, reason {}'.format(self.logical_route, ','.join(e.args)))
+            return self.to_string() + "... Failed"
 
     def to_string(self):
         return 'Remove Route: {}'.format(self.logical_route)
@@ -112,6 +125,7 @@ class CreateRouteAction(LogicalRouteAction):
             return self.to_string() + " ... Done"
         except Exception as e:
             self.logger.error('Cannot create route {}, reason {}'.format(self.logical_route, ','.join(e.args)))
+            return self.to_string() + "... Failed"
 
     def _refresh_route(self):
         self.logical_route.source = self._updated_connections.get(self.logical_route.source, self.logical_route.source)
@@ -147,6 +161,7 @@ class UpdateConnectionAction(Action):
             return self.to_string() + " ... Done"
         except Exception as e:
             self.logger.error('Cannot update port {}, reason {}'.format(self.dst_port, str(e)))
+            return self.to_string() + "... Failed"
 
     def to_string(self):
         return 'Update Connection: {}=>{}'.format(self.dst_port.name, self.src_port.connected_to)
@@ -186,8 +201,11 @@ class ConnectorAction(Action):
 class RemoveConnectorAction(ConnectorAction):
     def execute(self):
         self.logger.debug("Removing connector {}".format(self.connector))
-        self.route_connector_operations.remove_connector(self.connector)
-        return self.to_string() + " ... Done"
+        try:
+            self.route_connector_operations.remove_connector(self.connector)
+            return self.to_string() + " ... Done"
+        except Exception as e:
+            pass
 
     def to_string(self):
         return "Remove Connector: {}".format(self.connector)
@@ -208,8 +226,61 @@ class CreateConnectorAction(ConnectorAction):
         self.connector.source = self._updated_connections.get(self.connector.source, self.connector.source)
         self.connector.target = self._updated_connections.get(self.connector.target, self.connector.target)
         self.logger.debug("Creating connector {}".format(self.connector))
-        self.route_connector_operations.update_connector(self.connector)
-        return self.to_string() + " ... Done"
+        try:
+            self.route_connector_operations.update_connector(self.connector)
+            return self.to_string() + " ... Done"
+        except Exception as e:
+            pass
 
     def to_string(self):
         return "Create Connector: {}".format(self.connector)
+
+
+class BlueprintAction(Action):
+    def __init__(self, blueprint_name, routes, connectors, quali_api, updated_connections, logger):
+        super(BlueprintAction, self).__init__(logger)
+        self.blueprint_name = blueprint_name
+        self.routes = routes
+        self.connectors = connectors
+        self.quali_api = quali_api
+        self._updated_connections = updated_connections
+
+    def execute(self):
+        package_operations = PackageOperations(self.quali_api, self.logger)
+        package_operations.load_package(self.blueprint_name)
+        for ent in list(self.routes) + list(self.connectors):
+            self.logger.debug('Remove : {}'.format(ent))
+            package_operations.remove_route_connector(ent.source, ent.target)
+        self._update_endpoints(self.routes)
+        self._update_endpoints(self.connectors)
+        for route in self.routes:
+            self.logger.debug('Add {}'.format(route))
+            package_operations.add_route(route)
+
+        for connector in self.connectors:
+            self.logger.debug('Add {}'.format(connector))
+            package_operations.add_connector(connector)
+
+        package_operations.update_topology()
+        return self.to_string() + " ... Done"
+
+    def _update_endpoints(self, ent_list):
+        for ent in ent_list:
+            ent.source = self._updated_connections.get(ent.source, ent.source)
+            ent.target = self._updated_connections.get(ent.target, ent.target)
+
+    def to_string(self):
+        return "Update Blueprint: {}".format(self.blueprint_name)
+
+    def __hash__(self):
+        return hash(self.blueprint_name)
+
+    def __eq__(self, other):
+        return self.blueprint_name == other.blueprint_name
+
+    def merge(self, action):
+        """
+        :param BlueprintAction action:
+        """
+        self.routes = set(self.routes) | set(action.routes)
+        self.connectors = set(self.connectors) | set(action.connectors)

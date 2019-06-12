@@ -13,6 +13,8 @@ from cloudshell.migration.command_handlers.migration_handler import MigrationHan
 from cloudshell.migration.command_handlers.resources_handler import ResourcesHandler
 from cloudshell.migration.command_handlers.restore_handler import RestoreHandler
 from cloudshell.migration.helpers.log_helper import ExceptionLogger
+from cloudshell.migration.libs.quali_api import QualiAPISession
+from cloudshell.migration.operations.blueprint_operations import TopologiesOperations
 from cloudshell.migration.operations.config_operations import ConfigOperations
 
 from cloudshell.logging.qs_logger import get_qs_logger
@@ -103,11 +105,13 @@ def migrate(config_path, dry_run, src_resources, dst_resources, yes, backup_file
     """
     config_operations = ConfigOperations(config_path)
     api = _initialize_api(config_operations)
+    quali_api = initialize_quali_api(config_operations)
     logger = _initialize_logger(config_operations)
     resource_operations = ResourceOperations(api, logger, config_operations, dry_run)
     logical_route_operations = RouteConnectorOperations(api, logger, dry_run)
+    topologies_operations = TopologiesOperations(api, logger)
     migration_handler = MigrationHandler(api, logger, config_operations, resource_operations,
-                                         logical_route_operations)
+                                         logical_route_operations, topologies_operations, quali_api)
     with ExceptionLogger(logger):
         resources_pairs = migration_handler.define_resources_pairs(src_resources, dst_resources)
         actions_container = migration_handler.initialize_actions(resources_pairs, override)
@@ -259,3 +263,13 @@ def _initialize_logger(config_operations):
     logger.setLevel(config_operations.read_key_or_default(config_operations.KEY.LOG_LEVEL))
     click.echo('Log file: {}'.format(logger.handlers[0].baseFilename))
     return logger
+
+
+def initialize_quali_api(config_operations):
+    """
+    :type config_operations: cloudshell.migration.operations.config_operations.ConfigOperations
+    """
+    return QualiAPISession(config_operations.read_key_or_default(config_operations.KEY.HOST),
+                           config_operations.read_key_or_default(config_operations.KEY.USERNAME),
+                           config_operations.read_key_or_default(config_operations.KEY.PASSWORD),
+                           config_operations.read_key_or_default(config_operations.KEY.DOMAIN))

@@ -1,3 +1,4 @@
+from cloudshell.migration.exceptions import MigrationToolException
 from cloudshell.migration.operational_entities.config_unit import ConfigUnit
 
 
@@ -35,6 +36,7 @@ class ArgumentOperations(object):
         :type resources_argument: str
         :rtype:list
         """
+        self._logger.debug('Initializing: {}'.format(resources_argument))
         resources = []
         for config_unit in self.parse_argument_string(resources_argument):
             if config_unit.is_multi_resource():

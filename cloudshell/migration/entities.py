@@ -61,7 +61,8 @@ class Port(object):
 
 
 class LogicalRoute(object):
-    def __init__(self, source, target, reservation_id, route_type, route_alias, active=True, shared=False):
+    def __init__(self, source, target, reservation_id, route_type, route_alias, active=True, shared=False,
+                 blueprint=None):
         self.source = source
         self.target = target
         self.reservation_id = reservation_id
@@ -69,9 +70,10 @@ class LogicalRoute(object):
         self.route_alias = route_alias
         self.active = active
         self.shared = shared
+        self.blueprint = blueprint
 
     def to_string(self):
-        return '{0}<->{1}, {2}, {3}'.format(self.source, self.target, self.route_type,
+        return 'Route({0}<->{1}, {2}, {3})'.format(self.source, self.target, self.route_type,
                                             'Active' if self.active else 'Inactive')
 
     def __str__(self):
@@ -88,7 +90,8 @@ class LogicalRoute(object):
 
 
 class Connector(object):
-    def __init__(self, source, target, reservation_id, direction, connector_type, alias, active=True, shared=False):
+    def __init__(self, source, target, reservation_id, direction, connector_type, alias, active=True, shared=False,
+                 blueprint=None):
         self.source = source
         self.target = target
         self.reservation_id = reservation_id
@@ -97,9 +100,10 @@ class Connector(object):
         self.alias = alias
         self.active = active
         self.shared = shared
+        self.blueprint = blueprint
 
     def to_string(self):
-        return '{0}<->{1}, {2}'.format(self.source, self.target, self.connector_type)
+        return 'Connector({0}<->{1}, {2})'.format(self.source, self.target, self.connector_type)
 
     def __str__(self):
         return self.to_string()
@@ -112,4 +116,3 @@ class Connector(object):
 
     def __hash__(self):
         return hash(self.source + self.target)
-
