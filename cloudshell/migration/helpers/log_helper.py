@@ -1,4 +1,7 @@
+import sys
 import traceback
+
+import click
 
 
 class ExceptionLogger(object):
@@ -11,6 +14,5 @@ class ExceptionLogger(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_val:
             self._logger.critical(traceback.format_exc())
-            # sys.exit(1)
-            # else:
-            return False
+            click.echo(exc_val.message, err=True)
+            sys.exit(1)

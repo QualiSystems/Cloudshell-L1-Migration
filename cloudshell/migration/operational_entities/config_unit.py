@@ -1,4 +1,5 @@
 from cloudshell.migration.entities import Resource
+from cloudshell.migration.exceptions import MigrationToolException
 
 
 class ConfigUnit(object):
@@ -50,7 +51,7 @@ class ConfigUnit(object):
 
     def stub_resource(self):
         if not self.resource_family or not self.resource_model:
-            raise Exception(self.__class__.__name__, 'Cannot initialize resource stub, Family or Model is empty')
+            raise MigrationToolException('Cannot initialize target resource, Family or Model is empty')
 
         return Resource(self.resource_name, family=self.resource_family, model=self.resource_model,
                         driver=self.resource_driver,

@@ -44,7 +44,8 @@ class ArgumentOperations(object):
                     (config_unit.resource_family, config_unit.resource_model))
 
             else:
-                resources_list = [self._resource_operations.installed_resources.get(config_unit.resource_name)]
+                resource = self._resource_operations.installed_resources.get(config_unit.resource_name)
+                resources_list = [resource] if resource else []
             if resources_list:
                 resources.extend(resources_list)
             else:

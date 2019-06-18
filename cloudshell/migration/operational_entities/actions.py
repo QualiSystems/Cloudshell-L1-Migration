@@ -205,70 +205,84 @@ class RemoveConnectorAction(ConnectorAction):
             self.route_connector_operations.remove_connector(self.connector)
             return self.to_string() + " ... Done"
         except Exception as e:
-            pass
+            self.logger.error('Cannot remove connector {}, reason {}'.format(self.connector, str(e)))
+            return self.to_string() + "... Failed"
 
     def to_string(self):
         return "Remove Connector: {}".format(self.connector)
 
 
 class CreateConnectorAction(ConnectorAction):
-    def __init__(self, connector, route_connector_operations, updated_connections, logger):
+    def __init__(self, connector, route_connector_operations, associations_table, logger):
         """
         :type connector:
         :type route_connector_operations: cloudshell.migration.operations.route_connector_operations.RouteConnectorOperations
-        :type updated_connections: dict
+        :type associations_table: dict
         :type logger: cloudshell.migration.helpers.log_helper.Logger
         """
         super(CreateConnectorAction, self).__init__(connector, route_connector_operations, logger)
-        self._updated_connections = updated_connections
+        self._associations_table = associations_table
 
     def execute(self):
-        self.connector.source = self._updated_connections.get(self.connector.source, self.connector.source)
-        self.connector.target = self._updated_connections.get(self.connector.target, self.connector.target)
+        self.connector.source = self._associations_table.get(self.connector.source, self.connector.source)
+        self.connector.target = self._associations_table.get(self.connector.target, self.connector.target)
         self.logger.debug("Creating connector {}".format(self.connector))
         try:
             self.route_connector_operations.update_connector(self.connector)
             return self.to_string() + " ... Done"
         except Exception as e:
-            pass
+            self.logger.error('Cannot create connector {}, reason {}'.format(self.connector, str(e)))
+            return self.to_string() + "... Failed"
 
     def to_string(self):
         return "Create Connector: {}".format(self.connector)
 
 
 class BlueprintAction(Action):
-    def __init__(self, blueprint_name, routes, connectors, quali_api, updated_connections, logger):
+    def __init__(self, blueprint_name, routes, connectors, quali_api, associations_table, logger):
+        """
+        :param blueprint_name:
+        :param routes:
+        :param connectors:
+        :param quali_api:
+        :param associations_table:
+        :param logger:
+        """
         super(BlueprintAction, self).__init__(logger)
         self.blueprint_name = blueprint_name
         self.routes = routes
         self.connectors = connectors
         self.quali_api = quali_api
-        self._updated_connections = updated_connections
+        self._associations_table = associations_table
 
     def execute(self):
         self.logger.debug("Executing action for blueprint {}".format(self.blueprint_name))
         package_operations = PackageOperations(self.quali_api, self.logger)
-        package_operations.load_package(self.blueprint_name)
-        for ent in list(self.routes) + list(self.connectors):
-            self.logger.debug('Remove : {}'.format(ent))
-            package_operations.remove_route_connector(ent.source, ent.target)
-        self._update_endpoints(self.routes)
-        self._update_endpoints(self.connectors)
-        for route in self.routes:
-            self.logger.debug('Add {}'.format(route))
-            package_operations.add_route(route)
+        try:
+            package_operations.load_package(self.blueprint_name)
+            for ent in list(self.routes) + list(self.connectors):
+                self.logger.debug('Remove : {}'.format(ent))
+                package_operations.remove_route_connector(ent.source, ent.target)
+            self._update_endpoints(self.routes)
+            self._update_endpoints(self.connectors)
+            for route in self.routes:
+                self.logger.debug('Add {}'.format(route))
+                package_operations.add_route(route)
 
-        for connector in self.connectors:
-            self.logger.debug('Add {}'.format(connector))
-            package_operations.add_connector(connector)
+            for connector in self.connectors:
+                self.logger.debug('Add {}'.format(connector))
+                package_operations.add_connector(connector)
 
-        package_operations.update_topology()
-        return self.to_string() + " ... Done"
+            package_operations.update_topology()
+            return self.to_string() + " ... Done"
+        except Exception as e:
+            self.logger.error('Update blueprint {} failed, reason {}'.format(self.blueprint_name, e.message))
+            return self.to_string() + "... Failed"
 
     def _update_endpoints(self, ent_list):
         for ent in ent_list:
-            ent.source = self._updated_connections.get(ent.source, ent.source)
-            ent.target = self._updated_connections.get(ent.target, ent.target)
+            ent.source = self._associations_table.get(ent.source, ent.source)
+            ent.target = self._associations_table.get(ent.target, ent.target)
 
     def to_string(self):
         return "Update Blueprint: {}".format(self.blueprint_name)
