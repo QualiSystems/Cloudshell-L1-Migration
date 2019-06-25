@@ -5,23 +5,33 @@ from cloudshell.migration.operations.blueprint_operations import PackageOperatio
 
 
 class ActionsContainer(object):
-    def __init__(self, remove_routes=None, update_connections=None, create_routes=None, remove_connectors=None,
-                 create_connectors=None, blueprint_actions=None):
+    def __init__(self, remove_routes=None,
+                 update_connections=None,
+                 create_routes=None,
+                 update_routes=None,
+                 remove_connectors=None,
+                 create_connectors=None,
+                 update_connectors=None,
+                 update_blueprint=None):
         self.remove_routes = remove_routes or []
         self.update_connections = update_connections or []
         self.create_routes = create_routes or []
+        self.update_routes = update_routes or []
         self.remove_connectors = remove_connectors or []
         self.create_connectors = create_connectors or []
-        self.blueprint_actions = blueprint_actions or []
+        self.update_connectors = update_connectors or []
+        self.update_blueprint = update_blueprint or []
 
     def sequence(self):
         sequence = []
         sequence.extend(set(self.remove_routes))
-        sequence.extend(set(self.remove_connectors))
         sequence.extend(set(self.update_connections))
         sequence.extend(set(self.create_routes))
+        sequence.extend(set(self.update_routes))
+        sequence.extend(set(self.remove_connectors))
         sequence.extend(set(self.create_connectors))
-        sequence.extend(set(self.blueprint_actions))
+        sequence.extend(set(self.update_connectors))
+        sequence.extend(set(self.update_blueprint))
         return sequence
 
     def execute_actions(self):
@@ -34,16 +44,18 @@ class ActionsContainer(object):
         self.remove_routes = set(self.remove_routes) | set(container.remove_routes)
         self.update_connections = set(self.update_connections) | set(container.update_connections)
         self.create_routes = set(self.create_routes) | set(container.create_routes)
+        self.update_routes = set(self.update_routes) | set(container.update_routes)
         self.remove_connectors = set(self.remove_connectors) | set(container.remove_connectors)
         self.create_connectors = set(self.create_connectors) | set(container.create_connectors)
-        self._update_blieprint_actions(container.blueprint_actions)
+        self.update_connectors = set(self.update_connectors) | set(container.update_connectors)
+        self._merge_blueprint_actions(container.update_blueprint)
 
-    def _update_blieprint_actions(self, blueprint_actions):
+    def _merge_blueprint_actions(self, blueprint_actions):
         for action in blueprint_actions:
-            if action in self.blueprint_actions:
-                self.blueprint_actions[self.blueprint_actions.index(action)].merge(action)
+            if action in self.update_blueprint:
+                self.update_blueprint[self.update_blueprint.index(action)].merge(action)
             else:
-                self.blueprint_actions.append(action)
+                self.update_blueprint.append(action)
 
     def to_string(self):
         out = ''
@@ -135,6 +147,19 @@ class CreateRouteAction(LogicalRouteAction):
         return 'Create Route: {}'.format(self.logical_route)
 
 
+class UpdateRouteAction(RemoveRouteAction, CreateRouteAction):
+    def __init__(self, logical_route, logical_route_operations, updated_connections, logger):
+        CreateRouteAction.__init__(self, logical_route, logical_route_operations, updated_connections, logger)
+
+    def execute(self):
+        RemoveRouteAction.execute(self)
+        out = CreateRouteAction.execute(self)
+        return out
+
+    def to_string(self):
+        return 'Update Route: {}'.format(self.logical_route)
+
+
 class UpdateConnectionAction(Action):
     def __init__(self, src_port, dst_port, resource_operations, updated_connections, logger):
         """
@@ -181,6 +206,8 @@ class UpdateConnectionAction(Action):
 
 
 class ConnectorAction(Action):
+    __metaclass__ = ABCMeta
+
     def __init__(self, connector, route_connector_operations, logger):
         """
         :type connector:
@@ -238,7 +265,26 @@ class CreateConnectorAction(ConnectorAction):
         return "Create Connector: {}".format(self.connector)
 
 
-class BlueprintAction(Action):
+class UpdateConnectorAction(RemoveConnectorAction, CreateConnectorAction):
+    def __init__(self, connector, route_connector_operations, associations_table, logger):
+        """
+        :type connector:
+        :type route_connector_operations: cloudshell.migration.operations.route_connector_operations.RouteConnectorOperations
+        :type associations_table: dict
+        :type logger: cloudshell.migration.helpers.log_helper.Logger
+        """
+        CreateConnectorAction.__init__(self, connector, route_connector_operations, associations_table, logger)
+
+    def execute(self):
+        RemoveConnectorAction.execute(self)
+        out = CreateConnectorAction.execute(self)
+        return out
+
+    def to_string(self):
+        return 'Update Connector: {}'.format(self.connector)
+
+
+class UpdateBlueprintAction(Action):
     def __init__(self, blueprint_name, routes, connectors, quali_api, associations_table, logger):
         """
         :param blueprint_name:
@@ -248,7 +294,7 @@ class BlueprintAction(Action):
         :param associations_table:
         :param logger:
         """
-        super(BlueprintAction, self).__init__(logger)
+        super(UpdateBlueprintAction, self).__init__(logger)
         self.blueprint_name = blueprint_name
         self.routes = routes
         self.connectors = connectors

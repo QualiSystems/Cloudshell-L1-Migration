@@ -182,7 +182,8 @@ class ResourceOperations(object):
         self._api.ExcludeResource(resource.name)
         self._api.SyncResourceFromDevice(resource.name)
         self._api.IncludeResource(resource.name)
-        del self.__resource_details[resource.name]
+        if resource.name in self.__resource_details:
+            del self.__resource_details[resource.name]
         return resource
 
     def update_connection(self, port):

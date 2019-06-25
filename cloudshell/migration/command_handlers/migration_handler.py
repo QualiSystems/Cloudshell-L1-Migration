@@ -3,8 +3,9 @@ from copy import copy
 
 from cloudshell.migration.exceptions import MigrationToolException
 from cloudshell.migration.helpers.port_associator import PortAssociator
-from cloudshell.migration.operational_entities.actions import ActionsContainer, RemoveRouteAction, CreateRouteAction, \
-    UpdateConnectionAction, CreateConnectorAction, RemoveConnectorAction, BlueprintAction
+from cloudshell.migration.operational_entities.actions import ActionsContainer, \
+    UpdateConnectionAction, UpdateBlueprintAction, UpdateRouteAction, \
+    UpdateConnectorAction
 from cloudshell.migration.operations.argument_operations import ArgumentOperations
 
 
@@ -120,8 +121,8 @@ class MigrationHandler(object):
         if not dst.exist:
             self._resource_operations.autoload_resource(dst)
         else:
-            # self._resource_operations.sync_from_device(dst)
-            pass
+            self._resource_operations.sync_from_device(dst)
+            # pass
 
         for resource in resource_pair:
             if not resource.ports:
@@ -145,16 +146,20 @@ class MigrationHandler(object):
 
     def _initialize_logical_route_actions(self, resource_pair):
         actions_container = ActionsContainer()
-        for resource in resource_pair:
-            remove_route_actions = map(
-                lambda logical_route: RemoveRouteAction(logical_route, self._route_connector_operations, self._logger),
-                resource.associated_logical_routes)
-            create_route_actions = map(
-                lambda logical_route: CreateRouteAction(logical_route, self._route_connector_operations,
-                                                        self._updated_connections, self._logger),
-                resource.associated_logical_routes)
-            actions_container.update(
-                ActionsContainer(remove_routes=remove_route_actions, create_routes=create_route_actions))
+        src_resource = resource_pair[0]
+        # for resource in resource_pair:
+        # remove_route_actions = map(
+        #     lambda logical_route: RemoveRouteAction(logical_route, self._route_connector_operations, self._logger),
+        #     resource.associated_logical_routes)
+        # create_route_actions = map(
+        #     lambda logical_route: CreateRouteAction(logical_route, self._route_connector_operations,
+        #                                             self._updated_connections, self._logger),
+        #     resource.associated_logical_routes)
+        update_route_actions = map(
+            lambda logical_route: UpdateRouteAction(logical_route, self._route_connector_operations,
+                                                    self._updated_connections, self._logger),
+            src_resource.associated_logical_routes)
+        actions_container.update(ActionsContainer(update_routes=update_route_actions))
         return actions_container
 
     def _initialize_connection_actions(self, port_associator, override):
@@ -175,14 +180,18 @@ class MigrationHandler(object):
         """
         :type src_resource: cloudshell.migration.entities.Resource
         """
-        remove_connector_actions = map(
-            lambda connector: RemoveConnectorAction(connector, self._route_connector_operations, self._logger),
-            src_resource.associated_connectors)
-        create_connector_actions = map(
-            lambda connector: CreateConnectorAction(connector, self._route_connector_operations,
+        # remove_connector_actions = map(
+        #     lambda connector: RemoveConnectorAction(connector, self._route_connector_operations, self._logger),
+        #     src_resource.associated_connectors)
+        # create_connector_actions = map(
+        #     lambda connector: CreateConnectorAction(connector, self._route_connector_operations,
+        #                                             self._associations_table, self._logger),
+        #     src_resource.associated_connectors)
+        update_connector_actions = map(
+            lambda connector: UpdateConnectorAction(connector, self._route_connector_operations,
                                                     self._associations_table, self._logger),
             src_resource.associated_connectors)
-        return ActionsContainer(remove_connectors=remove_connector_actions, create_connectors=create_connector_actions)
+        return ActionsContainer(update_connectors=update_connector_actions)
 
     def _initialize_blueprint_actions(self, resource_pair):
         src_resource = resource_pair[0]
@@ -200,6 +209,7 @@ class MigrationHandler(object):
 
         actions = []
         for blueprint_name, data in blueprint_table.items():
-            actions.append(BlueprintAction(blueprint_name, data[0], data[1], self.quali_api, self._associations_table,
-                                           self._logger))
-        return ActionsContainer(blueprint_actions=actions)
+            actions.append(
+                UpdateBlueprintAction(blueprint_name, data[0], data[1], self.quali_api, self._associations_table,
+                                      self._logger))
+        return ActionsContainer(update_blueprint=actions)
