@@ -296,8 +296,8 @@ class UpdateBlueprintAction(Action):
         """
         super(UpdateBlueprintAction, self).__init__(logger)
         self.blueprint_name = blueprint_name
-        self.routes = routes
-        self.connectors = connectors
+        self.routes = set(routes)
+        self.connectors = set(connectors)
         self.quali_api = quali_api
         self._associations_table = associations_table
 
