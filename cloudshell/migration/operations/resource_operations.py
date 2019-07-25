@@ -20,15 +20,12 @@ class ResourceOperations(object):
 
         self.__resource_details = {}
 
+    @lru_cache()
     def _get_resource_details(self, resource):
         """
         :type resource: cloudshell.migration.entities.Resource
         """
-        details = self.__resource_details.get(resource.name)
-        if not details:
-            details = self._api.GetResourceDetails(resource.name)
-            self.__resource_details[resource.name] = details
-        return details
+        return self._api.GetResourceDetails(resource.name)
 
     @property
     @lru_cache()
@@ -195,6 +192,9 @@ class ResourceOperations(object):
             self._api.UpdatePhysicalConnection(port.name, port.connected_to or '')
             if port.connected_to and port.connection_weight:
                 self._api.UpdateConnectionWeight(port.name, port.connected_to, port.connection_weight)
+
+    # def add_resource(self, resource):
+    #     AddResourcesToReservation
 
     # @staticmethod
     # def define_port_connections(*resources):

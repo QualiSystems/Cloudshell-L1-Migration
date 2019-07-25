@@ -258,10 +258,10 @@ def _initialize_logger(config_operations):
     :type config_operations: cloudshell.migration.operations.config_operations.ConfigOperations
     """
 
-    os.environ['LOG_PATH'] = config_operations.read_key_or_default(config_operations.KEY.LOG_PATH)
+    # os.environ['LOG_PATH'] = config_operations.read_key_or_default(config_operations.KEY.LOG_PATH)
     logger = get_qs_logger(str(PACKAGE_NAME), 'migration_tool', 'migration_tool')
     logger.setLevel(config_operations.read_key_or_default(config_operations.KEY.LOG_LEVEL))
-    click.echo('Log file: {}'.format(logger.handlers[0].baseFilename))
+    # click.echo('Log file: {}'.format(logger.handlers[0].baseFilename))
     return logger
 
 
