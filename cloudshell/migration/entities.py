@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from cloudshell.migration.operations.config_operations import ConfigOperations
 
 
 class Resource(object):
@@ -32,6 +33,9 @@ class Resource(object):
     def __copy__(self):
         return Resource(self.name, self.address, self.family, self.model, self.driver, self.exist)
 
+    def l1_resource(self):
+        return self.family in ConfigOperations.L1_FAMILIES
+
 
 class Port(object):
     def __init__(self, name, address=None, connected_to=None, connection_weight=None):
@@ -61,6 +65,8 @@ class Port(object):
 
 
 class LogicalRoute(object):
+    BIDI_TYPE = 'bi'
+
     def __init__(self, source, target, reservation_id, route_type, route_alias, active=True, shared=False,
                  blueprint=None):
         self.source = source
@@ -71,10 +77,17 @@ class LogicalRoute(object):
         self.active = active
         self.shared = shared
         self.blueprint = blueprint
+        self.associated_ports = []
 
     def to_string(self):
         return 'Route({0}<->{1}, {2}, {3})'.format(self.source, self.target, self.route_type,
-                                            'Active' if self.active else 'Inactive')
+                                                   'Active' if self.active else 'Inactive')
+
+    def _get_set(self):
+        return {self.source, self.target}
+
+    def _get_list(self):
+        return [self.source, self.target]
 
     def __str__(self):
         return self.to_string()
@@ -83,10 +96,20 @@ class LogicalRoute(object):
         """
         :type other: LogicalRoute
         """
-        return self.source == other.source and self.target == other.target
+
+        if self.route_type == other.route_type:
+            if self.route_type == self.BIDI_TYPE:
+                return self._get_set() == other._get_set()
+            else:
+                return self._get_list() == other._get_list()
+        else:
+            return False
 
     def __hash__(self):
-        return hash(self.source + self.target)
+        if self.route_type == self.BIDI_TYPE:
+            return hash(tuple(self._get_set()))
+        else:
+            return hash(tuple(self._get_list()))
 
 
 class Connector(object):

@@ -5,7 +5,7 @@ from cloudshell.migration.exceptions import MigrationToolException
 from cloudshell.migration.helpers.port_associator import PortAssociator
 from cloudshell.migration.operational_entities.actions import ActionsContainer, \
     UpdateConnectionAction, UpdateBlueprintAction, UpdateRouteAction, \
-    UpdateConnectorAction
+    UpdateConnectorAction, UpdateL1RouteAction
 from cloudshell.migration.operations.argument_operations import ArgumentOperations
 
 
@@ -127,8 +127,12 @@ class MigrationHandler(object):
         for resource in resource_pair:
             if not resource.ports:
                 self._resource_operations.load_resource_ports(resource)
-        self._route_connector_operations.load_logical_routes(src)
-        self._route_connector_operations.load_connectors(src)
+
+        if src.l1_resource():
+            self._route_connector_operations.load_segment_logical_routes(src)
+        else:
+            self._route_connector_operations.load_endpoint_logical_routes(src)
+            self._route_connector_operations.load_connectors(src)
 
     def initialize_actions(self, resources_pairs, override):
         actions_container = ActionsContainer()
@@ -137,30 +141,21 @@ class MigrationHandler(object):
             self._load_resources(pair)
             port_associator = PortAssociator(src_resource, dst_resource, self._config_operations, self._logger)
             self._associations_table.update(port_associator.association_table())
-            actions_container.update(self._initialize_logical_route_actions(pair))
             actions_container.update(self._initialize_connection_actions(port_associator, override))
+            actions_container.update(self._initialize_logical_route_actions(pair))
             actions_container.update(self._initialize_connector_actions(pair, override))
             actions_container.update(self._initialize_blueprint_actions(pair))
 
         return actions_container
 
     def _initialize_logical_route_actions(self, resource_pair):
-        actions_container = ActionsContainer()
         src_resource = resource_pair[0]
-        # for resource in resource_pair:
-        # remove_route_actions = map(
-        #     lambda logical_route: RemoveRouteAction(logical_route, self._route_connector_operations, self._logger),
-        #     resource.associated_logical_routes)
-        # create_route_actions = map(
-        #     lambda logical_route: CreateRouteAction(logical_route, self._route_connector_operations,
-        #                                             self._updated_connections, self._logger),
-        #     resource.associated_logical_routes)
+        action_class = UpdateL1RouteAction if src_resource.l1_resource else UpdateRouteAction
         update_route_actions = map(
-            lambda logical_route: UpdateRouteAction(logical_route, self._route_connector_operations,
-                                                    self._updated_connections, self._logger),
+            lambda logical_route: action_class(logical_route, self._route_connector_operations,
+                                               self._updated_connections, self._logger),
             src_resource.associated_logical_routes)
-        actions_container.update(ActionsContainer(update_routes=update_route_actions))
-        return actions_container
+        return ActionsContainer(update_routes=update_route_actions)
 
     def _initialize_connection_actions(self, port_associator, override):
         # src_resource, dst_resource = resource_pair

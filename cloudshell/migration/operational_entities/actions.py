@@ -142,9 +142,32 @@ class CreateRouteAction(LogicalRouteAction):
     def _refresh_route(self):
         self.logical_route.source = self._updated_connections.get(self.logical_route.source, self.logical_route.source)
         self.logical_route.target = self._updated_connections.get(self.logical_route.target, self.logical_route.target)
+        for port in self.logical_route.associated_ports:
+            port.name = self._updated_connections.get(port.name, port.name)
 
     def to_string(self):
         return 'Create Route: {}'.format(self.logical_route)
+
+
+class UpdateL1RouteAction(RemoveRouteAction, CreateRouteAction):
+    def __init__(self, logical_route, logical_route_operations, updated_connections, logger):
+        CreateRouteAction.__init__(self, logical_route, logical_route_operations, updated_connections, logger)
+
+    def execute(self):
+        # RemoveRouteAction.execute(self)
+        # out = CreateRouteAction.execute(self)
+        self._refresh_route()
+        self.logger.debug("Update L1 route")
+        try:
+            for port in self.logical_route.associated_ports:
+                self.logical_route_operations.add_resource(self.logical_route.reservation_id, port.name)
+            return self.to_string() + "Done"
+        except Exception as e:
+            self.logger.error("Failed to update route for L1 resource, {}".format(e.args))
+            return self.to_string() + "Failed"
+
+    def to_string(self):
+        return 'Update L1 Route: {}'.format(self.logical_route)
 
 
 class UpdateRouteAction(RemoveRouteAction, CreateRouteAction):
@@ -152,9 +175,13 @@ class UpdateRouteAction(RemoveRouteAction, CreateRouteAction):
         CreateRouteAction.__init__(self, logical_route, logical_route_operations, updated_connections, logger)
 
     def execute(self):
-        RemoveRouteAction.execute(self)
+        # RemoveRouteAction.execute(self)
         out = CreateRouteAction.execute(self)
-        return out
+        self._refresh_route()
+        # for port in self.logical_route.associated_ports:
+            # self.logical_route_operations.add_resource(self.logical_route.reservation_id, self.logical_route.so)
+            # self.logical_route_operations.add_resource(self.logical_route.reservation_id, port.name)
+        # return out
 
     def to_string(self):
         return 'Update Route: {}'.format(self.logical_route)
