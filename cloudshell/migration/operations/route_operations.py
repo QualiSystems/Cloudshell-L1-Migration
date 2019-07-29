@@ -1,32 +1,23 @@
 from collections import defaultdict
 
 from backports.functools_lru_cache import lru_cache
+from cloudshell.migration.entities import LogicalRoute
+from cloudshell.migration.operations.operations import Operations
 
-from cloudshell.api.cloudshell_api import SetConnectorRequest
-from cloudshell.migration.entities import LogicalRoute, Connector
 
-
-class RouteConnectorOperations(object):
-    def __init__(self, api, logger, dry_run=False):
-        """
-        :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
-        :type logger: cloudshell.migration.helpers.log_helper.Logger
-        """
-        self._api = api
-        self._logger = logger
-        self._dry_run = dry_run
-        # self._logical_routes = {}
-        self._logical_routes_by_resource_name = defaultdict(set)
-        self._logical_routes_by_segment = {}
-        self._handled_logical_routes = []
-
-    @lru_cache()
-    def _reservations(self):
-        return self._api.GetCurrentReservations().Reservations
-
-    @lru_cache()
-    def _reservation_details(self, reservation_id):
-        return self._api.GetReservationDetails(reservation_id).ReservationDescription
+class RouteOperations(Operations):
+    # def __init__(self, api, logger, dry_run=False):
+    #     """
+    #     :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
+    #     :type logger: cloudshell.migration.helpers.log_helper.Logger
+    #     """
+    #     self._api = api
+    #     self._logger = logger
+    #     self._dry_run = dry_run
+    #     # self._logical_routes = {}
+    #     self._logical_routes_by_resource_name = defaultdict(set)
+    #     self._logical_routes_by_segment = {}
+    #     self._handled_logical_routes = []
 
     # @property
     # def logical_routes_by_resource_name(self):
@@ -226,46 +217,3 @@ class RouteConnectorOperations(object):
                                                  [logical_route.target],
                                                  logical_route.route_type, 2, logical_route.route_alias,
                                                  logical_route.shared)
-
-    def load_connectors(self, resource):
-        """
-        :type resource: cloudshell.migration.entities.Resource
-        """
-        resource.associated_connectors = self._connectors_by_resource_name.get(resource.name, [])
-        return resource
-
-    @property
-    @lru_cache()
-    def _connectors_by_resource_name(self):
-        connector_by_resource_name = defaultdict(list)
-        for reservation in self._reservations:
-            if reservation.Id:
-                details = self._reservation_details(reservation.Id)
-                for connector in details.Connectors:
-                    if connector.Source and connector.Target:
-                        connector_ent = Connector(connector.Source, connector.Target, reservation.Id,
-                                                  connector.Direction, connector.Type, connector.Alias)
-                        connector_by_resource_name[connector.Source.split('/')[0]].append(connector_ent)
-                        connector_by_resource_name[connector.Target.split('/')[0]].append(connector_ent)
-        return connector_by_resource_name
-
-    def update_connector(self, connector):
-        """
-        :param cloudshell.migration.entities.Connector connector:
-        :return:
-        """
-        self._logger.debug('Updating connector {}'.format(connector))
-        self._api.SetConnectorsInReservation(connector.reservation_id, [
-            SetConnectorRequest(connector.source, connector.target, connector.direction, connector.alias)])
-
-    def remove_connector(self, connector):
-        """
-        :param cloudshell.migration.entities.Connector connector:
-        :return:
-        """
-        self._logger.debug('Removing connector {}'.format(connector))
-        self._api.RemoveConnectorsFromReservation(connector.reservation_id, [connector.source, connector.target])
-
-    def add_resource(self, reservation_id, resource_name):
-        self._logger.debug("Adding resource {} to reservation".format(resource_name, reservation_id))
-        return self._api.AddResourcesToReservation(reservation_id, [resource_name])

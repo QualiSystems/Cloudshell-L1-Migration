@@ -3,29 +3,10 @@ from collections import defaultdict
 from backports.functools_lru_cache import lru_cache
 
 from cloudshell.migration.entities import Resource, Port
+from cloudshell.migration.operations.operations import Operations
 
 
-class ResourceOperations(object):
-
-    def __init__(self, api, logger, config_operations, dry_run=False):
-        """
-        :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
-        :type logger: logging.Logger
-        :type config_operations: cloudshell.migration.operations.config_operations.ConfigOperations
-        """
-        self._api = api
-        self._logger = logger
-        self._config_operations = config_operations
-        self._dry_run = dry_run
-
-        self.__resource_details = {}
-
-    @lru_cache()
-    def _get_resource_details(self, resource):
-        """
-        :type resource: cloudshell.migration.entities.Resource
-        """
-        return self._api.GetResourceDetails(resource.name)
+class ResourceOperations(Operations):
 
     @property
     @lru_cache()
@@ -52,13 +33,6 @@ class ResourceOperations(object):
     def resources(self):
         return [resource for name, resource in self.installed_resources.iteritems()]
 
-    def _is_l1_resource(self, resource):
-        resource_details = self._get_resource_details(resource)
-        if resource_details.ResourceFamilyName in self._config_operations.L1_FAMILIES:
-            return True
-        else:
-            return False
-
     def load_resource_attributes(self, resource):
         """
         :type resource: cloudshell.migration.entities.Resource
@@ -66,10 +40,10 @@ class ResourceOperations(object):
 
         resource_details = self._get_resource_details(resource)
         resource_attr_dict = {attr.Name: attr for attr in resource_details.ResourceAttributes}
-        if self._is_l1_resource(resource):
-            attribute_list = self._config_operations.L1_ATTRIBUTES
+        if self.is_l1_resource(resource):
+            attribute_list = self._configuration.L1_ATTRIBUTES
         else:
-            attribute_list = self._config_operations.SHELL_ATTRIBUTES
+            attribute_list = self._configuration.SHELL_ATTRIBUTES
 
         for attr_name in attribute_list:
             attribute = resource_attr_dict.get(attr_name, None) or resource_attr_dict.get(
@@ -84,9 +58,9 @@ class ResourceOperations(object):
         """
         resource_details = self._get_resource_details(resource)
         resource.address = resource_details.RootAddress
+        resource.family = resource_details.ResourceFamilyName
+        resource.model = resource_details.ResourceModelName
         resource.driver = resource_details.DriverName
-        # self.define_resource_ports(resource)
-        # self.define_resource_attributes(resource)
         return resource
 
     def load_resource_ports(self, resource):
@@ -114,7 +88,7 @@ class ResourceOperations(object):
         """
         :type resource_info: cloudshell.api.cloudshell_api.ResourceInfo
         """
-        if not resource_info.ChildResources and resource_info.ResourceFamilyName in self._config_operations.PORT_FAMILIES:
+        if not resource_info.ChildResources and resource_info.ResourceFamilyName in self._configuration.PORT_FAMILIES:
             return True
         else:
             return False
@@ -125,7 +99,6 @@ class ResourceOperations(object):
         """
         if resource_info.Connections:
             connected_to = resource_info.Connections[0].FullPath
-            # connected_to = Port(resource_info.Connections[0].FullPath)
             connection_weight = resource_info.Connections[0].Weight
         else:
             connected_to = None
@@ -168,7 +141,7 @@ class ResourceOperations(object):
         self._api.AutoLoad(resource.name)
         # self.is_loaded = True
         self._api.IncludeResource(resource.name)
-        del self.__resource_details[resource.name]
+        self._load_resource_details(resource)
         return resource
 
     def sync_from_device(self, resource):
@@ -179,28 +152,5 @@ class ResourceOperations(object):
         self._api.ExcludeResource(resource.name)
         self._api.SyncResourceFromDevice(resource.name)
         self._api.IncludeResource(resource.name)
-        if resource.name in self.__resource_details:
-            del self.__resource_details[resource.name]
+        self._load_resource_details(resource)
         return resource
-
-    def update_connection(self, port):
-        """
-        :type port: cloudshell.migration.entities.Port
-        """
-        self._logger.info('---- Updating Connection {}=>{}'.format(port.name, port.connected_to))
-        if not self._dry_run:
-            self._api.UpdatePhysicalConnection(port.name, port.connected_to or '')
-            if port.connected_to and port.connection_weight:
-                self._api.UpdateConnectionWeight(port.name, port.connected_to, port.connection_weight)
-
-    # def add_resource(self, resource):
-    #     AddResourcesToReservation
-
-    # @staticmethod
-    # def define_port_connections(*resources):
-    #     ports = []
-    #     map(lambda x: ports.extend(x.ports), resources)
-    #     for port in ports:
-    #         if port.connected_to and port.connected_to in ports:
-    #             port.connected_to = ports[ports.index(port.connected_to)]
-    #     print ports

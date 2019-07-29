@@ -3,9 +3,9 @@ from copy import copy
 import yaml
 
 from cloudshell.migration.exceptions import MigrationToolException
-from cloudshell.migration.operational_entities.actions import ActionsContainer, CreateRouteAction, RemoveRouteAction, \
+from cloudshell.migration.actions.actions import ActionsContainer, CreateRouteAction, RemoveRouteAction, \
     UpdateConnectionAction, CreateConnectorAction
-from cloudshell.migration.operations.argument_operations import ArgumentOperations
+from cloudshell.migration.helpers.argument_helper import ArgumentOperations
 
 
 class RestoreHandler(object):
@@ -18,7 +18,7 @@ class RestoreHandler(object):
         :type config_operations: cloudshell.migration.operations.config_operations.ConfigOperations
         :type backup_file: str
         :type resource_operations: cloudshell.migration.operations.resource_operations.ResourceOperations
-        :type logical_route_operations: cloudshell.migration.operations.route_connector_operations.RouteConnectorOperations
+        :type logical_route_operations: cloudshell.migration.operations.route_operations.RouteConnectorOperations
         """
         self._api = api
         self._logger = logger

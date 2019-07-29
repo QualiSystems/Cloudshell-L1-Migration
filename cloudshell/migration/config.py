@@ -9,8 +9,34 @@ import yaml
 from backports.functools_lru_cache import lru_cache
 
 
-class ConfigOperations(object):
-    PACKAGE_NAME = 'migration_tool'
+class ConfigAttribute(object):
+    def __init__(self, key, default_value=None):
+        self._key = key
+        self._default_value = default_value
+
+    def __get__(self, instance, owner):
+        """
+        :param Configuration instance:
+        :param owner:
+        :return:
+        """
+        if instance is None:
+            return self
+
+        return instance.read_key(self._key, self._default_value)
+
+    # def __set__(self, instance, value):
+    #     """
+    #     :param Configuration instance:
+    #     :param value:
+    #     :return:
+    #     """
+    #     pass
+
+
+class Configuration(object):
+    PACKAGE_NAME = u'cloudshell-migration'
+    # PACKAGE_NAME = 'migration_tool'
     CONFIG_PATH = os.path.join(click.get_app_dir('Quali'), PACKAGE_NAME, 'cloudshell_config.yml')
     BACKUP_LOCATION = os.path.join(click.get_app_dir('Quali'), PACKAGE_NAME, 'Backup')
     LOG_PATH = os.path.join(click.get_app_dir('Quali'), PACKAGE_NAME, 'Log')
@@ -34,12 +60,12 @@ class ConfigOperations(object):
         ASSOCIATE_BY_NAME = 'by_name'
         ASSOCIATE_BY_PORT_NAME = 'by_port_name'
 
-    ASSOCIATIONS_TABLE = {
+    _ASSOCIATIONS_TABLE = {
         '*/*': {KEY.PATTERN: r'.*/CH(.*)/M(.*)/SM(.*)/P(.*)', KEY.ASSOCIATE_BY_ADDRESS: True,
                 KEY.ASSOCIATE_BY_NAME: True,
                 KEY.ASSOCIATE_BY_PORT_NAME: True},
         'L1 Switch/*': {KEY.PATTERN: r'.*/(.*)/(.*)', KEY.ASSOCIATE_BY_ADDRESS: True, KEY.ASSOCIATE_BY_NAME: True,
-                                     KEY.ASSOCIATE_BY_PORT_NAME: True},
+                        KEY.ASSOCIATE_BY_PORT_NAME: True},
         'L1 Switch/OS-192': {KEY.PATTERN: r'.*/.*/(.*)/(.*)', KEY.ASSOCIATE_BY_ADDRESS: True},
         'Switch/Arista EOS Switch': {KEY.PATTERN: r'.*/.*/(.*)/(.*)', KEY.ASSOCIATE_BY_ADDRESS: True,
                                      KEY.ASSOCIATE_BY_NAME: True,
@@ -63,7 +89,7 @@ class ConfigOperations(object):
                         'Console Server IP Address', 'Console User', 'Power Management', 'Sessions Concurrency Limit',
                         'SNMP Write Community', 'VRF Management Name']
 
-    DEFAULT_CONFIGURATION = {
+    DEFAULT_VALUES = {
         KEY.USERNAME: 'admin',
         KEY.DOMAIN: 'Global',
         KEY.PASSWORD: 'admin',
@@ -76,6 +102,17 @@ class ConfigOperations(object):
         # ASSOCIATIONS_TABLE_KEY: ASSOCIATIONS_TABLE,
     }
 
+    host = ConfigAttribute(KEY.HOST, DEFAULT_VALUES.get(KEY.HOST))
+    username = ConfigAttribute(KEY.USERNAME, DEFAULT_VALUES.get(KEY.USERNAME))
+    password = ConfigAttribute(KEY.PASSWORD, DEFAULT_VALUES.get(KEY.PASSWORD))
+    domain = ConfigAttribute(KEY.DOMAIN, DEFAULT_VALUES.get(KEY.DOMAIN))
+    port = ConfigAttribute(KEY.PORT, DEFAULT_VALUES.get(KEY.PORT))
+    log_path = ConfigAttribute(KEY.LOG_PATH, DEFAULT_VALUES.get(KEY.LOG_PATH))
+    log_level = ConfigAttribute(KEY.LOG_LEVEL, DEFAULT_VALUES.get(KEY.LOG_LEVEL))
+    resource_name_prefix = ConfigAttribute(KEY.NEW_RESOURCE_NAME_PREFIX,
+                                           DEFAULT_VALUES.get(KEY.NEW_RESOURCE_NAME_PREFIX))
+    backup_location = ConfigAttribute(KEY.BACKUP_LOCATION, DEFAULT_VALUES.get(KEY.BACKUP_LOCATION))
+
     def __init__(self, config_path):
         self._config_path = config_path or self.CONFIG_PATH
 
@@ -86,7 +123,7 @@ class ConfigOperations(object):
 
     @property
     def _associations_table(self):
-        return self.ASSOCIATIONS_TABLE
+        return self._ASSOCIATIONS_TABLE
 
     def save(self):
         self._write_configuration(self.configuration)
@@ -99,7 +136,7 @@ class ConfigOperations(object):
 
     def _read_configuration(self):
         """Read configuration from file if exists or use default"""
-        if ConfigOperations._config_path_is_ok(self._config_path):
+        if Configuration._config_path_is_ok(self._config_path):
             with open(self._config_path, 'r') as config:
                 configuration = yaml.load(config)
                 if configuration:
@@ -108,15 +145,15 @@ class ConfigOperations(object):
                     # if self._update_configuration(configuration):
                     #     self._write_configuration(configuration)
                 else:
-                    configuration = self.DEFAULT_CONFIGURATION
+                    configuration = self.DEFAULT_VALUES
 
         else:
-            configuration = self.DEFAULT_CONFIGURATION
+            configuration = self.DEFAULT_VALUES
         return configuration
 
     def _update_configuration(self, configuration):
         updated = False
-        for key, value in self.DEFAULT_CONFIGURATION.iteritems():
+        for key, value in self.DEFAULT_VALUES.iteritems():
             if key not in configuration:
                 configuration[key] = value
                 updated = True
@@ -144,7 +181,7 @@ class ConfigOperations(object):
                 return association_conf
 
     def _write_configuration(self, configuration):
-        if not ConfigOperations._config_path_is_ok(self._config_path):
+        if not Configuration._config_path_is_ok(self._config_path):
             try:
                 os.makedirs(os.path.dirname(self._config_path))
             except OSError:
@@ -171,7 +208,7 @@ class ConfigOperations(object):
         return value or default_value
 
     def read_key_or_default(self, key):
-        return self.read_key(key, self.DEFAULT_CONFIGURATION.get(key))
+        return self.read_key(key, self.DEFAULT_VALUES.get(key))
 
 
 class PasswordModification(object):
@@ -182,21 +219,21 @@ class PasswordModification(object):
         Encrypt password
         :type data: dict
         """
-        value = data.get(ConfigOperations.KEY.PASSWORD)
+        value = data.get(Configuration.KEY.PASSWORD)
         encryption_key = PasswordModification._get_encryption_key()
         encoded = PasswordModification._decode_encode(value, encryption_key)
-        data[ConfigOperations.KEY.PASSWORD] = base64.b64encode(encoded)
+        data[Configuration.KEY.PASSWORD] = base64.b64encode(encoded)
         return data
 
     @staticmethod
     def decrypt_password(data):
-        value = data.get(ConfigOperations.KEY.PASSWORD)
+        value = data.get(Configuration.KEY.PASSWORD)
         try:
             encryption_key = PasswordModification._get_encryption_key()
             decoded = PasswordModification._decode_encode(base64.decodestring(value), encryption_key)
-            data[ConfigOperations.KEY.PASSWORD] = decoded
+            data[Configuration.KEY.PASSWORD] = decoded
         except binascii.Error:
-            data[ConfigOperations.KEY.PASSWORD] = value
+            data[Configuration.KEY.PASSWORD] = value
         return data
 
     @staticmethod
