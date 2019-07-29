@@ -97,7 +97,7 @@ class LogicalRouteAction(Action):
     def __init__(self, logical_route, logical_route_operations, logger):
         """
         :type logical_route:  cloudshell.migration.entities.LogicalRoute
-        :type logical_route_operations: cloudshell.migration.operations.route_connector_operations.RouteConnectorOperations
+        :type logical_route_operations: cloudshell.migration.operations.route_operations.RouteConnectorOperations
         """
         super(LogicalRouteAction, self).__init__(logger)
         self.logical_route = logical_route
@@ -238,7 +238,7 @@ class ConnectorAction(Action):
     def __init__(self, connector, route_connector_operations, logger):
         """
         :type connector:
-        :type route_connector_operations: cloudshell.migration.operations.route_connector_operations.RouteConnectorOperations
+        :type route_connector_operations: cloudshell.migration.operations.route_operations.RouteConnectorOperations
         :type logger: cloudshell.migration.helpers.log_helper.Logger
         """
         super(ConnectorAction, self).__init__(logger)
@@ -270,7 +270,7 @@ class CreateConnectorAction(ConnectorAction):
     def __init__(self, connector, route_connector_operations, associations_table, logger):
         """
         :type connector:
-        :type route_connector_operations: cloudshell.migration.operations.route_connector_operations.RouteConnectorOperations
+        :type route_connector_operations: cloudshell.migration.operations.route_operations.RouteConnectorOperations
         :type associations_table: dict
         :type logger: cloudshell.migration.helpers.log_helper.Logger
         """
@@ -296,7 +296,7 @@ class UpdateConnectorAction(RemoveConnectorAction, CreateConnectorAction):
     def __init__(self, connector, route_connector_operations, associations_table, logger):
         """
         :type connector:
-        :type route_connector_operations: cloudshell.migration.operations.route_connector_operations.RouteConnectorOperations
+        :type route_connector_operations: cloudshell.migration.operations.route_operations.RouteConnectorOperations
         :type associations_table: dict
         :type logger: cloudshell.migration.helpers.log_helper.Logger
         """

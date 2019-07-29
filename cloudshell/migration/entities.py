@@ -1,6 +1,5 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from cloudshell.migration.operations.config_operations import ConfigOperations
 
 
 class Resource(object):
@@ -27,14 +26,14 @@ class Resource(object):
     def __eq__(self, other):
         return self.name == other.name
 
+    def __hash__(self):
+        return hash(self.name)
+
     def __repr__(self):
         return self.to_string()
 
     def __copy__(self):
         return Resource(self.name, self.address, self.family, self.model, self.driver, self.exist)
-
-    def l1_resource(self):
-        return self.family in ConfigOperations.L1_FAMILIES
 
 
 class Port(object):

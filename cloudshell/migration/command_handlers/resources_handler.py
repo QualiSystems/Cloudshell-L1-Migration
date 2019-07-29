@@ -1,28 +1,23 @@
+import os
+
 from cloudshell.migration.entities import Resource
 from cloudshell.migration.operational_entities.config_unit import ConfigUnit
+from cloudshell.migration.operations.resource_operations import ResourceOperations
 
 
 class ResourcesHandler(object):
 
-    def __init__(self, api):
-        self._api = api
-        self.__installed_resources = None
+    def __init__(self, logger, resource_operations):
+        """
+        :param logger:
+        :param cloudshell.migration.operations.resource_operations.ResourceOperations resource_operations:
+        """
+        self._logger = logger
+        self._resource_operations = resource_operations
 
     def show_resources(self, family):
-        resources_output = '\n'.join([res.to_string() for res in self._get_installed_resources(family)])
-        return ConfigUnit.FORMAT + '\n' + resources_output
-
-    def _get_installed_resources(self, family=None):
-        resources_list = []
-        for resource in self._api.GetResourceList().Resources:
-            resource_family = resource.ResourceFamilyName
-            if family and resource_family != family:
-                continue
-            address = resource.Address
-            name = resource.Name
-            model = resource.ResourceModelName
-            details = self._api.GetResourceDetails(name)
-            driver = details.DriverName
-            # driver = None
-            resources_list.append(Resource(name, address, resource_family, model, driver, True))
-        return resources_list
+        resource_list = []
+        for resource in self._resource_operations.installed_resources:
+            if not family or resource.family == family:
+                resource_list.append(resource.to_string())
+        return os.linesep.join(resource_list)

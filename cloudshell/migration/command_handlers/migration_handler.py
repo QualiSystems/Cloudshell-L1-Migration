@@ -2,35 +2,48 @@ from collections import defaultdict
 from copy import copy
 
 from cloudshell.migration.exceptions import MigrationToolException
-from cloudshell.migration.helpers.port_associator import PortAssociator
-from cloudshell.migration.operational_entities.actions import ActionsContainer, \
+from cloudshell.migration.associations.port_associator import PortAssociator
+from cloudshell.migration.actions.actions import ActionsContainer, \
     UpdateConnectionAction, UpdateBlueprintAction, UpdateRouteAction, \
     UpdateConnectorAction, UpdateL1RouteAction
-from cloudshell.migration.operations.argument_operations import ArgumentOperations
+from cloudshell.migration.factory import Factory
+from cloudshell.migration.helpers.argument_helper import ArgumentOperations
 
 
 class MigrationHandler(object):
 
-    def __init__(self, api, logger, config_operations, resource_operations, logical_route_operations,
-                 topologies_operations, quali_api):
+    def __init__(self, logger, configuration, resource_operations, connection_operations, route_operations,
+                 connector_operations, topologies_operations, package_operations):
         """
-        :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
         :type logger: logging.Logger
-        :type config_operations: cloudshell.migration.operations.config_operations.ConfigOperations
+        :type configuration: cloudshell.migration.config.Configuration
         :type resource_operations: cloudshell.migration.operations.resource_operations.ResourceOperations
-        :type logical_route_operations: cloudshell.migration.operations.route_connector_operations.RouteConnectorOperations
+        :type connection_operations: loudshell.migration.operations.connection_operations.ConnectionOperations
+        :type route_operations: cloudshell.migration.operations.route_operations.RouteOperations
+        :type connector_operations: cloudshell.migration.operations.connector_operations.ConnectorOperations
         :type topologies_operations: cloudshell.migration.operations.blueprint_operations.TopologiesOperations
-        :type quali_api: cloudshell.migration.libs.quali_api.QualiAPISession
+        :type package_operations: cloudshell.migration.operations.blueprint_operations.PackageOperations
         """
-        self._api = api
         self._logger = logger
-        self._config_operations = config_operations
+        self._configuration = configuration
         self._resource_operations = resource_operations
-        self._route_connector_operations = logical_route_operations
+        self._connection_operations = connection_operations
+        self._route_operations = route_operations
+        self._connector_operations = connector_operations
         self._topologies_operations = topologies_operations
-        self.quali_api = quali_api
+        self._package_operations = package_operations
         self._updated_connections = {}
         self._associations_table = {}
+
+    @classmethod
+    def from_factory(cls, factory):
+        """
+        :param cloudshell.migration.factory.Factory factory:
+        :return:
+        """
+        return cls(factory.logger, factory.configuration, factory.resource_operations, factory.connection_operations,
+                   factory.route_operations, factory.connector_operations, factory.topologies_operations,
+                   factory.package_operations)
 
     def define_resources_pairs(self, src_resources_arguments, dst_resources_arguments):
         argument_parser = ArgumentOperations(self._logger, self._resource_operations)
@@ -66,8 +79,7 @@ class MigrationHandler(object):
         if not dst.exist:
             self._resource_operations.update_details(src)
             if not dst.name:
-                dst.name = self._config_operations.read_key_or_default(
-                    self._config_operations.KEY.NEW_RESOURCE_NAME_PREFIX) + src.name
+                dst.name = self._configuration.resource_name_prefix + src.name
             dst.address = src.address
             self._resource_operations.create_resource(dst)
 
@@ -139,7 +151,7 @@ class MigrationHandler(object):
         for pair in resources_pairs:
             src_resource, dst_resource = pair
             self._load_resources(pair)
-            port_associator = PortAssociator(src_resource, dst_resource, self._config_operations, self._logger)
+            port_associator = PortAssociator(src_resource, dst_resource, self._configuration, self._logger)
             self._associations_table.update(port_associator.association_table())
             actions_container.update(self._initialize_connection_actions(port_associator, override))
             actions_container.update(self._initialize_logical_route_actions(pair))
@@ -150,6 +162,7 @@ class MigrationHandler(object):
 
     def _initialize_logical_route_actions(self, resource_pair):
         src_resource = resource_pair[0]
+
         action_class = UpdateL1RouteAction if src_resource.l1_resource else UpdateRouteAction
         update_route_actions = map(
             lambda logical_route: action_class(logical_route, self._route_connector_operations,
@@ -159,7 +172,7 @@ class MigrationHandler(object):
 
     def _initialize_connection_actions(self, port_associator, override):
         # src_resource, dst_resource = resource_pair
-        # port_associator = PortAssociator(src_resource, dst_resource, self._config_operations, self._logger)
+        # port_associator = PortAssociator(src_resource, dst_resource, self._configuration, self._logger)
 
         connection_actions = []
 

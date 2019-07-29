@@ -9,28 +9,16 @@ from backports.functools_lru_cache import lru_cache
 
 from cloudshell.migration.entities import LogicalRoute, Connector
 from cloudshell.migration.helpers.xml_helper import XMLHelper
+from cloudshell.migration.operations.operations import Operations
 
 
-class TopologiesOperations(object):
-    def __init__(self, api, logger, dry_run=False):
-        """
-        :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
-        :type logger: cloudshell.migration.helpers.log_helper.Logger
-        """
-        self._api = api
-        self._logger = logger
-        self._dry_run = dry_run
-
-    @property
-    @lru_cache()
-    def _reservations_info(self):
-        return self._api.GetCurrentReservations()
+class TopologiesOperations(Operations):
 
     @property
     @lru_cache()
     def active_topologies(self):
         topologies = []
-        for reservation in self._reservations_info.Reservations:
+        for reservation in self._reservations:
             topologies.extend(reservation.Topologies)
         return topologies
 
@@ -98,13 +86,14 @@ class PackageOperations(object):
     RESOURCE_XML_TEMPLATE = '<Resource Name="" Shared="true">'
 
     # SUB_RESOURCE_XML_TEMPLATE='<Resource Name="Chassis 1" Shared="true"/>'
-    def __init__(self, quali_api, logger):
+    def __init__(self, quali_api, logger, dry_run):
         """
         :type quali_api: cloudshell.migration.libs.quali_api.QualiAPISession
         :type logger: cloudshell.migration.helpers.log_helper.Logger
         """
         self._quali_api = quali_api
         self._logger = logger
+        self._dry_run = dry_run
         self._tmp_dir = tempfile.mkdtemp()
         self._package_name = None
         self._package_file = None
