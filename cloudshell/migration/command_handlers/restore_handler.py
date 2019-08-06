@@ -3,7 +3,7 @@ from copy import copy
 import yaml
 
 from cloudshell.migration.exceptions import MigrationToolException
-from cloudshell.migration.actions.actions import ActionsContainer, CreateRouteAction, RemoveRouteAction, \
+from cloudshell.migration.actions.core import ActionsContainer, CreateRouteAction, RemoveRouteAction, \
     UpdateConnectionAction, CreateConnectorAction
 from cloudshell.migration.helpers.argument_helper import ArgumentOperations
 

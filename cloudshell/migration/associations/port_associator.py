@@ -1,4 +1,5 @@
 import re
+from abc import ABCMeta, abstractmethod
 
 from backports.functools_lru_cache import lru_cache
 
@@ -17,15 +18,29 @@ class PortAssociator(object):
         self._config_operations = config_operations
         self._logger = logger
 
-        self._src_association_configuration = self._config_operations.get_association_configuration(
+    @property
+    @lru_cache()
+    def _src_association_configuration(self):
+        return self._config_operations.get_association_configuration(
             self._src_resource.family, self._src_resource.model)
-        self._dst_association_configuration = self._config_operations.get_association_configuration(
+
+    @property
+    @lru_cache()
+    def _dst_association_configuration(self):
+        return self._config_operations.get_association_configuration(
             self._dst_resource.family, self._dst_resource.model)
 
-        self._src_port_pattern = re.compile(
+    @property
+    @lru_cache()
+    def _src_port_pattern(self):
+        return re.compile(
             self._src_association_configuration.get(self._config_operations.KEY.PATTERN),
             re.IGNORECASE)
-        self._dst_port_pattern = re.compile(
+
+    @property
+    @lru_cache()
+    def _dst_port_pattern(self):
+        return re.compile(
             self._dst_association_configuration.get(self._config_operations.KEY.PATTERN),
             re.IGNORECASE)
 
@@ -58,7 +73,7 @@ class PortAssociator(object):
                 else:
                     self._logger.warning('Cannot find associated port for {}'.format(src_port))
 
-    def association_table(self):
+    def associations_table(self):
         association_table = {}
         for src_port in self._src_resource.ports:
             associated_dst_port = self.associate_dst_port(src_port)
@@ -127,3 +142,6 @@ class PortAssociator(object):
         :rtype: str
         """
         return port_name.split("/")[-1]
+
+    def valid(self):
+        return True

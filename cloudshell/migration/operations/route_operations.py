@@ -68,7 +68,7 @@ class RouteOperations(Operations):
     @lru_cache()
     def _logical_routes_table(self):
         routes_table = {}
-        for reservation in self._reservations():
+        for reservation in self._reservations:
             if reservation.Id:
                 details = self._reservation_details(reservation.Id)
                 active_ri = details.ActiveRoutesInfo
