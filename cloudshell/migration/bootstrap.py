@@ -25,7 +25,7 @@ def cli(ctx, version):
     if version:
         version = pkg_resources.get_distribution(Configuration.PACKAGE_NAME).version
         click.echo('Version: {}'.format(version))
-        sys.exit(0)
+        ctx.exit(0)
     else:
         if not ctx.invoked_subcommand:
             click.echo(ctx.get_help())
@@ -75,7 +75,13 @@ def show(config_path, family):
     configuration = Configuration(config_path)
     factory = Factory(configuration)
     resources_handler = ResourcesHandler(factory.logger, factory.resource_operations)
-    click.echo(resources_handler.show_resources(family))
+    click.echo('NAME/FAMILY/MODEL/DRIVER')
+    dd = resources_handler.show_resources(family)
+    # click.echo(resources_handler.show_resources(family))
+    click.echo(dd)
+    click.echo('dsadasdad')
+    # resources_handler.show_resources(family)
+    # resources_handler.show_resources(family)
 
 
 @cli.command()
@@ -92,7 +98,8 @@ def show(config_path, family):
                    'You are advised to create a backup file before performing any migration.)')
 @click.argument(u'src_resources', type=str, default=None, required=True)
 @click.argument(u'dst_resources', type=str, default=None, required=True)
-def migrate(config_path, dry_run, src_resources, dst_resources, yes, backup_file, no_backup, override):
+@click.pass_context
+def migrate(ctx, config_path, dry_run, src_resources, dst_resources, yes, backup_file, no_backup, override):
     """
     Migrate connections from source (SRC) resource(s) to destination (DST) resource(s),
     for example specifying the Family/Model, or a comma-separated list of the source resources to migrate.
@@ -129,7 +136,7 @@ def migrate(config_path, dry_run, src_resources, dst_resources, yes, backup_file
 
     if not yes and not click.confirm('Do you want to continue?'):
         click.echo('Aborted')
-        sys.exit(1)
+        ctx.exit(1)
 
     # if not no_backup and not dry_run:
     #     backup_handler = BackupHandler(api, logger, configuration, backup_file, resource_operations,
@@ -146,13 +153,13 @@ def migrate(config_path, dry_run, src_resources, dst_resources, yes, backup_file
 
 
 @cli.command()
-@click.option(u'--config', 'config_path', default=None, help="Backup using a custom yaml config file.",
+@click.option(u'--config', u'-c', 'config_path', default=None, help="Backup using a custom yaml config file.",
               metavar="FILE-PATH")
 @click.option(u'--backup-file', default=None, help="Backup to a different yaml file.", metavar="BACKUP FILE-PATH")
 @click.option(u'--connections', is_flag=True, default=False, help="Backup connections only.")
 @click.option(u'--routes', is_flag=True, default=False, help="Backup routes.")
 @click.option(u'--connectors', 'connectors', default=True, help="Backup connectors.")
-@click.option(u'--yes', is_flag=True, default=False, help='Assume "yes" to all questions.')
+@click.option(u'--yes', u'-y', is_flag=True, default=False, help='Assume "yes" to all questions.')
 @click.argument(u'resources', type=str, default=None, required=False, metavar='RESOURCES')
 def backup(config_path, backup_file, resources, connections, routes, connectors, yes):
     """
@@ -160,28 +167,28 @@ def backup(config_path, backup_file, resources, connections, routes, connectors,
 
     RESOURCES: Comma-separated list of the names of the desired resources.
     """
-    config_operations = Configuration(config_path)
-
-    api = _initialize_api(config_operations)
-    logger = _initialize_logger(config_operations)
-    resource_operations = ResourceOperations(api, logger, config_operations)
-    logical_route_operations = RouteOperations(api, logger)
-    backup_handler = BackupHandler(api, logger, config_operations, backup_file, resource_operations,
-                                   logical_route_operations)
-    with ExceptionLogger(logger):
-        resources = backup_handler.initialize_resources(resources)
-
-    click.echo('Resources to backup:')
-    for resource in resources:
-        click.echo(resource.to_string())
-    if not yes and not click.confirm('Do you want to continue?'):
-        click.echo('Aborted')
-        sys.exit(1)
-
-    with ExceptionLogger(logger):
-        backup_file = backup_handler.backup_resources(resources, connections, routes, connectors)
-        click.echo('Backup File: {}'.format(backup_file))
-    click.echo('Backup done')
+    configuration = Configuration(config_path)
+    factory = Factory(configuration)
+    # api = _initialize_api(config_operations)
+    # logger = _initialize_logger(config_operations)
+    # resource_operations = ResourceOperations(api, logger, config_operations)
+    # logical_route_operations = RouteOperations(api, logger)
+    # backup_handler = BackupHandler(api, logger, config_operations, backup_file, resource_operations,
+    #                                logical_route_operations)
+    # with ExceptionLogger(logger):
+    #     resources = backup_handler.initialize_resources(resources)
+    #
+    # click.echo('Resources to backup:')
+    # for resource in resources:
+    #     click.echo(resource.to_string())
+    # if not yes and not click.confirm('Do you want to continue?'):
+    #     click.echo('Aborted')
+    #     sys.exit(1)
+    #
+    # with ExceptionLogger(logger):
+    #     backup_file = backup_handler.backup_resources(resources, connections, routes, connectors)
+    #     click.echo('Backup File: {}'.format(backup_file))
+    # click.echo('Backup done')
 
 
 @cli.command()
@@ -208,27 +215,27 @@ def restore(config_path, backup_file, dry_run, resources, connections, routes, c
         You do not need to specify the full path from the root of the desired resource(s).
             However, the tool will create the new resource(s) in the root.
     """
-    config_operations = Configuration(config_path)
-    api = _initialize_api(config_operations)
-    logger = _initialize_logger(config_operations)
-    resource_operations = ResourceOperations(api, logger, config_operations, dry_run)
-    logical_route_operations = RouteOperations(api, logger, dry_run)
-    restore_handler = RestoreHandler(api, logger, config_operations, backup_file, resource_operations,
-                                     logical_route_operations)
-    with ExceptionLogger(logger):
-        resources = restore_handler.initialize_resources(resources)
-        actions_container = restore_handler.define_actions(resources, connections, routes, connectors, override)
-
-    if actions_container.is_empty():
-        click.echo('Nothing to do')
-        sys.exit(0)
-    click.echo('Next actions will be executed:')
-    click.echo(actions_container.to_string())
-    if not yes and not click.confirm('Do you want to continue?'):
-        click.echo('Aborted')
-        sys.exit(1)
-    with ExceptionLogger(logger):
-        click.echo("Executing actions:")
-        for action in actions_container.sequence():
-            result = action.execute()
-            click.echo(result)
+    configuration = Configuration(config_path)
+    # api = _initialize_api(config_operations)
+    # logger = _initialize_logger(config_operations)
+    # resource_operations = ResourceOperations(api, logger, config_operations, dry_run)
+    # logical_route_operations = RouteOperations(api, logger, dry_run)
+    # restore_handler = RestoreHandler(api, logger, config_operations, backup_file, resource_operations,
+    #                                  logical_route_operations)
+    # with ExceptionLogger(logger):
+    #     resources = restore_handler.initialize_resources(resources)
+    #     actions_container = restore_handler.define_actions(resources, connections, routes, connectors, override)
+    #
+    # if actions_container.is_empty():
+    #     click.echo('Nothing to do')
+    #     sys.exit(0)
+    # click.echo('Next actions will be executed:')
+    # click.echo(actions_container.to_string())
+    # if not yes and not click.confirm('Do you want to continue?'):
+    #     click.echo('Aborted')
+    #     sys.exit(1)
+    # with ExceptionLogger(logger):
+    #     click.echo("Executing actions:")
+    #     for action in actions_container.sequence():
+    #         result = action.execute()
+    #         click.echo(result)

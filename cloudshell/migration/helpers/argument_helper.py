@@ -2,7 +2,7 @@ from cloudshell.migration.exceptions import MigrationToolException
 from cloudshell.migration.operational_entities.config_unit import ConfigUnit
 
 
-class ArgumentOperations(object):
+class ArgumentParser(object):
     RESOURCE_SEPARATOR = ','
 
     def __init__(self, logger, resource_operations):
