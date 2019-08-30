@@ -1,20 +1,14 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-import sys
 
 import click
 import pkg_resources
 
-from cloudshell.migration.command_handlers.backup_handler import BackupHandler
-from cloudshell.migration.command_handlers.configuration_handler import ConfigurationHandler
-from cloudshell.migration.command_handlers.migration_handler import MigrationHandler
-from cloudshell.migration.command_handlers.resources_handler import ResourcesHandler
-from cloudshell.migration.command_handlers.restore_handler import RestoreHandler
-from cloudshell.migration.config import Configuration
-from cloudshell.migration.factory import Factory
+from cloudshell.migration.configuration.config import Configuration
+from cloudshell.migration.core.operations.factory import OperationsFactory
+from cloudshell.migration.factory import CoreFactory
 from cloudshell.migration.helpers.log_helper import ExceptionLogger
-from cloudshell.migration.operations.resource_operations import ResourceOperations
-from cloudshell.migration.operations.route_operations import RouteOperations
+from cloudshell.migration.resource.builder import Builder
 
 
 @click.group(invoke_without_command=True)
@@ -73,8 +67,9 @@ def show(config_path, family):
     Show L1 resources.
     """
     configuration = Configuration(config_path)
-    factory = Factory(configuration)
-    resources_handler = ResourcesHandler(factory.logger, factory.resource_operations)
+    core_factory = CoreFactory(configuration)
+    operations_factory = OperationsFactory(core_factory, configuration)
+    resources_handler = ResourcesHandler(core_factory.logger, operations_factory.resource_operations)
     click.echo('NAME/FAMILY/MODEL/DRIVER')
     dd = resources_handler.show_resources(family)
     # click.echo(resources_handler.show_resources(family))
@@ -107,14 +102,12 @@ def migrate(ctx, config_path, dry_run, src_resources, dst_resources, yes, backup
     https://github.com/QualiSystems/Cloudshell-L1-Migration/blob/master/README.md.
     """
     configuration = Configuration(config_path)
-    factory = Factory(configuration, dry_run)
-    # api = _initialize_api(configuration)
-    # quali_api = initialize_quali_api(configuration)
-    # logger = _initialize_logger(configuration)
-    # resource_operations = ResourceOperations(api, logger, configuration, dry_run)
-    # connection_operations = ConnectionOperations(api, logger, configuration, dry_run)
-    # logical_route_operations = RouteOperations(api, logger, dry_run)
-    # topologies_operations = TopologiesOperations(api, logger, configuration, dry_run)
+    core_factory = CoreFactory(configuration)
+    operations_factory = OperationsFactory(core_factory, core_factory, dry_run)
+
+    resource_builder = Builder(core_factory.logger, core_factory, operations_factory.resource_operations)
+    resources_pairs = resource_builder.define_resources_pairs_from_args(src_resources, dst_resources)
+
     migration_handler = MigrationHandler.from_factory(factory)
     with ExceptionLogger(factory.logger):
         resources_pairs = migration_handler.define_resources_pairs(src_resources, dst_resources)

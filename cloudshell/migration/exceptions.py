@@ -4,3 +4,7 @@
 
 class MigrationToolException(Exception):
     pass
+
+
+class AssociationException(MigrationToolException):
+    pass
