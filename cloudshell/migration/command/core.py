@@ -4,5 +4,5 @@ class Command(object):
         :param cloudshell.migration.configuration.config.Configuration configuration:
         :param logging.Logger logger:
         """
-        self.configuration = configuration
-        self.logger = logger
+        self._configuration = configuration
+        self._logger = logger
