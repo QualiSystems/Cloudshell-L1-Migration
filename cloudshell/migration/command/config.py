@@ -5,13 +5,14 @@ import click
 from cloudshell.migration.configuration.config import Configuration
 
 
-class ConfigurationHandler(object):
+class ConfigFlow(object):
     NEW_LINE = os.linesep
 
     def __init__(self, logger, configuration):
         """
-        :type logger: logging.Logger
-        :type configuration: cloudshell.migration.config.Configuration
+
+        :param logging.Logger logger:
+        :param cloudshell.migration.configuration.config.Configuration configuration:
         """
         self.logger = logger
         self._configuration = configuration

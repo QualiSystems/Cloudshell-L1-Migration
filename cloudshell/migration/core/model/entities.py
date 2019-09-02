@@ -44,7 +44,6 @@ class ResourcesPair(object):
         """
         self.src_resource = src_resource
         self.dst_resource = dst_resource
-        self.updated_connections = {}
 
     def __hash__(self):
         return hash(self.src_resource) | hash(self.dst_resource)

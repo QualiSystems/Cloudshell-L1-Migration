@@ -1,12 +1,14 @@
 from copy import copy
 
+import click
+
 from cloudshell.migration.core.model.entities import ResourcesPair
 from cloudshell.migration.exceptions import MigrationToolException
 from cloudshell.migration.resource.parser import ArgumentParser
 
 
-class Builder(object):
-    def __init__(self, logger, configuration, resource_operations):
+class ResourceBuilder(object):
+    def __init__(self, logger, configuration, resource_operations, confirmed=False):
         """
         :type logger: logging.Logger
         :type configuration: cloudshell.migration.config.Configuration
@@ -16,6 +18,7 @@ class Builder(object):
         self._configuration = configuration
         self._resource_operations = resource_operations
         self._argument_parser = ArgumentParser(self._logger, self._resource_operations)
+        self._confirmed = confirmed
 
     def define_resources_pairs_from_args(self, src_resources_arguments, dst_resources_arguments):
         src_resources = self._argument_parser.initialize_existing_resources(src_resources_arguments)
@@ -63,6 +66,9 @@ class Builder(object):
                 dst.name = self._configuration.resource_name_prefix + src.name
             dst.address = src.address
             self._resource_operations.create_resource(dst)
+            click.echo("Creating resource {}".format(str(dst)))
+            if not self._confirmed and not click.confirm('Do you want to continue?'):
+                raise click.ClickException('Aborted.')
 
             # Sync attributes
             self._resource_operations.load_resource_attributes(src)

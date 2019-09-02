@@ -1,7 +1,7 @@
 import os
 
 
-class ResourcesHandler(object):
+class ShowFlow(object):
 
     def __init__(self, logger, resource_operations):
         """

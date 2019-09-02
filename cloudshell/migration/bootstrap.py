@@ -3,12 +3,14 @@
 
 import click
 import pkg_resources
-
+from cloudshell.migration.association.port.port_associator import PortAssociator
+from cloudshell.migration.command.config import ConfigFlow
+from cloudshell.migration.command.migrate import MigrateFlow
+from cloudshell.migration.command.show import ShowFlow
 from cloudshell.migration.configuration.config import Configuration
 from cloudshell.migration.core.operations.factory import OperationsFactory
 from cloudshell.migration.factory import CoreFactory
-from cloudshell.migration.helpers.log_helper import ExceptionLogger
-from cloudshell.migration.resource.builder import Builder
+from cloudshell.migration.resource.resourcebuilder import ResourceBuilder
 
 
 @click.group(invoke_without_command=True)
@@ -38,8 +40,9 @@ def config(key, value, config_path):
     Set configuration parameters.
     """
     configuration = Configuration(config_path)
-    factory = Factory(configuration)
-    configuration_handler = ConfigurationHandler(factory.logger, configuration)
+    core_factory = CoreFactory(configuration)
+
+    config_flow = ConfigFlow(core_factory.logger, configuration)
 
     # if patterns_table:
     #     if key and value:
@@ -51,11 +54,11 @@ def config(key, value, config_path):
     #         click.echo(configuration_handler.get_patterns_table_description())
     # else:
     if key and value:
-        configuration_handler.set_key_value(key, value)
+        config_flow.set_key_value(key, value)
     elif key:
-        click.echo(configuration_handler.get_key_value(key))
+        click.echo(config_flow.get_key_value(key))
     else:
-        click.echo(configuration_handler.get_config_description())
+        click.echo(config_flow.get_config_description())
 
 
 @cli.command()
@@ -69,14 +72,9 @@ def show(config_path, family):
     configuration = Configuration(config_path)
     core_factory = CoreFactory(configuration)
     operations_factory = OperationsFactory(core_factory, configuration)
-    resources_handler = ResourcesHandler(core_factory.logger, operations_factory.resource_operations)
+    show_flow = ShowFlow(core_factory.logger, operations_factory.resource_operations)
     click.echo('NAME/FAMILY/MODEL/DRIVER')
-    dd = resources_handler.show_resources(family)
-    # click.echo(resources_handler.show_resources(family))
-    click.echo(dd)
-    click.echo('dsadasdad')
-    # resources_handler.show_resources(family)
-    # resources_handler.show_resources(family)
+    click.echo(show_flow.show_resources(family))
 
 
 @cli.command()
@@ -105,44 +103,47 @@ def migrate(ctx, config_path, dry_run, src_resources, dst_resources, yes, backup
     core_factory = CoreFactory(configuration)
     operations_factory = OperationsFactory(core_factory, core_factory, dry_run)
 
-    resource_builder = Builder(core_factory.logger, core_factory, operations_factory.resource_operations)
-    resources_pairs = resource_builder.define_resources_pairs_from_args(src_resources, dst_resources)
+    resource_builder = ResourceBuilder(core_factory.logger, core_factory, operations_factory.resource_operations, yes)
+    associator = PortAssociator(configuration, core_factory.logger)
 
-    migration_handler = MigrationHandler.from_factory(factory)
-    with ExceptionLogger(factory.logger):
-        resources_pairs = migration_handler.define_resources_pairs(src_resources, dst_resources)
-        actions_container = migration_handler.initialize_actions(resources_pairs, override)
-    # print(resources_pairs)
+    migration_flow = MigrateFlow(core_factory, operations_factory, configuration, resource_builder, associator)
+    migration_flow.execute_migrate_flow(src_resources, dst_resources, yes, override)
 
-    click.echo('Resources:')
-    for pair in resources_pairs:
-        click.echo('{0}=>{1}'.format(*pair))
-
-    click.echo('Next actions will be executed:')
-    click.echo(actions_container.to_string())
-
-    if no_backup:
-        click.echo('---- Backup will be skipped! ----')
-
-    if dry_run:
-        click.echo('*' * 10 + ' DRY RUN: Logical routes and connections will not be changed ' + '*' * 10)
-
-    if not yes and not click.confirm('Do you want to continue?'):
-        click.echo('Aborted')
-        ctx.exit(1)
-
-    # if not no_backup and not dry_run:
-    #     backup_handler = BackupHandler(api, logger, configuration, backup_file, resource_operations,
-    #                                    logical_route_operations)
-    #     with ExceptionLogger(logger):
-    #         backup_file = backup_handler.backup_resources([src for src, dst in resources_pairs])
-    #         click.echo('Backup File: {}'.format(backup_file))
-
-    with ExceptionLogger(factory.logger):
-        click.echo("Executing actions:")
-        for action in actions_container.sequence():
-            result = action.execute()
-            click.echo(result)
+    # migration_handler = MigrationHandler.from_factory(factory)
+    # with ExceptionLogger(factory.logger):
+    #     resources_pairs = migration_handler.define_resources_pairs(src_resources, dst_resources)
+    #     actions_container = migration_handler.initialize_actions(resources_pairs, override)
+    # # print(resources_pairs)
+    #
+    # click.echo('Resources:')
+    # for pair in resources_pairs:
+    #     click.echo('{0}=>{1}'.format(*pair))
+    #
+    # click.echo('Next actions will be executed:')
+    # click.echo(actions_container.to_string())
+    #
+    # if no_backup:
+    #     click.echo('---- Backup will be skipped! ----')
+    #
+    # if dry_run:
+    #     click.echo('*' * 10 + ' DRY RUN: Logical routes and connections will not be changed ' + '*' * 10)
+    #
+    # if not yes and not click.confirm('Do you want to continue?'):
+    #     click.echo('Aborted')
+    #     ctx.exit(1)
+    #
+    # # if not no_backup and not dry_run:
+    # #     backup_handler = BackupHandler(api, logger, configuration, backup_file, resource_operations,
+    # #                                    logical_route_operations)
+    # #     with ExceptionLogger(logger):
+    # #         backup_file = backup_handler.backup_resources([src for src, dst in resources_pairs])
+    # #         click.echo('Backup File: {}'.format(backup_file))
+    #
+    # with ExceptionLogger(factory.logger):
+    #     click.echo("Executing actions:")
+    #     for action in actions_container.sequence():
+    #         result = action.execute()
+    #         click.echo(result)
 
 
 @cli.command()
@@ -161,7 +162,8 @@ def backup(config_path, backup_file, resources, connections, routes, connectors,
     RESOURCES: Comma-separated list of the names of the desired resources.
     """
     configuration = Configuration(config_path)
-    factory = Factory(configuration)
+    pass
+    # factory = Factory(configuration)
     # api = _initialize_api(config_operations)
     # logger = _initialize_logger(config_operations)
     # resource_operations = ResourceOperations(api, logger, config_operations)
@@ -209,6 +211,7 @@ def restore(config_path, backup_file, dry_run, resources, connections, routes, c
             However, the tool will create the new resource(s) in the root.
     """
     configuration = Configuration(config_path)
+    pass
     # api = _initialize_api(config_operations)
     # logger = _initialize_logger(config_operations)
     # resource_operations = ResourceOperations(api, logger, config_operations, dry_run)
