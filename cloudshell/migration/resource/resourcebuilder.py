@@ -57,7 +57,8 @@ class ResourceBuilder(object):
         :param cloudshell.migration.core.entities.ResourcesPair resources_pair:
         :return:
         """
-        src, dst = resources_pair
+        src = resources_pair.src_resource
+        dst = resources_pair.dst_resource
 
         # Create DST if not exist
         if not dst.exist:
@@ -65,10 +66,11 @@ class ResourceBuilder(object):
             if not dst.name:
                 dst.name = self._configuration.resource_name_prefix + src.name
             dst.address = src.address
-            self._resource_operations.create_resource(dst)
             click.echo("Creating resource {}".format(str(dst)))
             if not self._confirmed and not click.confirm('Do you want to continue?'):
                 raise click.ClickException('Aborted.')
+
+            self._resource_operations.create_resource(dst)
 
             # Sync attributes
             self._resource_operations.load_resource_attributes(src)

@@ -54,3 +54,7 @@ class Operations(object):
     def add_to_reservation(self, reservation_id, resource_name):
         self._logger.debug("Adding resource {} to reservation".format(resource_name, reservation_id))
         return self._api.AddResourcesToReservation(reservation_id, [resource_name])
+
+    def remove_from_reservation(self, reservation_id, resource_name):
+        self._logger.debug("Adding resource {} to reservation".format(resource_name, reservation_id))
+        return self._api.RemoveResourcesFromReservation(reservation_id, [resource_name])

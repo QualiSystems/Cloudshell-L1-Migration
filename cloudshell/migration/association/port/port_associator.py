@@ -17,7 +17,7 @@ class PortAssociator(Associator):
         self._logger = logger
 
     @lru_cache()
-    def associate(self, resource_pair):
+    def _associate(self, resource_pair):
         association = PortAssociation(resource_pair, self._configuration, self._logger)
         if not association.valid():
             raise AssociationException("Cannot associate pair {}".format(resource_pair))

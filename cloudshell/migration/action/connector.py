@@ -3,83 +3,39 @@ from abc import ABCMeta
 from cloudshell.migration.action.core import Action
 
 
-class ConnectorAction(Action):
-    __metaclass__ = ABCMeta
+class UpdateConnectorAction(Action):
+    ACTION_DESCR = "Update Connector"
 
-    priority = Action.EXECUTION_PRIORITY.LOW
+    priority = Action._EXECUTION_STAGE.THREE
 
-    def __init__(self, connector, route_connector_operations, logger):
+    def __init__(self, connector, connector_operations, associations_table, logger):
         """
-        :type connector:
-        :type route_connector_operations: cloudshell.migration.operations.route_operations.RouteConnectorOperations
-        :type logger: cloudshell.migration.helpers.log_helper.Logger
+        :param loudshell.migration.core.model.entities import Connector connector:
+        :param cloudshell.migration.core.operations.connector.ConnectorOperations connector_operations:
+        :param dict associations_table:
+        :param logging.Logger logger
         """
-        super(ConnectorAction, self).__init__(logger)
+        super(UpdateConnectorAction, self).__init__(logger)
         self.connector = connector
-        self.route_connector_operations = route_connector_operations
+        self.connector_operations = connector_operations
+        self._associations_table = associations_table
 
     def __hash__(self):
         return hash(self.connector)
 
     def __eq__(self, other):
-        return self.connector == other.connector
+        return Action.__eq__(self, other) and self.connector == other.connector
 
+    def description(self):
+        return '{} {}'.format(self.ACTION_DESCR, self.connector)
 
-class RemoveConnectorAction(ConnectorAction):
     def execute(self):
-        self.logger.debug("Removing connector {}".format(self.connector))
+        self._logger.debug("Removing connector {}".format(self.connector))
         try:
-            self.route_connector_operations.remove_connector(self.connector)
-            return self.to_string() + " ... Done"
-        except Exception as e:
-            self.logger.error('Cannot remove connector {}, reason {}'.format(self.connector, str(e)))
-            return self.to_string() + "... Failed"
-
-    def to_string(self):
-        return "Remove Connector: {}".format(self.connector)
-
-
-class CreateConnectorAction(ConnectorAction):
-    def __init__(self, connector, route_connector_operations, associations_table, logger):
-        """
-        :type connector:
-        :type route_connector_operations: cloudshell.migration.operations.route_operations.RouteConnectorOperations
-        :type associations_table: dict
-        :type logger: cloudshell.migration.helpers.log_helper.Logger
-        """
-        super(CreateConnectorAction, self).__init__(connector, route_connector_operations, logger)
-        self._associations_table = associations_table
-
-    def execute(self):
+            self.connector_operations.remove_connector(self.connector)
+        except:
+            self._logger.exception("Cannot remove connector:")
         self.connector.source = self._associations_table.get(self.connector.source, self.connector.source)
         self.connector.target = self._associations_table.get(self.connector.target, self.connector.target)
-        self.logger.debug("Creating connector {}".format(self.connector))
-        try:
-            self.route_connector_operations.update_connector(self.connector)
-            return self.to_string() + " ... Done"
-        except Exception as e:
-            self.logger.error('Cannot create connector {}, reason {}'.format(self.connector, str(e)))
-            return self.to_string() + "... Failed"
-
-    def to_string(self):
-        return "Create Connector: {}".format(self.connector)
-
-
-class UpdateConnectorAction(RemoveConnectorAction, CreateConnectorAction):
-    def __init__(self, connector, route_connector_operations, associations_table, logger):
-        """
-        :type connector:
-        :type route_connector_operations: cloudshell.migration.operations.route_operations.RouteConnectorOperations
-        :type associations_table: dict
-        :type logger: cloudshell.migration.helpers.log_helper.Logger
-        """
-        CreateConnectorAction.__init__(self, connector, route_connector_operations, associations_table, logger)
-
-    def execute(self):
-        RemoveConnectorAction.execute(self)
-        out = CreateConnectorAction.execute(self)
-        return out
-
-    def to_string(self):
-        return 'Update Connector: {}'.format(self.connector)
-
+        self._logger.debug("Creating connector {}".format(self.connector))
+        self.connector_operations.update_connector(self.connector)

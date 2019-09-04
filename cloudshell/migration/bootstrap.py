@@ -101,9 +101,9 @@ def migrate(ctx, config_path, dry_run, src_resources, dst_resources, yes, backup
     """
     configuration = Configuration(config_path)
     core_factory = CoreFactory(configuration)
-    operations_factory = OperationsFactory(core_factory, core_factory, dry_run)
+    operations_factory = OperationsFactory(core_factory, configuration, dry_run)
 
-    resource_builder = ResourceBuilder(core_factory.logger, core_factory, operations_factory.resource_operations, yes)
+    resource_builder = ResourceBuilder(core_factory.logger, configuration, operations_factory.resource_operations, yes)
     associator = PortAssociator(configuration, core_factory.logger)
 
     migration_flow = MigrateFlow(core_factory, operations_factory, configuration, resource_builder, associator)

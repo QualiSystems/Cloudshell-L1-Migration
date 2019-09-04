@@ -6,7 +6,7 @@ class ShowFlow(object):
     def __init__(self, logger, resource_operations):
         """
         :param logger:
-        :param cloudshell.migration.operations.resource.ResourceOperations resource_operations:
+        :param cloudshell.migration.core.operations.resource.ResourceOperations resource_operations:
         """
         self._logger = logger
         self._resource_operations = resource_operations
