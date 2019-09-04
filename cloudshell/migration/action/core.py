@@ -183,7 +183,7 @@ class ActionExecutor(object):
                 action.execution_state = action.EXECUTION_STATE.FAILED
                 self.no_error = False
 
-                if action.rollback_on_failure and type(e) in action.rollback_exceptions:
+                if action.rollback_on_failure and isinstance(e, tuple(action.rollback_exceptions)):
                     self._logger.debug("Rollback")
                     try:
                         action.rollback()
