@@ -9,38 +9,30 @@ class ActionsContainer(collections.Iterable):
         :param collections.Iterable actions:
         """
         self.__actions_container = {}
+        """:type : dict"""
         if actions:
             self._append_actions(actions)
+        self._results = {}
 
     @property
     def sorted_actions(self):
+        """
+        :rtype: list[cloudshell.migration.action.core.Action]
+        """
         return sorted(self.actions, key=lambda a: a.priority)
 
     @property
     def actions(self):
+        """
+        :rtype: list[cloudshell.migration.action.core.Action]
+        """
         return self.__actions_container.values()
-
-    def execute_actions(self):
-        return map(lambda a: a.execute(), self.sorted_actions)
-
-    # def update(self, container):
-    #     """
-    #     :type container: ActionsContainer
-    #     """
-    #     self._append_actions(container.actions)
 
     def append(self, actions):
         """
         :param collections.Iterable actions:
-        :return:
         """
         self._append_actions(actions)
-
-    def add(self, action):
-        """
-        :param Action action:
-        """
-        self._append_actions([action])
 
     def _append_actions(self, actions):
         """
@@ -57,7 +49,7 @@ class ActionsContainer(collections.Iterable):
     def to_string(self):
         out = ''
         for action in self.sorted_actions:
-            out += action.to_string() + os.linesep
+            out += str(action) + os.linesep
         return out
 
     # def is_empty(self):
@@ -67,30 +59,45 @@ class ActionsContainer(collections.Iterable):
         return self.to_string()
 
     def __iter__(self):
-        return self.actions
+        return self.actions.__iter__()
 
 
 class Action(object):
     __metaclass__ = ABCMeta
+    ACTION_DESCR = "Action"
 
-    class EXECUTION_PRIORITY:
-        LOW = 1
-        MIDDLE = 2
-        HIGH = 3
+    class _EXECUTION_STAGE:
+        FOUR = 4
+        THREE = 3
+        TWO = 2
+        ONE = 1
 
-    priority = EXECUTION_PRIORITY.LOW
+    class EXECUTION_STATE:
+        NOT_EXECUTED = "NOT EXECUTED"
+        SUCCESS = "SUCCESSFUL"
+        FAILED = "FAILED"
+
+    priority = _EXECUTION_STAGE.FOUR
+    rollback_on_failure = True
+    rollback_exceptions = [Exception]
 
     def __init__(self, logger):
         """
         :param logging.Logger logger:
         """
-        self.logger = logger
+        self._logger = logger
+        self._execution_state = self.EXECUTION_STATE.NOT_EXECUTED
 
     @abstractmethod
     def execute(self):
         """
-        Execute action
-        :return:
+        Main action flow
+        """
+        pass
+
+    def rollback(self):
+        """
+        Rollback flow, execute if main flow failed with exception defined in
         """
         pass
 
@@ -101,23 +108,33 @@ class Action(object):
         """
         pass
 
-    @abstractmethod
-    def to_string(self):
-        pass
+    @property
+    def execution_state(self):
+        """:rtype: cloudshell.migration.action.core.Action.EXECUTION_STATE"""
+        return self._execution_state
+
+    @execution_state.setter
+    def execution_state(self, state):
+        """
+        :param cloudshell.migration.action.core.Action.EXECUTION_STATE state:
+        """
+        self._execution_state = state
+
+    def description(self):
+        return self.ACTION_DESCR
 
     def __str__(self):
-        return self.to_string()
+        return "{} - {}".format(self.description(), self.execution_state)
 
-    @abstractmethod
     def __eq__(self, other):
-        pass
+        return isinstance(other, self.__class__)
 
     @abstractmethod
     def __hash__(self):
         pass
 
 
-class Initializer(object):
+class ActionInitializer(object):
     __metaclass__ = ABCMeta
 
     def __init__(self, associator, operations_factory, configuration, logger):
@@ -140,3 +157,37 @@ class Initializer(object):
         :rtype: ActionsContainer
         """
         pass
+
+
+class ActionExecutor(object):
+    def __init__(self, logger):
+        """
+        :param logging.Logger logger:
+        """
+        self._logger = logger
+        self.no_error = True
+
+    def iter_execution(self, action_container):
+        """
+        :param cloudshell.migration.action.core.ActionsContainer action_container:
+        :rtype: collections.Iterable[cloudshell.migration.action.core.Action]
+        """
+        for action in action_container.sorted_actions:
+            self._logger.debug('Executing {}'.format(action))
+            try:
+                action.execute()
+                action.execution_state = action.EXECUTION_STATE.SUCCESS
+                self._logger.debug("Executed {}".format(action))
+            except Exception as e:
+                self._logger.exception("Action execution failed:")
+                action.execution_state = action.EXECUTION_STATE.FAILED
+                self.no_error = False
+
+                if action.rollback_on_failure and type(e) in action.rollback_exceptions:
+                    self._logger.debug("Rollback")
+                    try:
+                        action.rollback()
+                    except:
+                        self._logger.exception("Rollback failed:")
+
+            yield "Executed: {}".format(action)

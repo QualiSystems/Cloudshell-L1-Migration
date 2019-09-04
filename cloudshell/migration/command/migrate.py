@@ -2,15 +2,15 @@ import click
 from backports.functools_lru_cache import lru_cache
 
 from cloudshell.logging.utils.error_handling_context_manager import ErrorHandlingContextManager
-from cloudshell.migration.action.core import ActionsContainer
-from cloudshell.migration.action.initializers import ConnectionInitializer, L1RouteInitializer, RouteInitializer, \
-    ConnectorInitializer, BlueprintInitializer
+from cloudshell.migration.action.core import ActionsContainer, ActionExecutor
+from cloudshell.migration.action.initializers import ConnectionActionInitializer, L1RouteActionInitializer, RouteActionInitializer, \
+    ConnectorActionInitializer, BlueprintActionInitializer
 from cloudshell.migration.command.core import Command
 
 
 class MigrateFlow(Command):
-    _ACTION_INITIALIZERS = [ConnectionInitializer, L1RouteInitializer, RouteInitializer, ConnectorInitializer,
-                            BlueprintInitializer]
+    _ACTION_INITIALIZERS = [ConnectionActionInitializer, L1RouteActionInitializer, RouteActionInitializer, ConnectorActionInitializer,
+                            BlueprintActionInitializer]
 
     def __init__(self, core_factory, operation_factory, configuration, resource_builder, associator):
         """
@@ -39,7 +39,7 @@ class MigrateFlow(Command):
 
         click.echo('Resources:')
         for pair in resource_pairs:
-            click.echo('{0}=>{1}'.format(*pair))
+            click.echo('{0}=>{1}'.format(pair.src_resource, pair.dst_resource))
 
         actions_container = ActionsContainer()
         with ErrorHandlingContextManager(self._logger):
@@ -59,7 +59,10 @@ class MigrateFlow(Command):
             raise click.ClickException('Aborted.')
 
         with ErrorHandlingContextManager(self._logger):
-            actions_container.execute_actions()
+            actions_executor = ActionExecutor(self._logger)
+            for execution_result in actions_executor.iter_execution(actions_container):
+                click.echo(execution_result)
+
 
     def _initialize_actions(self, resource_pair, override):
         """

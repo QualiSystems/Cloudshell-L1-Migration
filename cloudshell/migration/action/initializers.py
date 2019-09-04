@@ -3,11 +3,11 @@ from collections import defaultdict
 from cloudshell.migration.action.blueprint import UpdateBlueprintAction
 from cloudshell.migration.action.connection import UpdateConnectionAction
 from cloudshell.migration.action.connector import UpdateConnectorAction
-from cloudshell.migration.action.core import Initializer, ActionsContainer
+from cloudshell.migration.action.core import ActionInitializer, ActionsContainer
 from cloudshell.migration.action.logical_route import UpdateL1RouteAction, UpdateRouteAction
 
 
-class ConnectionInitializer(Initializer):
+class ConnectionActionInitializer(ActionInitializer):
 
     def initialize(self, resource_pair, override):
         association = self._associator.get_association(resource_pair)
@@ -22,7 +22,7 @@ class ConnectionInitializer(Initializer):
         return ActionsContainer(connection_actions)
 
 
-class L1RouteInitializer(Initializer):
+class L1RouteActionInitializer(ActionInitializer):
 
     def initialize(self, resource_pair, override):
         route_operations = self._operations_factory.route_operations
@@ -31,15 +31,17 @@ class L1RouteInitializer(Initializer):
         if route_operations.is_l1_resource(src_resource):
             route_operations.load_segment_logical_routes(src_resource)
 
-        route_actions = map(
-            lambda logical_route: UpdateL1RouteAction(logical_route, route_operations,
-                                                      self._associator.updated_connections, self._logger),
-            src_resource.associated_logical_routes)
+            route_actions = map(
+                lambda logical_route: UpdateL1RouteAction(logical_route, route_operations,
+                                                          self._associator.updated_connections, self._logger),
+                src_resource.associated_logical_routes)
+        else:
+            route_actions = []
 
         return ActionsContainer(route_actions)
 
 
-class RouteInitializer(Initializer):
+class RouteActionInitializer(ActionInitializer):
 
     def initialize(self, resource_pair, override):
         route_operations = self._operations_factory.route_operations
@@ -48,15 +50,17 @@ class RouteInitializer(Initializer):
         if not route_operations.is_l1_resource(src_resource):
             route_operations.load_endpoint_logical_routes(src_resource)
 
-        route_actions = map(
-            lambda logical_route: UpdateRouteAction(logical_route, route_operations,
-                                                    self._associator.updated_connections, self._logger),
-            src_resource.associated_logical_routes)
+            route_actions = map(
+                lambda logical_route: UpdateRouteAction(logical_route, route_operations,
+                                                        self._associator.updated_connections, self._logger),
+                src_resource.associated_logical_routes)
+        else:
+            route_actions = []
 
         return ActionsContainer(route_actions)
 
 
-class ConnectorInitializer(Initializer):
+class ConnectorActionInitializer(ActionInitializer):
 
     def initialize(self, resource_pair, override):
         src_resource = resource_pair.src_resource
@@ -72,7 +76,7 @@ class ConnectorInitializer(Initializer):
         return ActionsContainer(actions)
 
 
-class BlueprintInitializer(Initializer):
+class BlueprintActionInitializer(ActionInitializer):
 
     def initialize(self, resource_pair, override):
         src_resource = resource_pair.src_resource

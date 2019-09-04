@@ -100,8 +100,12 @@ class LogicalRoute(object):
         return 'Route({0}<->{1}, {2}, {3})'.format(self.source, self.target, self.route_type,
                                                    'Active' if self.active else 'Inactive')
 
-    def _get_attribute_list(self):
-        return [self.source, self.target]
+    def comparable_attribute_list(self):
+        attribute_list = [self.source, self.target]
+        if self.route_type == self.BIDI_TYPE:
+            return sorted(attribute_list)
+        else:
+            return attribute_list
 
     def __str__(self):
         return self.to_string()
@@ -111,18 +115,12 @@ class LogicalRoute(object):
         :type other: LogicalRoute
         """
         if self.route_type == other.route_type:
-            if self.route_type == self.BIDI_TYPE:
-                return sorted(self._get_attribute_list()) == sorted(other._get_attribute_list())
-            else:
-                return self._get_attribute_list() == other._get_attribute_list()
+            return self.comparable_attribute_list() == other.comparable_attribute_list()
         else:
             return False
 
     def __hash__(self):
-        attributes = self._get_attribute_list()
-        if self.route_type == self.BIDI_TYPE:
-            sorted(attributes)
-        return reduce(lambda x, y: x | y, map(hash, attributes))
+        return reduce(lambda x, y: x | y, map(hash, self.comparable_attribute_list()))
 
 
 class Connector(object):
