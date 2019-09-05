@@ -1,0 +1,89 @@
+'*/*':
+  Chassis Port:
+    address_pattern: .*/CH(.*)/M(.*)/SM(.*)/P(.*)
+    family:
+    - CS_Port
+    - Port
+    model:
+    - '*'
+    name_pattern: .*
+  Module Port:
+    address_pattern: .*/CH(.*)/M(.*)/SM(.*)/P(.*)
+    family:
+    - CS_Port
+    - Port
+    model:
+    - '*'
+    name_pattern: .*
+  PortChannel:
+    address_pattern: .*/CH(.*)/M(.*)/SM(.*)/P(.*)
+    family:
+    - CS_Port
+    - Port
+    model:
+    - '*'
+    name_pattern: .*
+  SubModule Port:
+    address_pattern: .*/CH(.*)/M(.*)/SM(.*)/P(.*)
+    family:
+    - CS_Port
+    - Port
+    model:
+    - '*'
+    name_pattern: .*
+CS_Router/AristaEosRouterShell2G:
+  Port:
+    address_pattern: .*/.*/M(.*)/P(.*)
+    family:
+    - CS_Port
+    - Port
+    model:
+    - '*'
+    name_pattern: .*
+CS_Switch/AristaEosSwitchShell2G:
+  Port:
+    address_pattern: .*/.*/M(.*)/P(.*)
+    family:
+    - CS_Port
+    - Port
+    model:
+    - '*'
+    name_pattern: .*
+L1 Switch/*:
+  L1 Port:
+    address_pattern: .*/(.*)/(.*)
+    family:
+    - L1 Switch Port
+    - Port
+    - CS_Port
+    model:
+    - '*'
+    name_pattern: .*
+L1 Switch/OS-192:
+  L1 Port:
+    address_pattern: .*/.*/(.*)/(.*)
+    family:
+    - L1 Switch Port
+    - Port
+    - CS_Port
+    model:
+    - '*'
+    name_pattern: .*
+Router/Arista EOS Router:
+  Port:
+    address_pattern: .*/.*/(.*)/(.*)
+    family:
+    - CS_Port
+    - Port
+    model:
+    - '*'
+    name_pattern: .*
+Switch/Arista EOS Switch:
+  Port:
+    address_pattern: .*/.*/(.*)/(.*)
+    family:
+    - CS_Port
+    - Port
+    model:
+    - '*'
+    name_pattern: .*
