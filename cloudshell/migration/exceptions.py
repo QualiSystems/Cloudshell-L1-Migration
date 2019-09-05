@@ -1,8 +1,9 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+import click
 
 
-class MigrationToolException(Exception):
+class MigrationToolException(click.ClickException):
     pass
 
 

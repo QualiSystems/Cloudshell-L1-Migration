@@ -28,9 +28,9 @@ class PortAssociation(Association):
 
     def __init__(self, resource_pair, configuration, logger):
         """
-        :param cloudshell.migration.core.entities.ResourcesPair resource_pair:
+        :param cloudshell.migration.core.model.entities.ResourcesPair resource_pair:
         :param cloudshell.migration.configuration.config.Configuration configuration:
-        :param cloudshell.migration.helpers.log_helper.Logger logger:
+        :param logging.Logger logger:
         """
 
         self.resource_pair = resource_pair
@@ -92,7 +92,11 @@ class PortAssociation(Association):
                 else:
                     self._logger.warning('Cannot find associated port for {}'.format(src_port))
 
+    @lru_cache()
     def get_table(self):
+        """
+        :rtype: dict
+        """
         association_table = {}
         for src_port in self.resource_pair.src_resource.ports:
             associated_dst_port = self.get_associated(src_port)
@@ -105,7 +109,8 @@ class PortAssociation(Association):
     @lru_cache()
     def get_associated(self, src_port):
         """
-        :type src_port: cloudshell.migration.entities.Port
+        :type src_port: cloudshell.migration.core.model.entities.Port
+        :rtype: cloudshell.migration.core.model.entities.Port
         """
         result_list = []
         if self._dst_association_configuration.get(self._configuration.KEY.ASSOCIATE_BY_ADDRESS, True):
@@ -144,8 +149,8 @@ class PortAssociation(Association):
     def _format_address(self, address, pattern):
         match = re.search(pattern, address)
         if match:
-            x = tuple(map(lambda x: x.zfill(2), match.groups()))
-            return x
+            result = tuple(map(lambda x: x.zfill(2), match.groups()))
+            return result
         self._logger.error('Cannot match address {} for pattern {}'.format(address, pattern.pattern))
 
     def _format_name(self, name):
@@ -163,4 +168,9 @@ class PortAssociation(Association):
         return port_name.split("/")[-1]
 
     def valid(self):
+        association_table = self.get_table()
+        if len(association_table) == 0:
+            return False
+        if None in association_table.values():
+            return False
         return True

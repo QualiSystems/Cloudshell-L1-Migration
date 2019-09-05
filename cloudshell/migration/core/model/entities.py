@@ -48,6 +48,9 @@ class ResourcesPair(object):
     def __hash__(self):
         return hash(self.src_resource) | hash(self.dst_resource)
 
+    def __str__(self):
+        return "ResourcesPair({}=>{})".format(self.src_resource, self.dst_resource)
+
 
 class AssociativeItem(object):
     __metaclass__ = ABCMeta
