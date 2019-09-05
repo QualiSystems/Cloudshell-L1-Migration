@@ -3,13 +3,15 @@ from backports.functools_lru_cache import lru_cache
 
 from cloudshell.logging.utils.error_handling_context_manager import ErrorHandlingContextManager
 from cloudshell.migration.action.core import ActionsContainer, ActionExecutor
-from cloudshell.migration.action.initializers import ConnectionActionInitializer, L1RouteActionInitializer, RouteActionInitializer, \
+from cloudshell.migration.action.initializers import ConnectionActionInitializer, L1RouteActionInitializer, \
+    RouteActionInitializer, \
     ConnectorActionInitializer, BlueprintActionInitializer
 from cloudshell.migration.command.core import Command
 
 
 class MigrateFlow(Command):
-    _ACTION_INITIALIZERS = [ConnectionActionInitializer, L1RouteActionInitializer, RouteActionInitializer, ConnectorActionInitializer,
+    _ACTION_INITIALIZERS = [ConnectionActionInitializer, L1RouteActionInitializer, RouteActionInitializer,
+                            ConnectorActionInitializer,
                             BlueprintActionInitializer]
 
     def __init__(self, core_factory, operation_factory, configuration, resource_builder, associator):
@@ -62,7 +64,6 @@ class MigrateFlow(Command):
             actions_executor = ActionExecutor(self._logger)
             for execution_result in actions_executor.iter_execution(actions_container):
                 click.echo(execution_result)
-
 
     def _initialize_actions(self, resource_pair, override):
         """
