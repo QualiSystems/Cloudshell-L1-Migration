@@ -1,6 +1,6 @@
 '*/*':
   Chassis Port:
-    address_pattern: .*/CH(.*)/M(.*)/SM(.*)/P(.*)
+    address_pattern: .*/CH(.*)/P(.*)
     family:
     - CS_Port
     - Port

@@ -1,6 +1,7 @@
 import base64
 import binascii
 import os
+import shutil
 from copy import deepcopy
 from platform import node
 
@@ -37,9 +38,13 @@ class ConfigAttribute(object):
 class Configuration(object):
     PACKAGE_NAME = u'cloudshell-migration'
     # PACKAGE_NAME = 'migration_tool'
-    CONFIG_PATH = os.path.join(click.get_app_dir('Quali'), PACKAGE_NAME, 'cloudshell_config.yml')
-    BACKUP_LOCATION = os.path.join(click.get_app_dir('Quali'), PACKAGE_NAME, 'Backup')
-    LOG_PATH = os.path.join(click.get_app_dir('Quali'), PACKAGE_NAME, 'Log')
+    APP_PATH = os.path.join(click.get_app_dir('Quali'), PACKAGE_NAME)
+    CONFIG_PATH = os.path.join(APP_PATH, 'cloudshell_config.yml')
+    ASSOCIATIONS_PATH = os.path.join(APP_PATH, 'associations_table.yml')
+    ASSOCIATIONS_TEMPLATE_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                              'associations_table_template.yaml')
+    BACKUP_LOCATION = os.path.join(APP_PATH, 'Backup')
+    LOG_PATH = os.path.join(APP_PATH, 'Log')
     PORT_FAMILIES = ['L1 Switch Port', 'Port', 'CS_Port']
     L1_FAMILIES = ['L1 Switch']
 
@@ -54,32 +59,12 @@ class Configuration(object):
         LOG_PATH = 'log_path'
         NEW_RESOURCE_NAME_PREFIX = 'name_prefix'
         BACKUP_LOCATION = 'backup_location'
-        # Associations
-        PATTERN = 'pattern'
-        ASSOCIATE_BY_ADDRESS = 'by_address'
-        ASSOCIATE_BY_NAME = 'by_name'
-        ASSOCIATE_BY_PORT_NAME = 'by_port_name'
 
-    _ASSOCIATIONS_TABLE = {
-        '*/*': {KEY.PATTERN: r'.*/CH(.*)/M(.*)/SM(.*)/P(.*)', KEY.ASSOCIATE_BY_ADDRESS: True,
-                KEY.ASSOCIATE_BY_NAME: True,
-                KEY.ASSOCIATE_BY_PORT_NAME: True},
-        'L1 Switch/*': {KEY.PATTERN: r'.*/(.*)/(.*)', KEY.ASSOCIATE_BY_ADDRESS: True, KEY.ASSOCIATE_BY_NAME: True,
-                        KEY.ASSOCIATE_BY_PORT_NAME: True},
-        'L1 Switch/OS-192': {KEY.PATTERN: r'.*/.*/(.*)/(.*)', KEY.ASSOCIATE_BY_ADDRESS: True},
-        'Switch/Arista EOS Switch': {KEY.PATTERN: r'.*/.*/(.*)/(.*)', KEY.ASSOCIATE_BY_ADDRESS: True,
-                                     KEY.ASSOCIATE_BY_NAME: True,
-                                     KEY.ASSOCIATE_BY_PORT_NAME: True},
-        'Router/Arista EOS Router': {KEY.PATTERN: r'.*/.*/(.*)/(.*)', KEY.ASSOCIATE_BY_ADDRESS: True,
-                                     KEY.ASSOCIATE_BY_NAME: True,
-                                     KEY.ASSOCIATE_BY_PORT_NAME: True},
-        'CS_Router/AristaEosRouterShell2G': {KEY.PATTERN: r'.*/.*/M(.*)/P(.*)', KEY.ASSOCIATE_BY_ADDRESS: True,
-                                             KEY.ASSOCIATE_BY_NAME: True,
-                                             KEY.ASSOCIATE_BY_PORT_NAME: True},
-        'CS_Switch/AristaEosSwitchShell2G': {KEY.PATTERN: r'.*/.*/M(.*)/P(.*)', KEY.ASSOCIATE_BY_ADDRESS: True,
-                                             KEY.ASSOCIATE_BY_NAME: True,
-                                             KEY.ASSOCIATE_BY_PORT_NAME: True}
-    }
+        # Associations
+        FAMILY = 'family'
+        MODEL = 'model'
+        ADDRESS_PATTERN = 'address_pattern'
+        NAME_PATTERN = 'name_pattern'
 
     L1_ATTRIBUTES = [
         'User', 'Password']
@@ -113,8 +98,9 @@ class Configuration(object):
                                            DEFAULT_VALUES.get(KEY.NEW_RESOURCE_NAME_PREFIX))
     backup_location = ConfigAttribute(KEY.BACKUP_LOCATION, DEFAULT_VALUES.get(KEY.BACKUP_LOCATION))
 
-    def __init__(self, config_path):
+    def __init__(self, config_path, associations_path):
         self._config_path = config_path or self.CONFIG_PATH
+        self._associations_path = associations_path or self.ASSOCIATIONS_PATH
 
     @property
     @lru_cache()
@@ -122,21 +108,22 @@ class Configuration(object):
         return self._read_configuration()
 
     @property
+    @lru_cache()
     def _associations_table(self):
-        return self._ASSOCIATIONS_TABLE
+        return self._read_associations_table()
 
     def save(self):
         self._write_configuration(self.configuration)
 
     @staticmethod
-    def _config_path_is_ok(config_path):
+    def _path_is_ok(config_path):
         if config_path and os.path.isfile(config_path) and os.access(config_path, os.R_OK):
             return True
         return False
 
     def _read_configuration(self):
         """Read configuration from file if exists or use default"""
-        if Configuration._config_path_is_ok(self._config_path):
+        if self._path_is_ok(self._config_path):
             with open(self._config_path, 'r') as config:
                 configuration = yaml.load(config)
                 if configuration:
@@ -159,14 +146,17 @@ class Configuration(object):
                 updated = True
         return updated
 
-    # def _update_associations_table(self, configuration):
-    #     updated = False
-    #     associations_table = configuration.get(self.ASSOCIATIONS_TABLE_KEY)
-    #     for key, value in self.DEFAULT_CONFIGURATION.get(self.ASSOCIATIONS_TABLE_KEY).items():
-    #         if key not in associations_table:
-    #             associations_table[key] = value
-    #             updated = True
-    #     return updated
+    def _read_associations_table(self):
+        """Read configuration from file if exists or use default"""
+        if not self._path_is_ok(self._associations_path):
+            self._initialize_association_table()
+
+        with open(self._associations_path, 'r') as table_file:
+            ass_table = yaml.load(table_file)
+            return ass_table
+
+    def _initialize_association_table(self):
+        shutil.copy(self.ASSOCIATIONS_TEMPLATE_PATH, self.ASSOCIATIONS_PATH)
 
     def get_association_configuration(self, family, model):
         """
@@ -181,7 +171,7 @@ class Configuration(object):
                 return association_conf
 
     def _write_configuration(self, configuration):
-        if not Configuration._config_path_is_ok(self._config_path):
+        if not self._path_is_ok(self._config_path):
             try:
                 os.makedirs(os.path.dirname(self._config_path))
             except OSError:

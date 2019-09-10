@@ -51,21 +51,66 @@ class PortAssociation(Association):
 
     @property
     @lru_cache()
-    def _src_port_pattern(self):
-        return re.compile(
-            self._src_association_configuration.get(self._configuration.KEY.PATTERN),
-            re.IGNORECASE)
+    def _src_items(self):
+        return self._src_association_configuration.keys()
 
     @property
     @lru_cache()
-    def _dst_port_pattern(self):
-        return re.compile(
-            self._dst_association_configuration.get(self._configuration.KEY.PATTERN),
-            re.IGNORECASE)
+    def _dst_items(self):
+        return self._dst_association_configuration.keys()
+
+    def _get_address_pattern(self, ass_conf, item):
+        """
+        :param dict ass_conf:
+        :param str item:
+        """
+        item_conf = ass_conf.get(item)
+        if item_conf:
+            return item_conf.get(self._configuration.KEY.ADDRESS_PATTERN)
+
+    def _get_name_pattern(self, ass_conf, item):
+        """
+        :param dict ass_conf:
+        :param str item:
+        """
+        item_conf = ass_conf.get(item)
+        if item_conf:
+            return item_conf.get(self._configuration.KEY.NAME_PATTERN)
+
+    @staticmethod
+    def _compile_pattern(pattern):
+        return re.compile(pattern, re.IGNORECASE)
+
+    # @property
+    # @lru_cache()
+    # def _src_port_pattern(self):
+    #     return re.compile(
+    #         self._src_association_configuration.get(self._configuration.KEY.PATTERN),
+    #         re.IGNORECASE)
+    #
+    # @property
+    # @lru_cache()
+    # def _dst_port_pattern(self):
+    #     return re.compile(
+    #         self._dst_association_configuration.get(self._configuration.KEY.PATTERN),
+    #         re.IGNORECASE)
+
+    def _item_association(self, item, pattern, ports):
+        pass
 
     @property
     @lru_cache()
-    def _dst_port_sorted_by_associated_address(self):
+    def _dst_port_sorted_by_address(self):
+        address_dict = {}
+        for port in self.resource_pair.dst_resource.ports:
+            f_addr = self._format_dst_address(port.address)
+            if f_addr:
+                address_dict[f_addr] = port
+        return address_dict
+
+    @property
+    @lru_cache()
+    def _dst_port_sorted_by_name(self):
         address_dict = {}
         for port in self.resource_pair.dst_resource.ports:
             f_addr = self._format_dst_address(port.address)
