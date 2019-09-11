@@ -3,7 +3,16 @@
 from abc import ABCMeta
 
 
-class Resource(object):
+class AssociativeItem(object):
+    __metaclass__ = ABCMeta
+    name = None
+    address = None
+    family = None
+    model = None
+    associated_to = None
+
+
+class Resource(AssociativeItem):
     def __init__(self, name, address=None, family=None, model=None, driver=None, exist=False):
         self.name = name
         self.address = address
@@ -52,14 +61,11 @@ class ResourcesPair(object):
         return "ResourcesPair({}=>{})".format(self.src_resource, self.dst_resource)
 
 
-class AssociativeItem(object):
-    __metaclass__ = ABCMeta
-    association = None
-
-
 class Port(AssociativeItem):
-    def __init__(self, name, address=None, connected_to=None, connection_weight=None):
+    def __init__(self, name, family=None, model=None, address=None, connected_to=None, connection_weight=None):
         self.name = name
+        self.family = family
+        self.model = model
         self.address = address
         self.connected_to = connected_to
         self.connection_weight = connection_weight

@@ -4,14 +4,16 @@ from abc import abstractmethod, ABCMeta
 class Associator(object):
     __metaclass__ = ABCMeta
 
-    def __init__(self):
-        self.updated_connections = {}
-        self.associations_table = {}
+    # def __init__(self):
+        # self.updated_connections = {}
+        # self.associations_table = {}
 
-    def get_association(self, resource_pair):
-        association = self._associate(resource_pair)
-        self.associations_table.update(association.get_table())
-        return association
+    @abstractmethod
+    def build_associations(self, resource_pair):
+        # association = self._associate(resource_pair)
+        # self.associations_table.update(association.get_table())
+        # return association
+        pass
 
     @abstractmethod
     def _associate(self, resource_pair):

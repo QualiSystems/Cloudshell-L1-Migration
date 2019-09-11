@@ -9,6 +9,8 @@ import click
 import yaml
 from backports.functools_lru_cache import lru_cache
 
+from cloudshell.migration.association.parsers import AssociationTableParser
+
 
 class ConfigAttribute(object):
     def __init__(self, key, default_value=None):
@@ -162,13 +164,13 @@ class Configuration(object):
         """
         :param str family:
         :param str model:
-        :rtype: dict
+        :rtype: dict[str,cloudshell.migration.configuration.model.AssociationItemConfig]
         """
         key_order = ['{}/{}'.format(family, model), '{}/*'.format(family), '*/*']
         for key in key_order:
             association_conf = self._associations_table.get(key)
             if association_conf:
-                return association_conf
+                return AssociationTableParser.convert_to_resource_config_model(association_conf)
 
     def _write_configuration(self, configuration):
         if not self._path_is_ok(self._config_path):

@@ -2,6 +2,8 @@ import re
 from backports.functools_lru_cache import lru_cache
 
 from cloudshell.migration.association.core import Associator, Association
+from cloudshell.migration.association.helpers import AssociationItemConfigHelper
+from cloudshell.migration.association.model import AssociationItemStem
 from cloudshell.migration.exceptions import AssociationException
 
 
@@ -36,6 +38,7 @@ class PortAssociation(Association):
         self.resource_pair = resource_pair
         self._configuration = configuration
         self._logger = logger
+        self.association_table = {}
 
     @property
     @lru_cache()
@@ -95,8 +98,23 @@ class PortAssociation(Association):
     #         self._dst_association_configuration.get(self._configuration.KEY.PATTERN),
     #         re.IGNORECASE)
 
-    def _item_association(self, item, pattern, ports):
-        pass
+    def _build_item_stems(self, item_conf, ports):
+        """
+        :param cloudshell.migration.association.model.AssociationItemConfig item_conf:
+        :param list[cloudshell.migration.core.model.entities.Port] ports:
+        :return:
+        """
+
+        stem_table = {}
+        address_pattern = self._compile_pattern(item_conf.address_pattern)
+        name_pattern = self._compile_pattern(item_conf.name_pattern)
+        for port in ports:
+            if AssociationItemConfigHelper.match_to_item_config(port, item_conf):
+                address_stem = self._get_address_stem(port.address, address_pattern)
+                name_stem = self._get_name_stem(port.name, name_pattern)
+                stem = AssociationItemStem(address_stem, name_stem)
+                stem_table[stem] = port
+        return stem_table
 
     @property
     @lru_cache()
@@ -191,10 +209,17 @@ class PortAssociation(Association):
         self._logger.debug('Matching src address {} for pattern {}'.format(address, self._src_port_pattern.pattern))
         return self._format_address(address, self._src_port_pattern)
 
-    def _format_address(self, address, pattern):
+    def _get_address_stem(self, address, pattern):
         match = re.search(pattern, address)
         if match:
             result = tuple(map(lambda x: x.zfill(2), match.groups()))
+            return result
+        self._logger.error('Cannot match address {} for pattern {}'.format(address, pattern.pattern))
+
+    def _get_name_stem(self, address, pattern):
+        match = re.search(pattern, address)
+        if match:
+            result = tuple(match.groups())
             return result
         self._logger.error('Cannot match address {} for pattern {}'.format(address, pattern.pattern))
 
