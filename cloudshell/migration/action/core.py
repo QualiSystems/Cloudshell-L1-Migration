@@ -137,14 +137,12 @@ class Action(object):
 class ActionInitializer(object):
     __metaclass__ = ABCMeta
 
-    def __init__(self, associator, operations_factory, configuration, logger):
+    def __init__(self, operations_factory, configuration, logger):
         """
-        :param cloudshell.migration.association.core.Associator associator:
         :param cloudshell.migration.core.operations.factory.OperationsFactory operations_factory:
         :param cloudshell.migration.configuration.config.Configuration configuration:
         :param logging.Logger logger:
         """
-        self._associator = associator
         self._operations_factory = operations_factory
         self._configuration = configuration
         self._logger = logger

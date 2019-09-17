@@ -1,0 +1,2 @@
+class StemMatcher(object):
+    pass

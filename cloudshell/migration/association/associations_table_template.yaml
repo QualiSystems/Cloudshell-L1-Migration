@@ -1,6 +1,6 @@
 '*/*':
   Chassis Port:
-    address_pattern: .*/CH(.*)/P(.*)
+    address_pattern: .*/CH(\d+)/P(\d+)
     family:
     - CS_Port
     - Port
@@ -8,7 +8,7 @@
     - '*'
     name_pattern: .*
   Module Port:
-    address_pattern: .*/CH(.*)/M(.*)/SM(.*)/P(.*)
+    address_pattern: .*/CH(\d+)/M(\d+)/SM(\d+)/P(\d+)
     family:
     - CS_Port
     - Port
@@ -16,7 +16,7 @@
     - '*'
     name_pattern: .*
   PortChannel:
-    address_pattern: .*/CH(.*)/M(.*)/SM(.*)/P(.*)
+    address_pattern: .*/CH(\d+)/M(\d+)/SM(\d+)/P(\d+)
     family:
     - CS_Port
     - Port
@@ -24,7 +24,7 @@
     - '*'
     name_pattern: .*
   SubModule Port:
-    address_pattern: .*/CH(.*)/M(.*)/SM(.*)/P(.*)
+    address_pattern: .*/CH(\d+)/M(\d+)/SM(\d+)/P(\d+)
     family:
     - CS_Port
     - Port

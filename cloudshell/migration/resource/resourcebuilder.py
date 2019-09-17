@@ -129,8 +129,8 @@ class ResourceBuilder(object):
         if not dst.exist:
             self._resource_operations.autoload_resource(dst)
         else:
-            self._resource_operations.sync_from_device(dst)
-            # pass
+            # self._resource_operations.sync_from_device(dst)
+            pass
 
         for resource in [src, dst]:
             if not resource.ports:

@@ -3,7 +3,7 @@
 from abc import ABCMeta
 
 
-class AssociativeItem(object):
+class AssociateItem(object):
     __metaclass__ = ABCMeta
     name = None
     address = None
@@ -12,7 +12,7 @@ class AssociativeItem(object):
     associated_to = None
 
 
-class Resource(AssociativeItem):
+class Resource(AssociateItem):
     def __init__(self, name, address=None, family=None, model=None, driver=None, exist=False):
         self.name = name
         self.address = address
@@ -46,13 +46,16 @@ class Resource(AssociativeItem):
 
 
 class ResourcesPair(object):
-    def __init__(self, src_resource, dst_resource):
+    def __init__(self, src_resource, dst_resource, associator=None):
         """
         :param Resource src_resource:
         :param Resource dst_resource:
+        :param associator:
         """
         self.src_resource = src_resource
         self.dst_resource = dst_resource
+        self.associator = associator
+        self.updated_connections = {}
 
     def __hash__(self):
         return hash(self.src_resource) | hash(self.dst_resource)
@@ -61,7 +64,7 @@ class ResourcesPair(object):
         return "ResourcesPair({}=>{})".format(self.src_resource, self.dst_resource)
 
 
-class Port(AssociativeItem):
+class Port(AssociateItem):
     def __init__(self, name, family=None, model=None, address=None, connected_to=None, connection_weight=None):
         self.name = name
         self.family = family

@@ -3,7 +3,6 @@
 
 import click
 import pkg_resources
-from cloudshell.migration.association.port.port_associator import PortAssociator
 from cloudshell.migration.command.config import ConfigFlow
 from cloudshell.migration.command.migrate import MigrateFlow
 from cloudshell.migration.command.show import ShowFlow
@@ -104,9 +103,9 @@ def migrate(ctx, config_path, dry_run, src_resources, dst_resources, yes, backup
     operations_factory = OperationsFactory(core_factory, configuration, dry_run)
 
     resource_builder = ResourceBuilder(core_factory.logger, configuration, operations_factory.resource_operations, yes)
-    associator = PortAssociator(configuration, core_factory.logger)
+    # associator = PortAssociator(configuration, core_factory.logger)
 
-    migration_flow = MigrateFlow(core_factory, operations_factory, configuration, resource_builder, associator)
+    migration_flow = MigrateFlow(core_factory, operations_factory, configuration, resource_builder)
     migration_flow.execute_migrate_flow(src_resources, dst_resources, yes, override)
 
     # migration_handler = MigrationHandler.from_factory(factory)

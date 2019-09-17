@@ -6,6 +6,7 @@ from cloudshell.migration.action.core import ActionsContainer, ActionExecutor
 from cloudshell.migration.action.initializers import ConnectionActionInitializer, L1RouteActionInitializer, \
     RouteActionInitializer, \
     ConnectorActionInitializer, BlueprintActionInitializer
+from cloudshell.migration.association.associator import Associator
 from cloudshell.migration.command.core import Command
 
 
@@ -14,25 +15,24 @@ class MigrateFlow(Command):
                             ConnectorActionInitializer,
                             BlueprintActionInitializer]
 
-    def __init__(self, core_factory, operation_factory, configuration, resource_builder, associator):
+    def __init__(self, core_factory, operation_factory, configuration, resource_builder):
         """
 
         :param cloudshell.migration.factory.CoreFactory core_factory:
         :param cloudshell.migration.core.operations.factory.OperationsFactory operation_factory:
         :param cloudshell.migration.configuration.config.Configuration configuration:
         :param cloudshell.migration.resource.resourcebuilder.ResourceBuilder resource_builder:
-        :param cloudshell.migration.association.core.Associator associator:
         """
         super(MigrateFlow, self).__init__(configuration, core_factory.logger)
         self._core_factory = core_factory
         self._operation_factory = operation_factory
         self._resource_builder = resource_builder
-        self._associator = associator
+        # self._associator = associator
 
     @property
     @lru_cache()
     def _action_initializers(self):
-        return [init_class(self._associator, self._operation_factory, self._configuration, self._logger) for init_class
+        return [init_class(self._operation_factory, self._configuration, self._logger) for init_class
                 in self._ACTION_INITIALIZERS]
 
     def execute_migrate_flow(self, src_resources, dst_resources, yes, override):
@@ -46,6 +46,7 @@ class MigrateFlow(Command):
         actions_container = ActionsContainer()
         with ErrorHandlingContextManager(self._logger):
             for pair in resource_pairs:
+                pair.associator = Associator(pair, self._configuration, self._logger)
                 actions_container.append(self._initialize_actions(pair, override))
 
         click.echo('Next actions will be executed:')

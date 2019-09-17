@@ -10,15 +10,17 @@ from cloudshell.migration.action.logical_route import UpdateL1RouteAction, Updat
 class ConnectionActionInitializer(ActionInitializer):
 
     def initialize(self, resource_pair, override):
-        association = self._associator.get_association(resource_pair)
+        # association = self._associator.get_association(resource_pair)
+        associator = resource_pair.associator
+
 
         connection_actions = []
 
-        for src_port, dst_port in association.iter_pairs():
+        for src_port, dst_port in associator.iter_pairs():
             if override or not dst_port.connected_to:
                 connection_actions.append(
                     UpdateConnectionAction(src_port, dst_port, self._operations_factory.connection_operations,
-                                           self._associator.updated_connections, self._logger))
+                                           resource_pair.updated_connections, self._logger))
         return ActionsContainer(connection_actions)
 
 
@@ -33,7 +35,7 @@ class L1RouteActionInitializer(ActionInitializer):
 
             route_actions = map(
                 lambda logical_route: UpdateL1RouteAction(logical_route, route_operations,
-                                                          self._associator.updated_connections, self._logger),
+                                                          resource_pair.updated_connections, self._logger),
                 src_resource.associated_logical_routes)
         else:
             route_actions = []
@@ -52,7 +54,7 @@ class RouteActionInitializer(ActionInitializer):
 
             route_actions = map(
                 lambda logical_route: UpdateRouteAction(logical_route, route_operations,
-                                                        self._associator.updated_connections, self._logger),
+                                                        resource_pair.updated_connections, self._logger),
                 src_resource.associated_logical_routes)
         else:
             route_actions = []

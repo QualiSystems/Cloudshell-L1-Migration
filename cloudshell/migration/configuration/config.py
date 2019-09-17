@@ -9,8 +9,6 @@ import click
 import yaml
 from backports.functools_lru_cache import lru_cache
 
-from cloudshell.migration.association.parsers import AssociationTableParser
-
 
 class ConfigAttribute(object):
     def __init__(self, key, default_value=None):
@@ -43,7 +41,7 @@ class Configuration(object):
     APP_PATH = os.path.join(click.get_app_dir('Quali'), PACKAGE_NAME)
     CONFIG_PATH = os.path.join(APP_PATH, 'cloudshell_config.yml')
     ASSOCIATIONS_PATH = os.path.join(APP_PATH, 'associations_table.yml')
-    ASSOCIATIONS_TEMPLATE_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+    ASSOCIATIONS_TEMPLATE_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'association',
                                               'associations_table_template.yaml')
     BACKUP_LOCATION = os.path.join(APP_PATH, 'Backup')
     LOG_PATH = os.path.join(APP_PATH, 'Log')
@@ -100,7 +98,7 @@ class Configuration(object):
                                            DEFAULT_VALUES.get(KEY.NEW_RESOURCE_NAME_PREFIX))
     backup_location = ConfigAttribute(KEY.BACKUP_LOCATION, DEFAULT_VALUES.get(KEY.BACKUP_LOCATION))
 
-    def __init__(self, config_path, associations_path):
+    def __init__(self, config_path, associations_path=None):
         self._config_path = config_path or self.CONFIG_PATH
         self._associations_path = associations_path or self.ASSOCIATIONS_PATH
 
@@ -170,7 +168,7 @@ class Configuration(object):
         for key in key_order:
             association_conf = self._associations_table.get(key)
             if association_conf:
-                return AssociationTableParser.convert_to_resource_config_model(association_conf)
+                return association_conf
 
     def _write_configuration(self, configuration):
         if not self._path_is_ok(self._config_path):
