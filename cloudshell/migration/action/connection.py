@@ -43,11 +43,9 @@ class UpdateConnectionAction(Action):
 
     @staticmethod
     def initialize_for_pair(resource_pair, override, associations_table, operations_factory, logger):
-        associator = resource_pair.associator
-
         connection_actions = []
 
-        for src_port, dst_port in associator.iter_pairs():
+        for src_port, dst_port in resource_pair.associator.iter_pairs():
             if override or not dst_port.connected_to:
                 connection_actions.append(
                     UpdateConnectionAction(src_port, dst_port, operations_factory.connection_operations,

@@ -10,6 +10,7 @@ from cloudshell.migration.action.core import ActionsContainer, ActionExecutor
 from cloudshell.migration.action.logical_route import UpdateL1RouteAction, UpdateRouteAction
 from cloudshell.migration.association.associator import Associator
 from cloudshell.migration.command.core import Command
+from cloudshell.migration.exceptions import AssociationException
 
 
 class MigrateFlow(Command):
@@ -50,6 +51,8 @@ class MigrateFlow(Command):
         with ErrorHandlingContextManager(self._logger):
             for pair in resource_pairs:
                 pair.associator = Associator(pair, self._configuration, self._logger)
+                if not pair.associator.valid():
+                    raise AssociationException('Cannot associate {}'.format(str(resource_pairs)))
                 self._associations_table.update(pair.associator.get_table())
                 actions_container.extend(self._initialize_actions(pair, override))
 

@@ -13,7 +13,7 @@ class UpdateConnectorAction(Action):
         :param loudshell.migration.core.model.entities import Connector connector:
         :param cloudshell.migration.core.operations.connector.ConnectorOperations connector_operations:
         :param dict associations_table:
-        :param logging.Logger logger
+        :param logging.Logger logger:
         """
         super(UpdateConnectorAction, self).__init__(logger)
         self.connector = connector
