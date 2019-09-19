@@ -1,4 +1,4 @@
-from cloudshell.migration.action.core import Action
+from cloudshell.migration.action.core import Action, ActionsContainer
 
 
 class UpdateConnectionAction(Action):
@@ -40,3 +40,16 @@ class UpdateConnectionAction(Action):
         :type other: UpdateConnectionAction
         """
         return Action.__eq__(self, other) and self._comparable_unit == other._comparable_unit
+
+    @staticmethod
+    def initialize_for_pair(resource_pair, override, associations_table, operations_factory, logger):
+        associator = resource_pair.associator
+
+        connection_actions = []
+
+        for src_port, dst_port in associator.iter_pairs():
+            if override or not dst_port.connected_to:
+                connection_actions.append(
+                    UpdateConnectionAction(src_port, dst_port, operations_factory.connection_operations,
+                                           resource_pair.updated_connections, logger))
+        return ActionsContainer(connection_actions)

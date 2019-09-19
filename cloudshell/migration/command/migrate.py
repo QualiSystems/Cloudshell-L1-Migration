@@ -2,18 +2,19 @@ import click
 from backports.functools_lru_cache import lru_cache
 
 from cloudshell.logging.utils.error_handling_context_manager import ErrorHandlingContextManager
+from cloudshell.migration.action.blueprint import UpdateBlueprintAction
+from cloudshell.migration.action.connection import UpdateConnectionAction
+from cloudshell.migration.action.connector import UpdateConnectorAction
 from cloudshell.migration.action.core import ActionsContainer, ActionExecutor
-from cloudshell.migration.action.initializers import ConnectionActionInitializer, L1RouteActionInitializer, \
-    RouteActionInitializer, \
-    ConnectorActionInitializer, BlueprintActionInitializer
+
+from cloudshell.migration.action.logical_route import UpdateL1RouteAction, UpdateRouteAction
 from cloudshell.migration.association.associator import Associator
 from cloudshell.migration.command.core import Command
 
 
 class MigrateFlow(Command):
-    _ACTION_INITIALIZERS = [ConnectionActionInitializer, L1RouteActionInitializer, RouteActionInitializer,
-                            ConnectorActionInitializer,
-                            BlueprintActionInitializer]
+    REGISTERED_ACTIONS = [UpdateConnectionAction, UpdateL1RouteAction, UpdateRouteAction, UpdateConnectorAction,
+                          UpdateBlueprintAction]
 
     def __init__(self, core_factory, operation_factory, configuration, resource_builder):
         """
@@ -27,13 +28,15 @@ class MigrateFlow(Command):
         self._core_factory = core_factory
         self._operation_factory = operation_factory
         self._resource_builder = resource_builder
-        # self._associator = associator
+        self._associations_table = {}
 
-    @property
-    @lru_cache()
-    def _action_initializers(self):
-        return [init_class(self._operation_factory, self._configuration, self._logger) for init_class
-                in self._ACTION_INITIALIZERS]
+    def _initialize_actions(self, resource_pair, override):
+        action_container = ActionsContainer()
+        for action_class in self.REGISTERED_ACTIONS:
+            actions = action_class.initialize_for_pair(resource_pair, override, self._associations_table,
+                                                       self._operation_factory, self._logger)
+            action_container.extend(actions)
+        return action_container
 
     def execute_migrate_flow(self, src_resources, dst_resources, yes, override):
         with ErrorHandlingContextManager(self._logger):
@@ -47,7 +50,8 @@ class MigrateFlow(Command):
         with ErrorHandlingContextManager(self._logger):
             for pair in resource_pairs:
                 pair.associator = Associator(pair, self._configuration, self._logger)
-                actions_container.append(self._initialize_actions(pair, override))
+                self._associations_table.update(pair.associator.get_table())
+                actions_container.extend(self._initialize_actions(pair, override))
 
         click.echo('Next actions will be executed:')
         click.echo(actions_container.to_string())
@@ -65,13 +69,3 @@ class MigrateFlow(Command):
             actions_executor = ActionExecutor(self._logger)
             for execution_result in actions_executor.iter_execution(actions_container):
                 click.echo(execution_result)
-
-    def _initialize_actions(self, resource_pair, override):
-        """
-        :param cloudshell.migration.core.model.entities.ResourcesPair resource_pair:
-        :return:
-        """
-        actions_container = ActionsContainer()
-        for initializer in self._action_initializers:
-            actions_container.append(initializer.initialize(resource_pair, override))
-        return actions_container

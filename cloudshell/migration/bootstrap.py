@@ -103,46 +103,8 @@ def migrate(ctx, config_path, dry_run, src_resources, dst_resources, yes, backup
     operations_factory = OperationsFactory(core_factory, configuration, dry_run)
 
     resource_builder = ResourceBuilder(core_factory.logger, configuration, operations_factory.resource_operations, yes)
-    # associator = PortAssociator(configuration, core_factory.logger)
-
     migration_flow = MigrateFlow(core_factory, operations_factory, configuration, resource_builder)
     migration_flow.execute_migrate_flow(src_resources, dst_resources, yes, override)
-
-    # migration_handler = MigrationHandler.from_factory(factory)
-    # with ExceptionLogger(factory.logger):
-    #     resources_pairs = migration_handler.define_resources_pairs(src_resources, dst_resources)
-    #     actions_container = migration_handler.initialize_actions(resources_pairs, override)
-    # # print(resources_pairs)
-    #
-    # click.echo('Resources:')
-    # for pair in resources_pairs:
-    #     click.echo('{0}=>{1}'.format(*pair))
-    #
-    # click.echo('Next actions will be executed:')
-    # click.echo(actions_container.to_string())
-    #
-    # if no_backup:
-    #     click.echo('---- Backup will be skipped! ----')
-    #
-    # if dry_run:
-    #     click.echo('*' * 10 + ' DRY RUN: Logical routes and connections will not be changed ' + '*' * 10)
-    #
-    # if not yes and not click.confirm('Do you want to continue?'):
-    #     click.echo('Aborted')
-    #     ctx.exit(1)
-    #
-    # # if not no_backup and not dry_run:
-    # #     backup_handler = BackupHandler(api, logger, configuration, backup_file, resource_operations,
-    # #                                    logical_route_operations)
-    # #     with ExceptionLogger(logger):
-    # #         backup_file = backup_handler.backup_resources([src for src, dst in resources_pairs])
-    # #         click.echo('Backup File: {}'.format(backup_file))
-    #
-    # with ExceptionLogger(factory.logger):
-    #     click.echo("Executing actions:")
-    #     for action in actions_container.sequence():
-    #         result = action.execute()
-    #         click.echo(result)
 
 
 @cli.command()

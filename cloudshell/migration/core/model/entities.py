@@ -50,7 +50,7 @@ class ResourcesPair(object):
         """
         :param Resource src_resource:
         :param Resource dst_resource:
-        :param associator:
+        :param cloudshell.migration.association.associator.Associator associator:
         """
         self.src_resource = src_resource
         self.dst_resource = dst_resource

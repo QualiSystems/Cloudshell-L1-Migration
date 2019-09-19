@@ -1,6 +1,6 @@
 from abc import ABCMeta
 
-from cloudshell.migration.action.core import Action
+from cloudshell.migration.action.core import Action, ActionsContainer
 
 
 class UpdateConnectorAction(Action):
@@ -39,3 +39,17 @@ class UpdateConnectorAction(Action):
         self.connector.target = self._associations_table.get(self.connector.target, self.connector.target)
         self._logger.debug("Creating connector {}".format(self.connector))
         self.connector_operations.update_connector(self.connector)
+
+    @staticmethod
+    def initialize_for_pair(resource_pair, override, associations_table, operations_factory, logger):
+        src_resource = resource_pair.src_resource
+        connector_operations = operations_factory.connector_operations
+
+        if not connector_operations.is_l1_resource(src_resource):
+            connector_operations.load_connectors(src_resource)
+
+        actions = map(
+            lambda connector: UpdateConnectorAction(connector, connector_operations,
+                                                    associations_table, logger),
+            src_resource.associated_connectors)
+        return ActionsContainer(actions)

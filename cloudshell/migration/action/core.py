@@ -28,7 +28,7 @@ class ActionsContainer(collections.Iterable):
         """
         return self.__actions_container.values()
 
-    def append(self, actions):
+    def extend(self, actions):
         """
         :param collections.Iterable actions:
         """
@@ -123,6 +123,18 @@ class Action(object):
     def description(self):
         return self.ACTION_DESCR
 
+    @staticmethod
+    def initialize_for_pair(resource_pair, override, associations_table, operations_factory, logger):
+        """
+        :param cloudshell.migration.core.model.entities.ResourcesPair resource_pair:
+        :param bool override:
+        :param dict associations_table:
+        :param cloudshell.migration.core.operations.factory.OperationsFactory operations_factory:
+        :param logging.Logger logger:
+        :rtype: ActionsContainer
+        """
+        pass
+
     def __str__(self):
         return "{} - {}".format(self.description(), self.execution_state)
 
@@ -131,29 +143,6 @@ class Action(object):
 
     @abstractmethod
     def __hash__(self):
-        pass
-
-
-class ActionInitializer(object):
-    __metaclass__ = ABCMeta
-
-    def __init__(self, operations_factory, configuration, logger):
-        """
-        :param cloudshell.migration.core.operations.factory.OperationsFactory operations_factory:
-        :param cloudshell.migration.configuration.config.Configuration configuration:
-        :param logging.Logger logger:
-        """
-        self._operations_factory = operations_factory
-        self._configuration = configuration
-        self._logger = logger
-
-    @abstractmethod
-    def initialize(self, resource_pair, override):
-        """
-        :param cloudshell.migration.core.model.entities.ResourcesPair resource_pair:
-        :param bool override:
-        :rtype: ActionsContainer
-        """
         pass
 
 

@@ -3,7 +3,7 @@ from copy import deepcopy
 
 from backports.functools_lru_cache import lru_cache
 
-from cloudshell.migration.action.core import Action
+from cloudshell.migration.action.core import Action, ActionsContainer
 
 
 class LogicalRouteAction(Action):
@@ -51,6 +51,23 @@ class UpdateL1RouteAction(LogicalRouteAction):
                 'Adding {} to reservation id {}'.format(port.name, self._updated_route.reservation_id))
             self.logical_route_operations.add_to_reservation(self._updated_route.reservation_id, port.name)
 
+    @staticmethod
+    def initialize_for_pair(resource_pair, override, associations_table, operations_factory, logger):
+        route_operations = operations_factory.route_operations
+        src_resource = resource_pair.src_resource
+
+        if route_operations.is_l1_resource(src_resource):
+            route_operations.load_segment_logical_routes(src_resource)
+
+            route_actions = map(
+                lambda logical_route: UpdateL1RouteAction(logical_route, route_operations,
+                                                          resource_pair.updated_connections, logger),
+                src_resource.associated_logical_routes)
+        else:
+            route_actions = []
+
+        return ActionsContainer(route_actions)
+
 
 class UpdateRouteAction(LogicalRouteAction):
     ACTION_DESCR = 'Update Route'
@@ -60,3 +77,20 @@ class UpdateRouteAction(LogicalRouteAction):
         self.logical_route_operations.create_route(self._updated_route)
         self._logger.debug("Removing route {}".format(self.logical_route))
         self.logical_route_operations.remove_route(self.logical_route)
+
+    @staticmethod
+    def initialize_for_pair(resource_pair, override, associations_table, operations_factory, logger):
+        route_operations = operations_factory.route_operations
+        src_resource = resource_pair.src_resource
+
+        if not route_operations.is_l1_resource(src_resource):
+            route_operations.load_endpoint_logical_routes(src_resource)
+
+            route_actions = map(
+                lambda logical_route: UpdateRouteAction(logical_route, route_operations,
+                                                        resource_pair.updated_connections, logger),
+                src_resource.associated_logical_routes)
+        else:
+            route_actions = []
+
+        return ActionsContainer(route_actions)

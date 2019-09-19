@@ -7,25 +7,6 @@ from cloudshell.migration.association.services.config_parser import AssociationC
 from cloudshell.migration.association.services.stem_builder import StemBuilder
 
 
-# class PortAssociator(Associator):
-#     def __init__(self, configuration, logger):
-#         """
-#         :param cloudshell.migration.configuration.config.Configuration configuration:
-#         :param cloudshell.migration.helpers.log_helper.Logger logger:
-#         """
-#
-#         super(PortAssociator, self).__init__()
-#         self._configuration = configuration
-#         self._logger = logger
-#
-#     @lru_cache()
-#     def _associate(self, resource_pair):
-#         association = PortAssociation(resource_pair, self._configuration, self._logger)
-#         if not association.valid():
-#             raise AssociationException("Cannot associate pair {}".format(resource_pair))
-#         return association
-
-
 class Associator(AbstractAssociator):
 
     def __init__(self, resource_pair, configuration, logger):
@@ -38,13 +19,7 @@ class Associator(AbstractAssociator):
         self.resource_pair = resource_pair
         self._configuration = configuration
         self._logger = logger
-        self.association_table = {}
-        self.updated_connections = {}
-        self.associations_table = {}
-
         self._stem_builder = StemBuilder(self._logger)
-        # self.src_stem_table = {}
-        # self.dst_stem_table = {}
 
     @property
     @lru_cache()

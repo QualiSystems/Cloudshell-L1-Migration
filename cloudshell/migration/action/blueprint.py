@@ -1,4 +1,6 @@
-from cloudshell.migration.action.core import Action
+from collections import defaultdict
+
+from cloudshell.migration.action.core import Action, ActionsContainer
 
 
 class UpdateBlueprintAction(Action):
@@ -58,3 +60,24 @@ class UpdateBlueprintAction(Action):
         """
         self.routes = set(self.routes) | set(action.routes)
         self.connectors = set(self.connectors) | set(action.connectors)
+
+    @staticmethod
+    def initialize_for_pair(resource_pair, override, associations_table, operations_factory, logger):
+        src_resource = resource_pair.src_resource
+        topologies_operations = operations_factory.topologies_operations
+        routes, connectors = topologies_operations.logical_routes_connectors_by_resource_name.get(
+            src_resource.name, ([], []))
+        blueprint_table = defaultdict(lambda: ([], []))
+        for route in routes:
+            blueprint_table[route.blueprint][0].append(route)
+
+        for connector in connectors:
+            blueprint_table[connector.blueprint][1].append(connector)
+
+        actions = []
+        for blueprint_name, data in blueprint_table.items():
+            actions.append(
+                UpdateBlueprintAction(blueprint_name, data[0], data[1], operations_factory.package_operations,
+                                      associations_table,
+                                      logger))
+        return ActionsContainer(actions)
