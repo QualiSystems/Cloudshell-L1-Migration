@@ -52,28 +52,14 @@ class Associator(AbstractAssociator):
     def iter_pairs(self):
         for src_port in self.resource_pair.src_resource.ports:
             if src_port.connected_to:
-                associated_dst_port = self.get_association(src_port)
+                associated_dst_port = self.get_associated(src_port)
                 if associated_dst_port:
                     yield src_port, associated_dst_port
                 else:
                     self._logger.warning('Cannot find associated port for {}'.format(src_port))
 
     @lru_cache()
-    def get_table(self):
-        """
-        :rtype: dict
-        """
-        association_table = {}
-        for src_port in self.resource_pair.src_resource.ports:
-            associated_dst_port = self.get_association(src_port)
-            if associated_dst_port:
-                association_table[src_port.name] = associated_dst_port.name
-            else:
-                self._logger.warning('Cannot find associated port for {}'.format(src_port))
-        return association_table
-
-    @lru_cache()
-    def get_association(self, src_item):
+    def get_associated(self, src_item):
         """
         :type src_item: cloudshell.migration.core.model.entities.AssociateItem
         :rtype: cloudshell.migration.core.model.entities.entities.AssociateItem
@@ -118,22 +104,28 @@ class Associator(AbstractAssociator):
                 max_num = num_rep
                 addr_rep.append(item)
 
+        dst_item = None
         if addr_rep and name_rep:
+            self._logger.debug('Association found by address and name pattern.')
             if addr_rep[-1] != name_rep[-1]:
                 self._logger.warning('Address association not match name association')
-            return addr_rep[-1]
+            dst_item = addr_rep[-1]
         elif addr_rep:
-            return addr_rep[-1]
+            self._logger.debug('Association found by address pattern.')
+            dst_item = addr_rep[-1]
         elif name_rep:
-            return name_rep[-1]
-
+            self._logger.debug('Association found by name pattern.')
+            dst_item = name_rep[-1]
         else:
             self._logger.warning('Association for {} not found'.format(str(src_item)))
 
+        if dst_item:
+            self.global_association_table[src_item.name] = dst_item.name
+        return dst_item
+
     def valid(self):
-        association_table = self.get_table()
-        if len(association_table) == 0:
+        if len(self.association_table) == 0:
             return False
-        if None in association_table.values():
+        if None in self.association_table.values():
             return False
         return True

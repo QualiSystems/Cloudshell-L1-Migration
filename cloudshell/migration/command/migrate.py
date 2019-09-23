@@ -29,12 +29,12 @@ class MigrateFlow(Command):
         self._core_factory = core_factory
         self._operation_factory = operation_factory
         self._resource_builder = resource_builder
-        self._associations_table = {}
 
     def _initialize_actions(self, resource_pair, override):
         action_container = ActionsContainer()
         for action_class in self.REGISTERED_ACTIONS:
-            actions = action_class.initialize_for_pair(resource_pair, override, self._associations_table,
+            actions = action_class.initialize_for_pair(resource_pair, override,
+                                                       resource_pair.associator.global_association_table,
                                                        self._operation_factory, self._logger)
             action_container.extend(actions)
         return action_container
@@ -53,7 +53,6 @@ class MigrateFlow(Command):
                 pair.associator = Associator(pair, self._configuration, self._logger)
                 if not pair.associator.valid():
                     raise AssociationException('Cannot associate {}'.format(str(resource_pairs)))
-                self._associations_table.update(pair.associator.get_table())
                 actions_container.extend(self._initialize_actions(pair, override))
 
         click.echo('Next actions will be executed:')
