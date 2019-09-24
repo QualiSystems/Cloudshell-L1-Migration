@@ -4,7 +4,7 @@ from cloudshell.migration.core.model.entities import AssociateItem
 
 
 class AssociationConfig(object):
-    def __init__(self, name, family, model, address_pattern, name_pattern):
+    def __init__(self, name, family, model=None, address_pattern=None, name_pattern=None):
         """
         :param str name:
         :param list[str] family:
@@ -17,6 +17,13 @@ class AssociationConfig(object):
         self.model = model
         self.address_pattern = address_pattern
         self.name_pattern = name_pattern
+
+    def __str__(self):
+        return "Config({},{},{},{},{})".format(self.name, self.family, self.model, self.address_pattern,
+                                               self.name_pattern)
+
+    def __repr__(self):
+        return self.__str__()
 
 
 # @total_ordering

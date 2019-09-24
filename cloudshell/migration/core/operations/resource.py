@@ -67,28 +67,29 @@ class ResourceOperations(Operations):
         """
         :type resource: cloudshell.migration.entities.Resource
         """
+        families = self._configuration.get_association_families(resource)
         self._logger.debug('Getting ports for resource {}'.format(resource.name))
         resource_details = self._get_resource_details(resource)
-        resource.ports = self._get_ports(resource_details)
+        resource.ports = self._get_ports(resource_details, families)
         return resource
 
-    def _get_ports(self, resource_info):
+    def _get_ports(self, resource_info, families):
         """
         :param resource_info: cloudshell.api.cloudshell_api.ResourceInfo
         """
         ports = []
-        if self._is_it_a_port(resource_info):
+        if self._is_it_a_port(resource_info, families):
             ports.append(self._build_port(resource_info))
         else:
             for child_resource_info in resource_info.ChildResources:
-                ports.extend(self._get_ports(child_resource_info))
+                ports.extend(self._get_ports(child_resource_info, families))
         return ports
 
-    def _is_it_a_port(self, resource_info):
+    def _is_it_a_port(self, resource_info, families):
         """
         :type resource_info: cloudshell.api.cloudshell_api.ResourceInfo
         """
-        if not resource_info.ChildResources and resource_info.ResourceFamilyName in self._configuration.PORT_FAMILIES:
+        if not resource_info.ChildResources and resource_info.ResourceFamilyName in families:
             return True
         else:
             return False

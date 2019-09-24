@@ -23,7 +23,7 @@ class ConfigFlow(object):
 
     def set_key_value(self, key, value):
         if key in Configuration.DEFAULT_VALUES:
-            self._configuration.configuration[key] = value
+            self._configuration.configuration[key] = str(value)
             self._configuration.save()
         else:
             raise click.UsageError('Configuration key {} does not exist'.format(key))

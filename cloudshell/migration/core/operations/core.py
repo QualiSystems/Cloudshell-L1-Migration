@@ -6,7 +6,7 @@ class Operations(object):
         """
         :param cloudshell.api.cloudshell_api.CloudShellAPISession api:
         :param  logging.Logger logger:
-        :param cloudshell.migration.config.Configuration configuration:
+        :param cloudshell.migration.configuration.config.Configuration configuration:
         :param bool dry_run:
         """
         self._api = api

@@ -9,6 +9,8 @@ import click
 import yaml
 from backports.functools_lru_cache import lru_cache
 
+from cloudshell.migration.core.model.entities import AssociateItem
+
 
 class ConfigAttribute(object):
     def __init__(self, key, default_value=None):
@@ -40,13 +42,21 @@ class Configuration(object):
     # PACKAGE_NAME = 'migration_tool'
     APP_PATH = os.path.join(click.get_app_dir('Quali'), PACKAGE_NAME)
     CONFIG_PATH = os.path.join(APP_PATH, 'cloudshell_config.yml')
-    ASSOCIATIONS_PATH = os.path.join(APP_PATH, 'associations_table.yml')
+    ASSOCIATIONS_PATH = str(os.path.join(APP_PATH, 'associations_table.yml'))
     ASSOCIATIONS_TEMPLATE_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'association',
                                               'associations_table_template.yaml')
     BACKUP_LOCATION = os.path.join(APP_PATH, 'Backup')
-    LOG_PATH = os.path.join(APP_PATH, 'Log')
-    PORT_FAMILIES = ['L1 Switch Port', 'Port', 'CS_Port']
+    LOG_PATH = str(os.path.join(APP_PATH, 'Logs'))
+    # PORT_FAMILIES = ['L1 Switch Port', 'Port', 'CS_Port']
     L1_FAMILIES = ['L1 Switch']
+
+    L1_ATTRIBUTES = [
+        'User', 'Password']
+
+    SHELL_ATTRIBUTES = ['User', 'Password', 'Enable Password', 'CLI Connection Type', 'SNMP Read Community',
+                        'SNMP Version', 'Enable SNMP', 'Disable SNMP', 'Console Password', 'Console Port',
+                        'Console Server IP Address', 'Console User', 'Power Management', 'Sessions Concurrency Limit',
+                        'SNMP Write Community', 'VRF Management Name']
 
     class KEY:
         # Basic
@@ -59,20 +69,13 @@ class Configuration(object):
         LOG_PATH = 'log_path'
         NEW_RESOURCE_NAME_PREFIX = 'name_prefix'
         BACKUP_LOCATION = 'backup_location'
+        ASSOCIATION_TABLE_PATH = 'associations_table_path'
 
         # Associations
         FAMILY = 'family'
         MODEL = 'model'
         ADDRESS_PATTERN = 'address_pattern'
         NAME_PATTERN = 'name_pattern'
-
-    L1_ATTRIBUTES = [
-        'User', 'Password']
-
-    SHELL_ATTRIBUTES = ['User', 'Password', 'Enable Password', 'CLI Connection Type', 'SNMP Read Community',
-                        'SNMP Version', 'Enable SNMP', 'Disable SNMP', 'Console Password', 'Console Port',
-                        'Console Server IP Address', 'Console User', 'Power Management', 'Sessions Concurrency Limit',
-                        'SNMP Write Community', 'VRF Management Name']
 
     DEFAULT_VALUES = {
         KEY.USERNAME: 'admin',
@@ -83,7 +86,8 @@ class Configuration(object):
         KEY.LOG_PATH: LOG_PATH,
         KEY.LOG_LEVEL: 'DEBUG',
         KEY.NEW_RESOURCE_NAME_PREFIX: 'new_',
-        KEY.BACKUP_LOCATION: BACKUP_LOCATION,
+        KEY.ASSOCIATION_TABLE_PATH: ASSOCIATIONS_PATH
+        # KEY.BACKUP_LOCATION: BACKUP_LOCATION,
         # ASSOCIATIONS_TABLE_KEY: ASSOCIATIONS_TABLE,
     }
 
@@ -97,10 +101,11 @@ class Configuration(object):
     resource_name_prefix = ConfigAttribute(KEY.NEW_RESOURCE_NAME_PREFIX,
                                            DEFAULT_VALUES.get(KEY.NEW_RESOURCE_NAME_PREFIX))
     backup_location = ConfigAttribute(KEY.BACKUP_LOCATION, DEFAULT_VALUES.get(KEY.BACKUP_LOCATION))
+    associations_table_path = ConfigAttribute(KEY.ASSOCIATION_TABLE_PATH,
+                                              DEFAULT_VALUES.get(KEY.ASSOCIATION_TABLE_PATH))
 
-    def __init__(self, config_path, associations_path=None):
+    def __init__(self, config_path):
         self._config_path = config_path or self.CONFIG_PATH
-        self._associations_path = associations_path or self.ASSOCIATIONS_PATH
 
     @property
     @lru_cache()
@@ -138,37 +143,51 @@ class Configuration(object):
             configuration = self.DEFAULT_VALUES
         return configuration
 
-    def _update_configuration(self, configuration):
-        updated = False
-        for key, value in self.DEFAULT_VALUES.iteritems():
-            if key not in configuration:
-                configuration[key] = value
-                updated = True
-        return updated
+    # def _update_configuration(self, configuration):
+    #     updated = False
+    #     for key, value in self.DEFAULT_VALUES.iteritems():
+    #         if key not in configuration:
+    #             configuration[key] = value
+    #             updated = True
+    #     return updated
 
     def _read_associations_table(self):
         """Read configuration from file if exists or use default"""
-        if not self._path_is_ok(self._associations_path):
+        if not self._path_is_ok(self.associations_table_path):
             self._initialize_association_table()
 
-        with open(self._associations_path, 'r') as table_file:
+        with open(self.associations_table_path, 'r') as table_file:
             ass_table = yaml.load(table_file)
             return ass_table
 
     def _initialize_association_table(self):
         shutil.copy(self.ASSOCIATIONS_TEMPLATE_PATH, self.ASSOCIATIONS_PATH)
 
-    def get_association_configuration(self, family, model):
+    @lru_cache()
+    def get_association_configuration(self, item):
         """
-        :param str family:
-        :param str model:
-        :rtype: dict[str,cloudshell.migration.configuration.model.AssociationItemConfig]
+        :param cloudshell.migration.core.model.entities.AssociateItem item:
+        :rtype: dict
         """
+        family = item.family
+        model = item.model
         key_order = ['{}/{}'.format(family, model), '{}/*'.format(family), '*/*']
         for key in key_order:
             association_conf = self._associations_table.get(key)
             if association_conf:
                 return association_conf
+
+    def get_association_families(self, item):
+        """
+        :param cloudshell.migration.core.model.entities.AssociateItem item:
+        :return:
+        """
+        result = set()
+        for conf in self.get_association_configuration(item).values():
+            families = conf.get(self.KEY.FAMILY)
+            if families:
+                result.update(families)
+        return result
 
     def _write_configuration(self, configuration):
         if not self._path_is_ok(self._config_path):

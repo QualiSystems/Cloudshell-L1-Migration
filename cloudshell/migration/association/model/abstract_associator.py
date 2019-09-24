@@ -21,14 +21,6 @@ class AbstractAssociator(object):
         """
         pass
 
-    @property
-    def association_table(self):
-        """
-        Associations table
-        :rtype: dict[cloudshell.migration.core.model.entities.AssociateItem, cloudshell.migration.core.model.entities.AssociateItem]
-        """
-        return dict(self.iter_pairs())
-
     @abstractmethod
     def valid(self):
         """

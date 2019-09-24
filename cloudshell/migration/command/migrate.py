@@ -52,7 +52,7 @@ class MigrateFlow(Command):
             for pair in resource_pairs:
                 pair.associator = Associator(pair, self._configuration, self._logger)
                 if not pair.associator.valid():
-                    raise AssociationException('Cannot associate {}'.format(str(resource_pairs)))
+                    raise AssociationException('Cannot associate {}'.format(str(pair)))
                 actions_container.extend(self._initialize_actions(pair, override))
 
         click.echo('Next actions will be executed:')

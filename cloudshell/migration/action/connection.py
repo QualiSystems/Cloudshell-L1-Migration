@@ -46,7 +46,7 @@ class UpdateConnectionAction(Action):
         connection_actions = []
 
         for src_port, dst_port in resource_pair.associator.iter_pairs():
-            if override or not dst_port.connected_to:
+            if src_port.connected_to and (override or not dst_port.connected_to):
                 connection_actions.append(
                     UpdateConnectionAction(src_port, dst_port, operations_factory.connection_operations,
                                            resource_pair.updated_connections, logger))

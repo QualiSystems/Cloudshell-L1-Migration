@@ -107,23 +107,23 @@ def migrate(ctx, config_path, dry_run, src_resources, dst_resources, yes, backup
     migration_flow.execute_migrate_flow(src_resources, dst_resources, yes, override)
 
 
-@cli.command()
-@click.option(u'--config', u'-c', 'config_path', default=None, help="Backup using a custom yaml config file.",
-              metavar="FILE-PATH")
-@click.option(u'--backup-file', default=None, help="Backup to a different yaml file.", metavar="BACKUP FILE-PATH")
-@click.option(u'--connections', is_flag=True, default=False, help="Backup connections only.")
-@click.option(u'--routes', is_flag=True, default=False, help="Backup routes.")
-@click.option(u'--connectors', 'connectors', default=True, help="Backup connectors.")
-@click.option(u'--yes', u'-y', is_flag=True, default=False, help='Assume "yes" to all questions.')
-@click.argument(u'resources', type=str, default=None, required=False, metavar='RESOURCES')
-def backup(config_path, backup_file, resources, connections, routes, connectors, yes):
-    """
-    Backup connections and routes.
-
-    RESOURCES: Comma-separated list of the names of the desired resources.
-    """
-    configuration = Configuration(config_path)
-    pass
+# @cli.command()
+# @click.option(u'--config', u'-c', 'config_path', default=None, help="Backup using a custom yaml config file.",
+#               metavar="FILE-PATH")
+# @click.option(u'--backup-file', default=None, help="Backup to a different yaml file.", metavar="BACKUP FILE-PATH")
+# @click.option(u'--connections', is_flag=True, default=False, help="Backup connections only.")
+# @click.option(u'--routes', is_flag=True, default=False, help="Backup routes.")
+# @click.option(u'--connectors', 'connectors', default=True, help="Backup connectors.")
+# @click.option(u'--yes', u'-y', is_flag=True, default=False, help='Assume "yes" to all questions.')
+# @click.argument(u'resources', type=str, default=None, required=False, metavar='RESOURCES')
+# def backup(config_path, backup_file, resources, connections, routes, connectors, yes):
+#     """
+#     Backup connections and routes.
+#
+#     RESOURCES: Comma-separated list of the names of the desired resources.
+#     """
+#     configuration = Configuration(config_path)
+#     pass
     # factory = Factory(configuration)
     # api = _initialize_api(config_operations)
     # logger = _initialize_logger(config_operations)
@@ -147,32 +147,32 @@ def backup(config_path, backup_file, resources, connections, routes, connectors,
     # click.echo('Backup done')
 
 
-@cli.command()
-@click.option(u'--config', 'config_path', default=None, help="Use a custom config file.", metavar="FILE-PATH")
-@click.option(u'--dry-run', is_flag=True, default=False, help="Dry run creates resources but does not switch "
-                                                              "physical connections or create and remove routes.")
-@click.option(u'--backup-file', default=None, required=True, help="Backup file path.")
-@click.option(u'--override', is_flag=True, default=False, help="Port connections on the source resource override any "
-                                                               "existing portconnections on the destination resource.")
-@click.option(u'--yes', is_flag=True, default=False, help='Assume "yes" to all questions.')
-@click.option(u'--connections', 'connections', default=True, help="Restore connections.")
-@click.option(u'--routes', 'routes', default=True, help="Restore routes.")
-@click.option(u'--connectors', 'connectors', default=True, help="Restore connectors.")
-@click.argument(u'resources', type=str, default=None, required=False)
-def restore(config_path, backup_file, dry_run, resources, connections, routes, connectors, override, yes):
-    """
-    Restore connections and routes.
-
-    BACKUP FILE-PATH:
-        The full path to the backup file, including the file name.
-
-    RESOURCES:
-        Comma-separated list of the names of the desired resources.
-        You do not need to specify the full path from the root of the desired resource(s).
-            However, the tool will create the new resource(s) in the root.
-    """
-    configuration = Configuration(config_path)
-    pass
+# @cli.command()
+# @click.option(u'--config', 'config_path', default=None, help="Use a custom config file.", metavar="FILE-PATH")
+# @click.option(u'--dry-run', is_flag=True, default=False, help="Dry run creates resources but does not switch "
+#                                                               "physical connections or create and remove routes.")
+# @click.option(u'--backup-file', default=None, required=True, help="Backup file path.")
+# @click.option(u'--override', is_flag=True, default=False, help="Port connections on the source resource override any "
+#                                                                "existing portconnections on the destination resource.")
+# @click.option(u'--yes', is_flag=True, default=False, help='Assume "yes" to all questions.')
+# @click.option(u'--connections', 'connections', default=True, help="Restore connections.")
+# @click.option(u'--routes', 'routes', default=True, help="Restore routes.")
+# @click.option(u'--connectors', 'connectors', default=True, help="Restore connectors.")
+# @click.argument(u'resources', type=str, default=None, required=False)
+# def restore(config_path, backup_file, dry_run, resources, connections, routes, connectors, override, yes):
+#     """
+#     Restore connections and routes.
+#
+#     BACKUP FILE-PATH:
+#         The full path to the backup file, including the file name.
+#
+#     RESOURCES:
+#         Comma-separated list of the names of the desired resources.
+#         You do not need to specify the full path from the root of the desired resource(s).
+#             However, the tool will create the new resource(s) in the root.
+#     """
+#     configuration = Configuration(config_path)
+#     pass
     # api = _initialize_api(config_operations)
     # logger = _initialize_logger(config_operations)
     # resource_operations = ResourceOperations(api, logger, config_operations, dry_run)

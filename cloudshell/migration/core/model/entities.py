@@ -87,7 +87,10 @@ class Port(AssociateItem):
         return hash(self.name)
 
     def __eq__(self, other):
-        return self.name == other.name
+        if isinstance(other, self.__class__):
+            return self.name == other.name
+        else:
+            return False
 
     def __lt__(self, other):
         return self.name < other.name
