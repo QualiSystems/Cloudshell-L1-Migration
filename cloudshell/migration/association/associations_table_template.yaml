@@ -6,7 +6,7 @@
     - Port
     model:
     - '*'
-    name_pattern: ^[-\.\[\]\|\w\s]+/[\w\s]+/[\w\s]+$
+    name_pattern: ^[-\.\[\]\|\w\s]+/([\w\s]+)/([\w\s]+)$
   Module Port:
     address_pattern: ^.+/CH(\d+)/M(\d+)/P(\d+)$
     family:
@@ -14,7 +14,7 @@
     - Port
     model:
     - '*'
-    name_pattern: ^[-\.\[\]\|\w\s]+/[\w\s]+/[\w\s]+/[\w\s]+$
+    name_pattern: ^[-\.\[\]\|\w\s]+/([\w\s]+)/([\w\s]+)/([\w\s]+)$
   PortChannel:
     address_pattern: ^.+/PC(\d+)$
     family:
@@ -22,7 +22,7 @@
     - Port
     model:
     - '*'
-    name_pattern: ^[-\.\[\]\|\w\s]+/[\w\s]+$
+    name_pattern: ^[-\.\[\]\|\w\s]+/([\w\s]+)$
   SubModule Port:
     address_pattern: ^.+/CH(\d+)/M(\d+)/SM(\d+)/P(\d+)$
     family:
@@ -30,7 +30,7 @@
     - Port
     model:
     - '*'
-    name_pattern: ^[-\.\[\]\|\w\s]+/[\w\s]+/[\w\s]+/[\w\s]+/[\w\s]+$
+    name_pattern: ^[-\.\[\]\|\w\s]+/([\w\s]+)/([\w\s]+)/([\w\s]+)/([\w\s]+)$
 CS_Router/AristaEosRouterShell2G:
   Port:
     address_pattern: .*/.*/M(d+)/P(d+)
@@ -87,3 +87,15 @@ Switch/Arista EOS Switch:
     model:
     - '*'
     name_pattern: .*/(\w+)
+L1 Switch/Rome Chassis:
+  L1 Port:
+    address_pattern: ^.*/\d*([a-z]+)/(\d+)$
+    family:
+      - L1 Switch Port
+    name_pattern: ^[-\.\[\]\|\w\s]+/Blade\s*(\w+)/Port\s*[a-z]+(\d+)$
+L1 Robotic Switch/Rome:
+  Rome Port:
+    address_pattern: ^([a-z]+)/\d+/(\d+)$
+    family:
+      - Rome Port
+    name_pattern: ^([a-z]+)/[-\.\[\]\|\w\s]+/Port\s*(\d+)$

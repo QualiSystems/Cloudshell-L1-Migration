@@ -12,7 +12,7 @@ class ResourceBuilder(object):
         """
         :type logger: logging.Logger
         :type configuration: cloudshell.migration.config.Configuration
-        :type resource_operations: cloudshell.migration.operations.resource.ResourceOperations
+        :type resource_operations: cloudshell.migration.core.operations.resource.ResourceOperations
         """
         self._logger = logger
         self._configuration = configuration

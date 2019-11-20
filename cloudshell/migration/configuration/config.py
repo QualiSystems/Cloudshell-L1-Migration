@@ -48,7 +48,7 @@ class Configuration(object):
     BACKUP_LOCATION = os.path.join(APP_PATH, 'Backup')
     LOG_PATH = str(os.path.join(APP_PATH, 'Logs'))
     # PORT_FAMILIES = ['L1 Switch Port', 'Port', 'CS_Port']
-    L1_FAMILIES = ['L1 Switch']
+    L1_FAMILIES = ['L1 Switch', 'L1 Robotic Switch']
 
     L1_ATTRIBUTES = [
         'User', 'Password']

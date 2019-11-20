@@ -2,3 +2,4 @@ include *.txt
 global-include *.ini
 global-include *.txt
 global-include *.xml
+global-include *.yaml

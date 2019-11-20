@@ -11,7 +11,8 @@ class StemBuilder(object):
         self._logger = logger
 
     def _build_address_stem(self, address, pattern):
-        self._compile_pattern(pattern)
+        self._logger.debug("Address: {}".format(address))
+        pattern = self._compile_pattern(pattern)
         match = re.search(pattern, address)
         if match:
             result = tuple(map(lambda x: x.zfill(2), match.groups() or [match.group(0)]))
@@ -19,7 +20,8 @@ class StemBuilder(object):
         # self._logger.debug('Cannot match address {} for pattern {}'.format(address, pattern))
 
     def _build_name_stem(self, name, pattern):
-        self._compile_pattern(pattern)
+        self._logger.debug("Name: {}".format(name))
+        pattern = self._compile_pattern(pattern)
         match = re.search(pattern, name)
         if match:
             result = tuple(match.groups() or [match.group(0)])
